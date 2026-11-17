@@ -1,0 +1,173 @@
+// ============================================================
+//  READING TEST TEMPLATE  —  IELTS Practice Studio
+//  1. Save a copy of this file (e.g. "Cambridge 18 Test 1 Reading.txt")
+//  2. Replace the example text with your test
+//  3. Dashboard → Import → choose the .txt file
+//  Lines starting with // are comments and are ignored.
+//  Full guide: HOW-TO-ADD-TESTS.md in the main folder.
+// ============================================================
+
+TITLE: Cambridge 18 — Test 1 Reading
+MODULE: Reading
+TYPE: Academic
+TIME: 60
+
+
+// ------------------------------------------------------------
+//  PASSAGE 1  (one "=== ... ===" line per passage)
+// ------------------------------------------------------------
+=== PASSAGE 1 ===
+TITLE: The Title of Passage One
+TEXT:
+[A] Paste paragraph A here. Leave one empty line between paragraphs.
+Use [A], [B], [C]… at the start of a paragraph only if the passage has paragraph letters.
+
+[B] Paste paragraph B here.
+
+[C] Paste paragraph C here.
+
+[D] Paste paragraph D here.
+
+--- TRUE FALSE NOT GIVEN ---
+INSTRUCTIONS:
+Do the following statements agree with the information given in Reading Passage 1?
+
+Choose
+**TRUE** if the statement agrees with the information
+**FALSE** if the statement contradicts the information
+**NOT GIVEN** if there is no information on this
+QUESTIONS:
+1. First statement goes here. | TRUE
+2. Second statement goes here. | FALSE
+3. Third statement goes here. | NOT GIVEN
+
+--- SENTENCE COMPLETION ---
+INSTRUCTIONS:
+Complete the sentences below.
+
+Choose **NO MORE THAN TWO WORDS** from the passage for each answer.
+TEXT:
+The first sentence ends with a gap [[answer one]].
+The second sentence has two accepted answers [[colour / color]].
+Optional words go in brackets [[(the) river]].
+
+--- MULTIPLE CHOICE ---
+INSTRUCTIONS:
+Choose the correct letter, **A**, **B**, **C** or **D**.
+QUESTIONS:
+7. The writer mentions the experiment in order to
+A. first option
+B. second option
+C. third option
+D. fourth option
+ANSWER: C
+
+8. Second multiple-choice question
+A. first option
+B. second option
+C. third option
+D. fourth option
+ANSWER: A
+
+
+// ------------------------------------------------------------
+//  PASSAGE 2
+// ------------------------------------------------------------
+=== PASSAGE 2 ===
+TITLE: The Title of Passage Two
+TEXT:
+[A] Paragraph A of passage 2.
+
+[B] Paragraph B of passage 2.
+
+[C] Paragraph C of passage 2.
+
+--- MATCHING HEADINGS ---
+INSTRUCTIONS:
+Reading Passage 2 has three paragraphs, **A–C**.
+
+Choose the correct heading for each paragraph from the list of headings below.
+TITLE: List of Headings
+OPTIONS:
+i. First heading
+ii. Second heading
+iii. Third heading
+iv. Fourth heading
+QUESTIONS:
+9. Paragraph A | ii
+10. Paragraph B | iv
+11. Paragraph C | i
+
+--- MATCHING INFORMATION ---
+INSTRUCTIONS:
+Which paragraph contains the following information?
+
+**NB** You may use any letter more than once.
+REUSE: yes
+OPTIONS:
+A
+B
+C
+QUESTIONS:
+12. a description of an early invention | B
+13. a reference to future research | C
+
+--- CHOOSE TWO ---
+INSTRUCTIONS:
+Choose **TWO** letters, **A–E**.
+QUESTIONS:
+14. Which **TWO** reasons does the writer give for the change?
+A. first option
+B. second option
+C. third option
+D. fourth option
+E. fifth option
+ANSWER: B, E
+
+
+// ------------------------------------------------------------
+//  PASSAGE 3
+// ------------------------------------------------------------
+=== PASSAGE 3 ===
+TITLE: The Title of Passage Three
+TEXT:
+Paste passage 3 here. A passage without paragraph letters is fine too.
+
+## A sub-heading inside the passage
+
+More text…
+
+--- YES NO NOT GIVEN ---
+INSTRUCTIONS:
+Do the following statements agree with the claims of the writer in Reading Passage 3?
+
+Choose
+**YES** if the statement agrees with the claims of the writer
+**NO** if the statement contradicts the claims of the writer
+**NOT GIVEN** if it is impossible to say what the writer thinks about this
+QUESTIONS:
+16. First claim. | YES
+17. Second claim. | NO
+
+--- SUMMARY COMPLETION ---
+INSTRUCTIONS:
+Complete the summary using the list of words, **A–F**, below.
+TITLE: Summary title
+TEXT:
+Researchers found that the method was [[C]] and also quite [[A]] to use.
+OPTIONS:
+A. simple
+B. expensive
+C. effective
+D. dangerous
+E. slow
+F. modern
+
+--- SHORT ANSWER ---
+INSTRUCTIONS:
+Answer the questions below.
+
+Choose **NO MORE THAN THREE WORDS AND/OR A NUMBER** from the passage for each answer.
+QUESTIONS:
+20. In which year did the project begin? | 1998
+21. Who paid for the research? | (the) government

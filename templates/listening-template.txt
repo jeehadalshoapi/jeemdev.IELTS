@@ -1,0 +1,121 @@
+// ============================================================
+//  LISTENING TEST TEMPLATE  —  IELTS Practice Studio
+//  Put this .txt file and the audio files in the same folder.
+//  Dashboard → Import → select the .txt AND the audio files together
+//  (hold Ctrl and click each file).
+//  The AUDIO: names below must match the audio file names exactly.
+//  If you have ONE audio file for the whole test, put AUDIO: only in Part 1.
+//  Full guide: HOW-TO-ADD-TESTS.md in the main folder.
+// ============================================================
+
+TITLE: Cambridge 18 — Test 1 Listening
+MODULE: Listening
+TIME: 35
+
+
+=== PART 1 ===
+AUDIO: part1.mp3
+TRANSCRIPT:
+(Optional) Paste the transcript here. It is shown only after you finish.
+
+--- FORM COMPLETION ---
+INSTRUCTIONS:
+Complete the form below.
+
+Write **ONE WORD AND/OR A NUMBER** for each answer.
+TEXT:
+# Hotel Booking Form
+Name: Sarah [[Mitchell]]
+Phone number: [[07700 900123]]
+- Room type: [[double]]
+- Number of nights: [[3 / three]]
+
+--- TABLE COMPLETION ---
+INSTRUCTIONS:
+Complete the table below.
+
+Write **NO MORE THAN TWO WORDS** for each answer.
+TEXT:
+Activity | Day | Cost
+Boat trip | [[Monday]] | £15
+[[(the) museum]] | Wednesday | free
+
+
+=== PART 2 ===
+AUDIO: part2.mp3
+
+--- MULTIPLE CHOICE ---
+INSTRUCTIONS:
+Choose the correct letter, **A**, **B** or **C**.
+QUESTIONS:
+7. Why did the speaker start the club?
+A. to make new friends
+B. to keep fit
+C. to learn a new skill
+ANSWER: B
+
+--- MAP LABELLING ---
+INSTRUCTIONS:
+Label the map below.
+
+Write the correct letter, **A–E**, next to Questions 8–10.
+IMAGE: map.png
+OPTIONS:
+A
+B
+C
+D
+E
+QUESTIONS:
+// Map labelling with letters works like matching: | then the correct letter
+8. Café | C
+9. Car park | A
+10. Gift shop | E
+
+
+=== PART 3 ===
+AUDIO: part3.mp3
+
+--- CHOOSE TWO ---
+INSTRUCTIONS:
+Choose **TWO** letters, **A–E**.
+QUESTIONS:
+11. Which **TWO** problems do the students mention?
+A. lack of time
+B. cost of materials
+C. poor results
+D. group size
+E. software problems
+ANSWER: A, D
+
+--- MATCHING ---
+INSTRUCTIONS:
+What does the tutor say about each of the following?
+
+Choose the correct letter, **A–C**.
+REUSE: yes
+OPTIONS:
+A. it is essential
+B. it is useful but not essential
+C. it is not necessary
+QUESTIONS:
+13. a bibliography | A
+14. charts and graphs | B
+15. a summary | C
+
+
+=== PART 4 ===
+AUDIO: part4.mp3
+
+--- NOTE COMPLETION ---
+INSTRUCTIONS:
+Complete the notes below.
+
+Write **ONE WORD ONLY** for each answer.
+TEXT:
+# The history of glass
+- First made in [[Mesopotamia]]
+- Romans used it for [[windows]]
+> Sand is heated
+> Glass is [[shaped]]
+> It cools slowly

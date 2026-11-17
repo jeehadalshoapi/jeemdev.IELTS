@@ -1,0 +1,43 @@
+// ============================================================
+//  WRITING TEST TEMPLATE  —  IELTS Practice Studio
+//  For an Academic Task 1 chart: put the picture in the same folder,
+//  write its file name after IMAGE:, and select the .txt AND the picture
+//  together when you import.
+//  Full guide: HOW-TO-ADD-TESTS.md in the main folder.
+// ============================================================
+
+TITLE: Cambridge 18 — Test 1 Writing
+MODULE: Writing
+TYPE: Academic
+TIME: 60
+
+
+=== TASK 1 ===
+MIN WORDS: 150
+IMAGE: task1-chart.png
+PROMPT:
+You should spend about 20 minutes on this task.
+
+The chart below shows the number of visitors to three museums between 2010 and 2020.
+
+Summarise the information by selecting and reporting the main features, and make comparisons where relevant.
+
+Write at least 150 words.
+MODEL ANSWER:
+(Optional) Paste a model answer here. It is shown only after you finish.
+
+
+=== TASK 2 ===
+MIN WORDS: 250
+PROMPT:
+You should spend about 40 minutes on this task.
+
+Write about the following topic:
+
+**Some people think that all university students should study whatever they like. Others believe that they should only be allowed to study subjects that will be useful in the future.**
+
+**Discuss both these views and give your own opinion.**
+
+Give reasons for your answer and include any relevant examples from your own knowledge or experience.
+
+Write at least 250 words.

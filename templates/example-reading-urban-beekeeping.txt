@@ -1,0 +1,99 @@
+// IELTS Practice Studio test file — see HOW-TO-ADD-TESTS.md for the format
+
+TITLE: Sample Reading — Urban Beekeeping
+MODULE: Reading
+TYPE: Academic
+TIME: 20
+DESCRIPTION: A short one-passage sample that uses every question type. Try it, then open it in the editor to see how it was built.
+
+=== Passage 1 ===
+TITLE: The Return of the Urban Beekeeper
+TEXT:
+[A] Twenty years ago, the idea of keeping bees on the roof of an office tower would have struck most city planners as eccentric at best. Today, hives can be found on hotels in Paris, railway stations in Tokyo and public libraries in Toronto. The number of registered urban beekeepers in London alone more than doubled between 2008 and 2013, and similar growth has been reported in many large cities. What began as a hobby for a handful of enthusiasts has become a visible part of the modern urban landscape.
+
+[B] The trend was driven largely by alarm. In the mid-2000s, beekeepers in North America and Europe began reporting sudden and unexplained losses of entire colonies, a phenomenon that was later labelled 'colony collapse disorder'. Media coverage was intense, and many city dwellers concluded that they could help by giving bees a home. Supporters also pointed out that cities can be surprisingly good places for bees: parks, private gardens and roadside verges offer a wide variety of flowers, and urban areas are often treated with fewer agricultural pesticides than the surrounding countryside.
+
+[C] Yet not all scientists are convinced that the boom has been beneficial. The honeybee is only one of thousands of bee species, and most of the others are wild, solitary insects that do not live in hives at all. Researchers at several universities have warned that when too many managed colonies are placed in a small area, honeybees compete with these wild species for nectar and pollen. One study in Paris found that the number of wild pollinators visiting flowers fell noticeably in districts with the highest density of hives.
+
+[D] Disease is a further concern. Honeybees kept close together can pass parasites and viruses from one colony to another, and some of these infections can also spread to wild bees visiting the same flowers. Experienced keepers inspect their hives regularly, but many newcomers lack the knowledge to recognise early signs of illness. For this reason, several cities now require beekeepers to register their hives, and some offer free training courses before a permit is issued.
+
+[E] Supporters of urban beekeeping argue that the hobby has educational value that is hard to measure. Schools that keep hives report that pupils become more interested in nature and in where their food comes from. Honey from rooftop hives has also become a popular local product, with some restaurants charging premium prices for dishes made with honey produced only a few metres away.
+
+[F] Many ecologists now suggest a different approach. Rather than adding more hives, they argue, cities should concentrate on planting the right flowers. Native wildflowers, flowering trees and 'green roofs' covered with low-growing plants benefit honeybees and wild species alike. In this view, the best thing a city resident can do for bees is not to keep them, but to feed them.
+
+--- MATCHING ---
+INSTRUCTIONS:
+Reading Passage 1 has six paragraphs, **A–F**.
+
+Choose the correct heading for paragraphs **B–F** from the list of headings below.
+
+Drag the correct heading into each box.
+TITLE: List of Headings
+OPTIONS:
+i. A threat to other insects
+ii. The financial cost of keeping bees
+iii. Why people started keeping bees in cities
+iv. Benefits beyond honey production
+v. A risk of spreading illness
+vi. Feeding rather than keeping
+vii. The decline of rural farming
+QUESTIONS:
+1. Paragraph B | iii
+2. Paragraph C | i
+3. Paragraph D | v
+4. Paragraph E | iv
+5. Paragraph F | vi
+
+--- TRUE FALSE NOT GIVEN ---
+INSTRUCTIONS:
+Do the following statements agree with the information given in the passage?
+
+Choose
+**TRUE** if the statement agrees with the information
+**FALSE** if the statement contradicts the information
+**NOT GIVEN** if there is no information on this
+QUESTIONS:
+6. The number of urban beekeepers in London rose by more than 100% in five years. | TRUE
+7. Colony collapse disorder was first identified in Europe. | NOT GIVEN
+8. Cities generally use more agricultural pesticides than rural areas. | FALSE
+9. Most bee species live in hives. | FALSE
+
+--- MULTIPLE CHOICE ---
+INSTRUCTIONS:
+Choose the correct letter, **A**, **B**, **C** or **D**.
+QUESTIONS:
+10. According to paragraph C, the study in Paris showed that
+A. honeybee colonies were smaller in the city centre.
+B. fewer wild pollinators visited flowers where hives were most concentrated.
+C. wild bees had started to attack honeybee hives.
+D. the number of flowers in Paris had fallen.
+ANSWER: B
+
+--- COMPLETION ---
+INSTRUCTIONS:
+Complete the summary below.
+
+Choose **ONE WORD ONLY** from the passage for each answer.
+TITLE: Helping bees in the city
+TEXT:
+Because illness can spread between colonies, several cities now ask beekeepers to [[register]] their hives, and some provide free training before a [[permit]] is given. Ecologists believe residents should focus on planting native wildflowers, flowering trees and green [[roofs]], because these help honeybees and [[wild]] species alike.
+
+--- CHOOSE TWO ---
+INSTRUCTIONS:
+Choose **TWO** letters, **A–E**.
+QUESTIONS:
+15. Which **TWO** benefits of urban beekeeping are mentioned in paragraph E?
+A. Pupils become more interested in the natural world.
+B. Beekeepers can earn a high income.
+C. Restaurants can sell expensive dishes made with local honey.
+D. Hives help to reduce air pollution.
+E. Bees make city gardens more attractive.
+ANSWER: A, C
+
+--- SHORT ANSWER ---
+INSTRUCTIONS:
+Answer the question below.
+
+Choose **NO MORE THAN THREE WORDS** from the passage for the answer.
+QUESTIONS:
+17. What name was given to the sudden loss of whole bee colonies? | (the) colony collapse disorder

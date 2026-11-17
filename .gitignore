@@ -1,0 +1,21 @@
+# dependencies / builds
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# secrets — never commit real env files
+.env
+.env.*
+!.env.example
+
+# local data (dev database, uploaded files)
+.data/
+uploads/
+
+# logs / OS / editor
+*.log
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
