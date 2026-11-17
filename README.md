@@ -1,51 +1,67 @@
-# IELTS Practice Studio
+# IELTS Practice Platform
 
-A personal IELTS simulator. Build tests in the dashboard, then take them in an interface that works like the computer-delivered exam.
+A private IELTS practice site at **https://ielts.jeemdev.net**. Claude writes tests and homework, you take them on any device (phone or laptop), and your progress is saved on the server. The full plan is in [IELTS_PLATFORM_SPEC.md](IELTS_PLATFORM_SPEC.md).
 
-> **Moving to a server.** The site is being rebuilt as an online platform: a database on the VPS, login, tests uploaded by Claude through an MCP connector, and progress synced across devices. See [IELTS_PLATFORM_SPEC.md](IELTS_PLATFORM_SPEC.md).
-> Until Phase 2 is done, the browser-only site described below keeps working as before.
+| Phase | What | Status |
+|---|---|---|
+| 1 | Test format (zod), database, migrations, seed, legacy import | ✅ |
+| 2 | Login, dashboard, test runner with server autosave and resume on any device, phone layout, deployment | ✅ |
+| 3 | Auto-scoring, band estimate, results page, history | next |
+| 4 | Import box (paste test JSON) | |
+| 5 | MCP server: the claude.ai connector | |
+| 6 | Writing charts, plan+intro timers, speaking recording, listening speech playback | |
+| 7 | Claude's feedback on the results page, progress charts | |
 
-## Platform (in development)
+## Folders
+- `shared/`: the test format (zod schemas, validation, answer helpers) and the API types. Used by everything else.
+- `server/`: Express + PostgreSQL (Drizzle). Login, REST API, file serving, migrations (`server/drizzle`), scripts.
+- `web/`: the website (TypeScript + Vite). Dashboard and the computer-delivered-IELTS-style test runner.
+- `templates/`, `HOW-TO-ADD-TESTS.md`: the old text-file format. It comes back in the Phase 4 import box.
 
+## Run it on your PC
 Needs Node.js 22 or newer.
 
 ```bash
 npm install
-npm test                 # all automated tests
+npm run dev          # API on :3000 + website on http://localhost:5173 (development password: ielts-dev)
+npm test             # all automated tests
 npm run typecheck
-npm run db:migrate       # create / update the database tables
-npm run db:seed          # add the sample reading test
-npm run db:tests         # list the tests in the database
-npm run validate -- my-test.json             # check a test JSON (e.g. from Claude) without saving it
-npm run db:import-legacy -- export.json      # bring in tests from the old site's "Export all" file
+npm run build && npm start     # the production build on http://localhost:3000
 ```
 
-- On your PC the database is a local PGlite folder (`.data/pglite`). On the VPS, set `DATABASE_URL` in `.env` (see `.env.example`) to use PostgreSQL.
-- Folders: `shared/` holds the test format (zod schemas, validation, answer helpers), `server/` the database, migrations (`server/drizzle`) and scripts.
+On your PC the database is a local PGlite folder (`.data/pglite`), so you don't need to install PostgreSQL. Other commands:
 
-## Open it
-Double-click `index.html` (Chrome or Edge recommended). You don't need to install anything or run a server.
-Tests, audio and results are saved in this browser on this computer, so use **Export all** now and then as a backup.
+```bash
+npm run db:seed                            # add the sample reading test
+npm run db:tests                           # list the tests in the database
+npm run validate -- my-test.json           # check a test JSON (e.g. from Claude) without saving it
+npm run db:import-legacy -- export.json    # tests from the old browser-only site's "Export all" file
+npm run hash-password -- "a password"      # a hash for ADMIN_PASSWORD_HASH
+```
 
-## Add a test
-**→ Read [HOW-TO-ADD-TESTS.md](HOW-TO-ADD-TESTS.md).** It explains the text-file format, every question type, and has an AI prompt for converting PDFs.
+## How it works
+- **Login:** one password. The server stores only its scrypt hash (`ADMIN_PASSWORD_HASH`). Sessions use an httpOnly cookie. Changes are protected by a CSRF token and a same-origin check. 10 wrong passwords lock that IP out for 15 minutes. Every page, API route and uploaded file needs a login, except the login page and `/health`.
+- **Autosave:** each answer change is sent within a second, and a heartbeat goes every 10 seconds. Only changes are sent, so two devices never overwrite each other. Offline, unsent changes stay in the browser (the only use of localStorage besides display settings) and sync when the connection is back.
+- **Clock:** exam mode runs on the wall clock: the deadline is fixed on the server and keeps running when the page is closed. When it passes, the server submits the saved answers. Practice mode counts only the time you actually spend in the test, can be paused, and closing the page pauses it.
+- **Secrets stay on the server:** the answer key and listening transcripts are never sent to the browser before you submit.
 
-The fastest way is with a text file:
-1. Copy a template from the [templates](templates/) folder (`reading-template.txt`, `listening-template.txt`, `writing-template.txt`).
-2. Replace the example content with your test, then save.
-3. Dashboard → **⭳ Import** → select the `.txt` file, plus its audio and pictures (hold Ctrl). You can also drag the files onto the page.
+## Deploy (VPS)
+The VPS runs several projects behind one shared Caddy proxy (`/opt/edge`), following the `contaboserver` repo's `ADD-PROJECT.md`. The IELTS files are in that repo under `stack-ielts/` and on the box in `/opt/ielts/stack/`:
 
-You can also build a test in the editor (**＋ New test**) and fix any imported test there.
+| | |
+|---|---|
+| `/opt/ielts/jeemdev.IELTS` | this repo (the Dockerfile builds it) |
+| `/opt/ielts/stack/docker-compose.yml` | `ielts-app` (internal + edge network) and `ielts-db` (PostgreSQL 17, internal network only). No published ports |
+| `/opt/ielts/stack/.env` | `POSTGRES_PASSWORD`, `ADMIN_PASSWORD_HASH` (chmod 600, in no repo) |
+| `/opt/edge/sites/ielts.caddy` | `ielts.jeemdev.net → ielts-app:3000`, automatic HTTPS |
 
-## Full test mode
-Dashboard → **🏁 Full test**: Listening → Reading → Writing back-to-back, with one result page and an overall band at the end.
+```bash
+ssh gehad@169.58.112.108
+cd /opt/ielts/stack
+./deploy.sh              # git pull + rebuild + restart; migrations run on start
+./change-password.sh     # set a new login password (logs out every device)
+./backup.sh              # also runs daily from cron: database + uploads, kept 14 days in /opt/ielts/backups
+docker compose logs -f app
+```
 
-## Exam tools
-- Highlights and notes: select text, then right-click or use the pop-up menu.
-- Timer: warnings at 10 and 5 minutes. Click the timer to hide it.
-- Question navigator with answered and "Review" markers. Use ◀ ▶ or Alt + ← / →.
-- Matching: drag and drop, or click an option and then a box.
-- Resizable passage/question split, text size, and colour schemes (white on black, yellow on black). Full screen.
-- Exam mode (strict) or Practice mode (pause, replay audio, change speed).
-- Auto-save: close the page and resume later.
-- Results: score, estimated band, breakdown by part and question type, and a review of your answers inside the test view.
+Check it from anywhere with `curl https://ielts.jeemdev.net/health`, which should return `{"ok":true,"db":"up"}`.

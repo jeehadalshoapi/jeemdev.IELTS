@@ -52,6 +52,26 @@ export function listItems(parts: readonly Part[]): AnswerItem[] {
   return items;
 }
 
+/** an answer that is not empty (text, chosen letters, or a Task 2 drill with some text) */
+export function isAnswered(v: unknown): boolean {
+  if (v === null || v === undefined) return false;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  return Object.values(v as object).some(x => typeof x === 'string' && x.trim() !== '');
+}
+
+/** answered / total, counted in question numbers ("choose TWO" = 2); writing and speaking tasks count 1 each */
+export function progressOf(answers: Record<string, unknown>, parts: readonly Part[]): { answered: number; total: number } {
+  let answered = 0, total = 0;
+  for (const item of listItems(parts)) {
+    const units = Math.max(1, item.marks);
+    const v = answers[item.id];
+    total += units;
+    answered += item.type === 'mcq_multi' ? Math.min(Array.isArray(v) ? v.length : 0, units) : isAnswered(v) ? units : 0;
+  }
+  return { answered, total };
+}
+
 /** total auto-scored marks (e.g. 40 for a full reading test) */
 export function totalMarks(parts: readonly Part[]): number {
   return listItems(parts).reduce((s, i) => s + i.marks, 0);
