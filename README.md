@@ -2,6 +2,27 @@
 
 A personal IELTS simulator. Build tests in the dashboard, then take them in an interface that works like the computer-delivered exam.
 
+> **Moving to a server.** The site is being rebuilt as an online platform: a database on the VPS, login, tests uploaded by Claude through an MCP connector, and progress synced across devices. See [IELTS_PLATFORM_SPEC.md](IELTS_PLATFORM_SPEC.md).
+> Until Phase 2 is done, the browser-only site described below keeps working as before.
+
+## Platform (in development)
+
+Needs Node.js 22 or newer.
+
+```bash
+npm install
+npm test                 # all automated tests
+npm run typecheck
+npm run db:migrate       # create / update the database tables
+npm run db:seed          # add the sample reading test
+npm run db:tests         # list the tests in the database
+npm run validate -- my-test.json             # check a test JSON (e.g. from Claude) without saving it
+npm run db:import-legacy -- export.json      # bring in tests from the old site's "Export all" file
+```
+
+- On your PC the database is a local PGlite folder (`.data/pglite`). On the VPS, set `DATABASE_URL` in `.env` (see `.env.example`) to use PostgreSQL.
+- Folders: `shared/` holds the test format (zod schemas, validation, answer helpers), `server/` the database, migrations (`server/drizzle`) and scripts.
+
 ## Open it
 Double-click `index.html` (Chrome or Edge recommended). You don't need to install anything or run a server.
 Tests, audio and results are saved in this browser on this computer, so use **Export all** now and then as a backup.

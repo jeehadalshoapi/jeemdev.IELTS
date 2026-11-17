@@ -1,0 +1,13 @@
+{
+  "name": "@ielts/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Test format (zod schemas), types and answer helpers shared by the server, the MCP tools and the website",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}

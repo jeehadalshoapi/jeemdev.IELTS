@@ -1,0 +1,25 @@
+{
+  "name": "@ielts/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend: database, REST API and MCP endpoint",
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/scripts/migrate.ts",
+    "db:seed": "tsx src/scripts/seed.ts",
+    "db:tests": "tsx src/scripts/list-tests.ts",
+    "db:import-legacy": "tsx src/scripts/import-legacy.ts",
+    "validate": "tsx src/scripts/validate.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@ielts/shared": "*",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11"
+  }
+}
