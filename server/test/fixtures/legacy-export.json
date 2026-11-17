@@ -1,0 +1,879 @@
+{
+ "format": "ielts-practice-studio",
+ "version": 1,
+ "exportedAt": "2026-11-17T11:13:31.217Z",
+ "exams": [
+  {
+   "id": "exam_cky2q07ghyh",
+   "title": "Cambridge 18 — Test 1 Writing",
+   "module": "writing",
+   "variant": "academic",
+   "durationMinutes": 60,
+   "description": "",
+   "parts": [
+    {
+     "id": "part_fqhrl35ghyh",
+     "title": "Task 1",
+     "passageTitle": "",
+     "passage": "",
+     "audioId": null,
+     "transcript": "",
+     "prompt": "You should spend about 20 minutes on this task.\n\nThe chart below shows the number of visitors to three museums between 2010 and 2020.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+     "imageId": null,
+     "minWords": 150,
+     "modelAnswer": "(Optional) Paste a model answer here. It is shown only after you finish.",
+     "groups": []
+    },
+    {
+     "id": "part_gv8g52wghyh",
+     "title": "Task 2",
+     "passageTitle": "",
+     "passage": "",
+     "audioId": null,
+     "transcript": "",
+     "prompt": "You should spend about 40 minutes on this task.\n\nWrite about the following topic:\n\n**Some people think that all university students should study whatever they like. Others believe that they should only be allowed to study subjects that will be useful in the future.**\n\n**Discuss both these views and give your own opinion.**\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+     "imageId": null,
+     "minWords": 250,
+     "modelAnswer": "",
+     "groups": []
+    }
+   ],
+   "createdAt": 1794914010089,
+   "updatedAt": 1794914010090
+  },
+  {
+   "id": "exam_19l5if8ghy0",
+   "title": "Cambridge 18 — Test 1 Listening",
+   "module": "listening",
+   "variant": "academic",
+   "durationMinutes": 35,
+   "description": "",
+   "parts": [
+    {
+     "id": "part_u387uw0ghy0",
+     "title": "Part 1",
+     "passageTitle": "",
+     "passage": "",
+     "audioId": "file_79hn3t0ghy0",
+     "transcript": "(Optional) Paste the transcript here. It is shown only after you finish.",
+     "prompt": "",
+     "imageId": null,
+     "minWords": 150,
+     "modelAnswer": "",
+     "groups": [
+      {
+       "id": "grp_qdqqb6bghy0",
+       "type": "completion",
+       "instructions": "Complete the form below.\n\nWrite **ONE WORD AND/OR A NUMBER** for each answer.",
+       "title": "",
+       "imageId": null,
+       "questions": [],
+       "options": [],
+       "content": "# Hotel Booking Form\nName: Sarah [[Mitchell]]\nPhone number: [[07700 900123]]\n- Room type: [[double]]\n- Number of nights: [[3 / three]]",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "grp_i1h17tdghy0",
+       "type": "completion",
+       "instructions": "Complete the table below.\n\nWrite **NO MORE THAN TWO WORDS** for each answer.",
+       "title": "",
+       "imageId": null,
+       "questions": [],
+       "options": [],
+       "content": "Activity | Day | Cost\nBoat trip | [[Monday]] | £15\n[[(the) museum]] | Wednesday | free",
+       "reuse": false,
+       "labelStyle": "upper"
+      }
+     ]
+    },
+    {
+     "id": "part_iul75evghy0",
+     "title": "Part 2",
+     "passageTitle": "",
+     "passage": "",
+     "audioId": "file_xbtd3a5ghy5",
+     "transcript": "",
+     "prompt": "",
+     "imageId": null,
+     "minWords": 250,
+     "modelAnswer": "",
+     "groups": [
+      {
+       "id": "grp_mz0s472ghy0",
+       "type": "mcq",
+       "instructions": "Choose the correct letter, **A**, **B** or **C**.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_fzrypmyghy0",
+         "text": "Why did the speaker start the club?",
+         "options": [
+          "to make new friends",
+          "to keep fit",
+          "to learn a new skill"
+         ],
+         "answer": "B"
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "grp_n4x9naeghy0",
+       "type": "matching",
+       "instructions": "Label the map below.\n\nWrite the correct letter, **A–E**, next to Questions 8–10.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_lydf982ghy0",
+         "text": "Café",
+         "answer": "C"
+        },
+        {
+         "id": "q_i7rmj5jghy0",
+         "text": "Car park",
+         "answer": "A"
+        },
+        {
+         "id": "q_5loo7ooghy0",
+         "text": "Gift shop",
+         "answer": "E"
+        }
+       ],
+       "options": [
+        {
+         "label": "A",
+         "text": ""
+        },
+        {
+         "label": "B",
+         "text": ""
+        },
+        {
+         "label": "C",
+         "text": ""
+        },
+        {
+         "label": "D",
+         "text": ""
+        },
+        {
+         "label": "E",
+         "text": ""
+        }
+       ],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      }
+     ]
+    },
+    {
+     "id": "part_p3f5vspghy0",
+     "title": "Part 3",
+     "passageTitle": "",
+     "passage": "",
+     "audioId": "file_c94m04eghy9",
+     "transcript": "",
+     "prompt": "",
+     "imageId": null,
+     "minWords": 250,
+     "modelAnswer": "",
+     "groups": [
+      {
+       "id": "grp_mihyrldghy0",
+       "type": "mcq_multi",
+       "instructions": "Choose **TWO** letters, **A–E**.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_3lchpeyghy0",
+         "text": "Which **TWO** problems do the students mention?",
+         "options": [
+          "lack of time",
+          "cost of materials",
+          "poor results",
+          "group size",
+          "software problems"
+         ],
+         "answer": [
+          "A",
+          "D"
+         ]
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "grp_obumv8nghy0",
+       "type": "matching",
+       "instructions": "What does the tutor say about each of the following?\n\nChoose the correct letter, **A–C**.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_0ia23zoghy0",
+         "text": "a bibliography",
+         "answer": "A"
+        },
+        {
+         "id": "q_n51cec1ghy0",
+         "text": "charts and graphs",
+         "answer": "B"
+        },
+        {
+         "id": "q_gbuah1ighy0",
+         "text": "a summary",
+         "answer": "C"
+        }
+       ],
+       "options": [
+        {
+         "label": "A",
+         "text": "it is essential"
+        },
+        {
+         "label": "B",
+         "text": "it is useful but not essential"
+        },
+        {
+         "label": "C",
+         "text": "it is not necessary"
+        }
+       ],
+       "content": "",
+       "reuse": true,
+       "labelStyle": "upper"
+      }
+     ]
+    },
+    {
+     "id": "part_6wh7grpghy0",
+     "title": "Part 4",
+     "passageTitle": "",
+     "passage": "",
+     "audioId": "file_pzth0kcghyd",
+     "transcript": "",
+     "prompt": "",
+     "imageId": null,
+     "minWords": 250,
+     "modelAnswer": "",
+     "groups": [
+      {
+       "id": "grp_2ifui9ighy0",
+       "type": "completion",
+       "instructions": "Complete the notes below.\n\nWrite **ONE WORD ONLY** for each answer.",
+       "title": "",
+       "imageId": null,
+       "questions": [],
+       "options": [],
+       "content": "# The history of glass\n- First made in [[Mesopotamia]]\n- Romans used it for [[windows]]\n> Sand is heated\n> Glass is [[shaped]]\n> It cools slowly",
+       "reuse": false,
+       "labelStyle": "upper"
+      }
+     ]
+    }
+   ],
+   "createdAt": 1794914010072,
+   "updatedAt": 1794914010088
+  },
+  {
+   "id": "exam_ga26vocghxx",
+   "title": "Cambridge 18 — Test 1 Reading",
+   "module": "reading",
+   "variant": "academic",
+   "durationMinutes": 60,
+   "description": "",
+   "parts": [
+    {
+     "id": "part_9khvoutghxx",
+     "title": "Passage 1",
+     "passageTitle": "The Title of Passage One",
+     "passage": "[A] Paste paragraph A here. Leave one empty line between paragraphs.\nUse [A], [B], [C]… at the start of a paragraph only if the passage has paragraph letters.\n\n[B] Paste paragraph B here.\n\n[C] Paste paragraph C here.\n\n[D] Paste paragraph D here.",
+     "audioId": null,
+     "transcript": "",
+     "prompt": "",
+     "imageId": null,
+     "minWords": 150,
+     "modelAnswer": "",
+     "groups": [
+      {
+       "id": "grp_645ogfhghxx",
+       "type": "tfng",
+       "instructions": "Do the following statements agree with the information given in Reading Passage 1?\n\nChoose\n**TRUE** if the statement agrees with the information\n**FALSE** if the statement contradicts the information\n**NOT GIVEN** if there is no information on this",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_yv8pd33ghxy",
+         "text": "First statement goes here.",
+         "answer": "TRUE"
+        },
+        {
+         "id": "q_gfddhtcghxy",
+         "text": "Second statement goes here.",
+         "answer": "FALSE"
+        },
+        {
+         "id": "q_pyr657mghxy",
+         "text": "Third statement goes here.",
+         "answer": "NOT GIVEN"
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "grp_m6waoefghxy",
+       "type": "completion",
+       "instructions": "Complete the sentences below.\n\nChoose **NO MORE THAN TWO WORDS** from the passage for each answer.",
+       "title": "",
+       "imageId": null,
+       "questions": [],
+       "options": [],
+       "content": "The first sentence ends with a gap [[answer one]].\nThe second sentence has two accepted answers [[colour / color]].\nOptional words go in brackets [[(the) river]].",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "grp_yf4ki6dghxy",
+       "type": "mcq",
+       "instructions": "Choose the correct letter, **A**, **B**, **C** or **D**.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_yqmsm4dghxy",
+         "text": "The writer mentions the experiment in order to",
+         "options": [
+          "first option",
+          "second option",
+          "third option",
+          "fourth option"
+         ],
+         "answer": "C"
+        },
+        {
+         "id": "q_ahk9afighxy",
+         "text": "Second multiple-choice question",
+         "options": [
+          "first option",
+          "second option",
+          "third option",
+          "fourth option"
+         ],
+         "answer": "A"
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      }
+     ]
+    },
+    {
+     "id": "part_7vja0kqghxy",
+     "title": "Passage 2",
+     "passageTitle": "The Title of Passage Two",
+     "passage": "[A] Paragraph A of passage 2.\n\n[B] Paragraph B of passage 2.\n\n[C] Paragraph C of passage 2.",
+     "audioId": null,
+     "transcript": "",
+     "prompt": "",
+     "imageId": null,
+     "minWords": 250,
+     "modelAnswer": "",
+     "groups": [
+      {
+       "id": "grp_y6l7hwaghxy",
+       "type": "matching",
+       "instructions": "Reading Passage 2 has three paragraphs, **A–C**.\n\nChoose the correct heading for each paragraph from the list of headings below.",
+       "title": "List of Headings",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_dcqbhmmghxy",
+         "text": "Paragraph A",
+         "answer": "ii"
+        },
+        {
+         "id": "q_qu5pc1sghxy",
+         "text": "Paragraph B",
+         "answer": "iv"
+        },
+        {
+         "id": "q_fbhpg5nghxy",
+         "text": "Paragraph C",
+         "answer": "i"
+        }
+       ],
+       "options": [
+        {
+         "label": "i",
+         "text": "First heading"
+        },
+        {
+         "label": "ii",
+         "text": "Second heading"
+        },
+        {
+         "label": "iii",
+         "text": "Third heading"
+        },
+        {
+         "label": "iv",
+         "text": "Fourth heading"
+        }
+       ],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "roman"
+      },
+      {
+       "id": "grp_j59320ughxy",
+       "type": "matching",
+       "instructions": "Which paragraph contains the following information?\n\n**NB** You may use any letter more than once.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_ctm6s24ghxz",
+         "text": "a description of an early invention",
+         "answer": "B"
+        },
+        {
+         "id": "q_47vok7pghxz",
+         "text": "a reference to future research",
+         "answer": "C"
+        }
+       ],
+       "options": [
+        {
+         "label": "A",
+         "text": ""
+        },
+        {
+         "label": "B",
+         "text": ""
+        },
+        {
+         "label": "C",
+         "text": ""
+        }
+       ],
+       "content": "",
+       "reuse": true,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "grp_vd3v1nkghxz",
+       "type": "mcq_multi",
+       "instructions": "Choose **TWO** letters, **A–E**.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_mreb1xsghxz",
+         "text": "Which **TWO** reasons does the writer give for the change?",
+         "options": [
+          "first option",
+          "second option",
+          "third option",
+          "fourth option",
+          "fifth option"
+         ],
+         "answer": [
+          "B",
+          "E"
+         ]
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      }
+     ]
+    },
+    {
+     "id": "part_n2v1klxghxz",
+     "title": "Passage 3",
+     "passageTitle": "The Title of Passage Three",
+     "passage": "Paste passage 3 here. A passage without paragraph letters is fine too.\n\n## A sub-heading inside the passage\n\nMore text…",
+     "audioId": null,
+     "transcript": "",
+     "prompt": "",
+     "imageId": null,
+     "minWords": 250,
+     "modelAnswer": "",
+     "groups": [
+      {
+       "id": "grp_gb9fmteghxz",
+       "type": "ynng",
+       "instructions": "Do the following statements agree with the claims of the writer in Reading Passage 3?\n\nChoose\n**YES** if the statement agrees with the claims of the writer\n**NO** if the statement contradicts the claims of the writer\n**NOT GIVEN** if it is impossible to say what the writer thinks about this",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_wadbek5ghxz",
+         "text": "First claim.",
+         "answer": "YES"
+        },
+        {
+         "id": "q_i1mo4kighxz",
+         "text": "Second claim.",
+         "answer": "NO"
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "grp_x6te2s9ghxz",
+       "type": "completion",
+       "instructions": "Complete the summary using the list of words, **A–F**, below.",
+       "title": "Summary title",
+       "imageId": null,
+       "questions": [],
+       "options": [
+        {
+         "label": "A",
+         "text": "simple"
+        },
+        {
+         "label": "B",
+         "text": "expensive"
+        },
+        {
+         "label": "C",
+         "text": "effective"
+        },
+        {
+         "label": "D",
+         "text": "dangerous"
+        },
+        {
+         "label": "E",
+         "text": "slow"
+        },
+        {
+         "label": "F",
+         "text": "modern"
+        }
+       ],
+       "content": "Researchers found that the method was [[C]] and also quite [[A]] to use.",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "grp_p3kicjyghxz",
+       "type": "short",
+       "instructions": "Answer the questions below.\n\nChoose **NO MORE THAN THREE WORDS AND/OR A NUMBER** from the passage for each answer.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "q_m0livv0ghxz",
+         "text": "In which year did the project begin?",
+         "answer": "1998"
+        },
+        {
+         "id": "q_9b0al1oghxz",
+         "text": "Who paid for the research?",
+         "answer": "(the) government"
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      }
+     ]
+    }
+   ],
+   "createdAt": 1794914010069,
+   "updatedAt": 1794914010071
+  },
+  {
+   "id": "sample_writing_1",
+   "title": "Sample Writing — General Training",
+   "module": "writing",
+   "variant": "general",
+   "durationMinutes": 60,
+   "description": "Task 1 letter and Task 2 essay with a live word counter.",
+   "parts": [
+    {
+     "id": "sample_w_p1",
+     "title": "Task 1",
+     "passageTitle": "",
+     "passage": "",
+     "audioId": null,
+     "transcript": "",
+     "prompt": "You should spend about 20 minutes on this task.\n\nYou recently bought a piece of kitchen equipment, but it did not work properly. You phoned the shop, but no action was taken.\n\nWrite a letter to the shop manager. In your letter\n\n- describe the problem with the equipment\n- explain what happened when you phoned the shop\n- say what you would like the manager to do\n\nWrite at least 150 words.\n\nYou do **NOT** need to write any addresses.\n\nBegin your letter as follows:\n\n*Dear Sir or Madam,*",
+     "imageId": null,
+     "minWords": 150,
+     "modelAnswer": "",
+     "groups": []
+    },
+    {
+     "id": "sample_w_p2",
+     "title": "Task 2",
+     "passageTitle": "",
+     "passage": "",
+     "audioId": null,
+     "transcript": "",
+     "prompt": "You should spend about 40 minutes on this task.\n\nWrite about the following topic:\n\n**Some people believe that children should start learning a foreign language at primary school rather than at secondary school.**\n\n**Do the advantages of this outweigh the disadvantages?**\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+     "imageId": null,
+     "minWords": 250,
+     "modelAnswer": "",
+     "groups": []
+    }
+   ],
+   "createdAt": 1794914008676,
+   "updatedAt": 1794914008678
+  },
+  {
+   "id": "sample_reading_1",
+   "title": "Sample Reading — Urban Beekeeping",
+   "module": "reading",
+   "variant": "academic",
+   "durationMinutes": 20,
+   "description": "A short one-passage sample that uses every question type. Try it, then open it in the editor to see how it was built.",
+   "parts": [
+    {
+     "id": "sample_r_p1",
+     "title": "Passage 1",
+     "passageTitle": "The Return of the Urban Beekeeper",
+     "passage": "[A] Twenty years ago, the idea of keeping bees on the roof of an office tower would have struck most city planners as eccentric at best. Today, hives can be found on hotels in Paris, railway stations in Tokyo and public libraries in Toronto. The number of registered urban beekeepers in London alone more than doubled between 2008 and 2013, and similar growth has been reported in many large cities. What began as a hobby for a handful of enthusiasts has become a visible part of the modern urban landscape.\n\n[B] The trend was driven largely by alarm. In the mid-2000s, beekeepers in North America and Europe began reporting sudden and unexplained losses of entire colonies, a phenomenon that was later labelled 'colony collapse disorder'. Media coverage was intense, and many city dwellers concluded that they could help by giving bees a home. Supporters also pointed out that cities can be surprisingly good places for bees: parks, private gardens and roadside verges offer a wide variety of flowers, and urban areas are often treated with fewer agricultural pesticides than the surrounding countryside.\n\n[C] Yet not all scientists are convinced that the boom has been beneficial. The honeybee is only one of thousands of bee species, and most of the others are wild, solitary insects that do not live in hives at all. Researchers at several universities have warned that when too many managed colonies are placed in a small area, honeybees compete with these wild species for nectar and pollen. One study in Paris found that the number of wild pollinators visiting flowers fell noticeably in districts with the highest density of hives.\n\n[D] Disease is a further concern. Honeybees kept close together can pass parasites and viruses from one colony to another, and some of these infections can also spread to wild bees visiting the same flowers. Experienced keepers inspect their hives regularly, but many newcomers lack the knowledge to recognise early signs of illness. For this reason, several cities now require beekeepers to register their hives, and some offer free training courses before a permit is issued.\n\n[E] Supporters of urban beekeeping argue that the hobby has educational value that is hard to measure. Schools that keep hives report that pupils become more interested in nature and in where their food comes from. Honey from rooftop hives has also become a popular local product, with some restaurants charging premium prices for dishes made with honey produced only a few metres away.\n\n[F] Many ecologists now suggest a different approach. Rather than adding more hives, they argue, cities should concentrate on planting the right flowers. Native wildflowers, flowering trees and 'green roofs' covered with low-growing plants benefit honeybees and wild species alike. In this view, the best thing a city resident can do for bees is not to keep them, but to feed them.",
+     "audioId": null,
+     "transcript": "",
+     "prompt": "",
+     "imageId": null,
+     "minWords": 150,
+     "modelAnswer": "",
+     "groups": [
+      {
+       "id": "sample_r_g1",
+       "type": "matching",
+       "instructions": "Reading Passage 1 has six paragraphs, **A–F**.\n\nChoose the correct heading for paragraphs **B–F** from the list of headings below.\n\nDrag the correct heading into each box.",
+       "title": "List of Headings",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "sq1",
+         "text": "Paragraph B",
+         "answer": "iii"
+        },
+        {
+         "id": "sq2",
+         "text": "Paragraph C",
+         "answer": "i"
+        },
+        {
+         "id": "sq3",
+         "text": "Paragraph D",
+         "answer": "v"
+        },
+        {
+         "id": "sq4",
+         "text": "Paragraph E",
+         "answer": "iv"
+        },
+        {
+         "id": "sq5",
+         "text": "Paragraph F",
+         "answer": "vi"
+        }
+       ],
+       "options": [
+        {
+         "label": "i",
+         "text": "A threat to other insects"
+        },
+        {
+         "label": "ii",
+         "text": "The financial cost of keeping bees"
+        },
+        {
+         "label": "iii",
+         "text": "Why people started keeping bees in cities"
+        },
+        {
+         "label": "iv",
+         "text": "Benefits beyond honey production"
+        },
+        {
+         "label": "v",
+         "text": "A risk of spreading illness"
+        },
+        {
+         "label": "vi",
+         "text": "Feeding rather than keeping"
+        },
+        {
+         "label": "vii",
+         "text": "The decline of rural farming"
+        }
+       ],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "roman"
+      },
+      {
+       "id": "sample_r_g2",
+       "type": "tfng",
+       "instructions": "Do the following statements agree with the information given in the passage?\n\nChoose\n**TRUE** if the statement agrees with the information\n**FALSE** if the statement contradicts the information\n**NOT GIVEN** if there is no information on this",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "sq6",
+         "text": "The number of urban beekeepers in London rose by more than 100% in five years.",
+         "answer": "TRUE"
+        },
+        {
+         "id": "sq7",
+         "text": "Colony collapse disorder was first identified in Europe.",
+         "answer": "NOT GIVEN"
+        },
+        {
+         "id": "sq8",
+         "text": "Cities generally use more agricultural pesticides than rural areas.",
+         "answer": "FALSE"
+        },
+        {
+         "id": "sq9",
+         "text": "Most bee species live in hives.",
+         "answer": "FALSE"
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "sample_r_g3",
+       "type": "mcq",
+       "instructions": "Choose the correct letter, **A**, **B**, **C** or **D**.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "sq10",
+         "text": "According to paragraph C, the study in Paris showed that",
+         "answer": "B",
+         "options": [
+          "honeybee colonies were smaller in the city centre.",
+          "fewer wild pollinators visited flowers where hives were most concentrated.",
+          "wild bees had started to attack honeybee hives.",
+          "the number of flowers in Paris had fallen."
+         ]
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "sample_r_g4",
+       "type": "completion",
+       "instructions": "Complete the summary below.\n\nChoose **ONE WORD ONLY** from the passage for each answer.",
+       "title": "Helping bees in the city",
+       "imageId": null,
+       "questions": [],
+       "options": [],
+       "content": "Because illness can spread between colonies, several cities now ask beekeepers to [[register]] their hives, and some provide free training before a [[permit]] is given. Ecologists believe residents should focus on planting native wildflowers, flowering trees and green [[roofs]], because these help honeybees and [[wild]] species alike.",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "sample_r_g5",
+       "type": "mcq_multi",
+       "instructions": "Choose **TWO** letters, **A–E**.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "sq15",
+         "text": "Which **TWO** benefits of urban beekeeping are mentioned in paragraph E?",
+         "answer": [
+          "A",
+          "C"
+         ],
+         "options": [
+          "Pupils become more interested in the natural world.",
+          "Beekeepers can earn a high income.",
+          "Restaurants can sell expensive dishes made with local honey.",
+          "Hives help to reduce air pollution.",
+          "Bees make city gardens more attractive."
+         ]
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      },
+      {
+       "id": "sample_r_g6",
+       "type": "short",
+       "instructions": "Answer the question below.\n\nChoose **NO MORE THAN THREE WORDS** from the passage for the answer.",
+       "title": "",
+       "imageId": null,
+       "questions": [
+        {
+         "id": "sq17",
+         "text": "What name was given to the sudden loss of whole bee colonies?",
+         "answer": "(the) colony collapse disorder"
+        }
+       ],
+       "options": [],
+       "content": "",
+       "reuse": false,
+       "labelStyle": "upper"
+      }
+     ]
+    }
+   ],
+   "createdAt": 1794914008676,
+   "updatedAt": 1794914008676
+  }
+ ],
+ "files": {
+  "file_79hn3t0ghy0": {
+   "name": "part1.mp3",
+   "type": "audio/wav",
+   "data": "data:audio/wav;base64,UklGRsQPAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  },
+  "file_xbtd3a5ghy5": {
+   "name": "part2.mp3",
+   "type": "audio/wav",
+   "data": "data:audio/wav;base64,UklGRsQPAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  },
+  "file_c94m04eghy9": {
+   "name": "part3.mp3",
+   "type": "audio/wav",
+   "data": "data:audio/wav;base64,UklGRsQPAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  },
+  "file_pzth0kcghyd": {
+   "name": "part4.mp3",
+   "type": "audio/wav",
+   "data": "data:audio/wav;base64,UklGRsQPAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  }
+ }
+}

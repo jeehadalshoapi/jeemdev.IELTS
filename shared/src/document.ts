@@ -1,0 +1,88 @@
+import type { QuestionType } from './schema/groups';
+import { isObjectiveType, isSpeakingType, isWritingType } from './schema/groups';
+import type { AnswerKey, Part, SectionSkill, Skill, TestContent, TestDocument, TestMeta } from './schema/test';
+
+/** {{questionId}} placeholders in completion templates */
+export const PLACEHOLDER_RE = /\{\{\s*([A-Za-z][A-Za-z0-9_-]{0,63})\s*\}\}/g;
+
+export function templatePlaceholders(template: string): string[] {
+  return [...template.matchAll(PLACEHOLDER_RE)].map(m => m[1] as string);
+}
+
+/** something the candidate answers: an objective question, a writing task or a speaking question */
+export interface AnswerItem {
+  id: string;
+  kind: 'objective' | 'writing' | 'speaking';
+  type: QuestionType;
+  partId: string;
+  groupId: string;
+  /** question numbers (objective only); "choose TWO" has two */
+  numbers: number[];
+  /** marks available (objective only) */
+  marks: number;
+}
+
+export function sectionSkillOf(part: Part, testSkill: Skill): SectionSkill | undefined {
+  return part.skill ?? (testSkill === 'mixed' ? undefined : testSkill);
+}
+
+/** every answerable item, in test order */
+export function listItems(parts: readonly Part[]): AnswerItem[] {
+  const items: AnswerItem[] = [];
+  for (const part of parts) {
+    for (const g of part.questionGroups) {
+      const base = { partId: part.id, groupId: g.id, type: g.type };
+      if (isObjectiveType(g.type)) {
+        for (const q of (g as { questions: Array<{ id: string; number?: number; numbers?: number[] }> }).questions) {
+          const numbers = q.numbers ?? (q.number !== undefined ? [q.number] : []);
+          items.push({ ...base, id: q.id, kind: 'objective', numbers, marks: numbers.length });
+        }
+      } else if (isWritingType(g.type)) {
+        items.push({ ...base, id: g.id, kind: 'writing', numbers: [], marks: 0 });
+      } else if (isSpeakingType(g.type)) {
+        if (g.type === 'speaking_part2') {
+          items.push({ ...base, id: g.id, kind: 'speaking', numbers: [], marks: 0 });
+          for (const q of g.followUps) items.push({ ...base, id: q.id, kind: 'speaking', numbers: [], marks: 0 });
+        } else if (g.type === 'speaking_part1' || g.type === 'speaking_part3') {
+          for (const q of g.questions) items.push({ ...base, id: q.id, kind: 'speaking', numbers: [], marks: 0 });
+        }
+      }
+    }
+  }
+  return items;
+}
+
+/** total auto-scored marks (e.g. 40 for a full reading test) */
+export function totalMarks(parts: readonly Part[]): number {
+  return listItems(parts).reduce((s, i) => s + i.marks, 0);
+}
+
+/** split a validated document into the database columns */
+export function splitDocument(doc: TestDocument): { meta: TestMeta; content: TestContent; answerKey: AnswerKey } {
+  const { title, skill, kind, instructions, dueDate, variant, timeLimitMin, parts, answerKey } = doc;
+  const meta: TestMeta = { title, skill, kind };
+  if (instructions !== undefined) meta.instructions = instructions;
+  if (dueDate !== undefined) meta.dueDate = dueDate;
+  const content: TestContent = { variant, parts };
+  if (timeLimitMin !== undefined) content.timeLimitMin = timeLimitMin;
+  return { meta, content, answerKey };
+}
+
+/** rebuild the full document (e.g. for get_test) */
+export function joinDocument(meta: TestMeta, content: TestContent, answerKey: AnswerKey): TestDocument {
+  const doc: TestDocument = { title: meta.title, skill: meta.skill, kind: meta.kind, variant: content.variant, parts: content.parts, answerKey };
+  if (content.timeLimitMin !== undefined) doc.timeLimitMin = content.timeLimitMin;
+  if (meta.instructions) doc.instructions = meta.instructions;
+  if (meta.dueDate) doc.dueDate = meta.dueDate;
+  return doc;
+}
+
+/**
+ * What the browser may see before the attempt is submitted:
+ * the content without listening transcripts. (The answer key is stored separately and never included.)
+ */
+export function toPublicContent(content: TestContent): TestContent {
+  const copy = structuredClone(content);
+  for (const part of copy.parts) delete part.transcript;
+  return copy;
+}
