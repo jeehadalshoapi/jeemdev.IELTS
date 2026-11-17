@@ -11,7 +11,13 @@
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit",
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "tsx watch --clear-screen=false server/src/main.ts",
+    "dev:web": "vite web",
+    "build": "vite build web && node scripts/build-server.mjs",
+    "start": "node server/dist/main.js",
+    "hash-password": "tsx server/src/scripts/hash-password.ts",
+    "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit && tsc -p web --noEmit",
     "test": "vitest run",
     "db:generate": "npm run db:generate -w server",
     "db:migrate": "npm run db:migrate -w server",
@@ -22,8 +28,10 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
+    "vite": "^8.3.8",
     "vitest": "^5.1.0"
   }
 }

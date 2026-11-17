@@ -81,6 +81,18 @@ export const files = pgTable('files', {
   index('files_attempt_idx').on(t.attemptId)
 ]);
 
+/** login sessions; the cookie holds a random token, the table only its SHA-256 */
+export const sessions = pgTable('sessions', {
+  id: text('id').primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  userAgent: text('user_agent'),
+  ip: text('ip')
+}, t => [
+  index('sessions_expires_idx').on(t.expiresAt)
+]);
+
 export type TestRow = typeof tests.$inferSelect;
 export type AttemptRow = typeof attempts.$inferSelect;
 export type FileRow = typeof files.$inferSelect;
