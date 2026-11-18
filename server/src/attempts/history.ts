@@ -1,4 +1,4 @@
-import type { AttemptSummary, AutoScore, HistoryResponse, MarkReason, QuestionType, SkillHistory, TypeHistory } from '@ielts/shared';
+import type { AttemptSummary, AutoScore, HistoryResponse, MarkReason, QuestionType, SectionSkill, SkillHistory, TypeHistory } from '@ielts/shared';
 import { desc, eq, ne } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { attempts, tests } from '../db/schema';
@@ -6,10 +6,16 @@ import { summarize } from './service';
 
 const roundHalf = (x: number) => Math.round(x * 2) / 2;
 
-/** scores over time per skill, accuracy per question type, and the most common mistake reasons */
-export async function buildHistory(db: Db): Promise<HistoryResponse> {
-  const rows = await db.select().from(attempts).innerJoin(tests, eq(attempts.testId, tests.id))
+/**
+ * Scores over time per skill, accuracy per question type, and the most common mistake reasons.
+ * `skill` keeps attempts of tests with that skill (or a full mock with such a section); `since` keeps later submissions.
+ */
+export async function buildHistory(db: Db, opts: { skill?: SectionSkill; since?: Date } = {}): Promise<HistoryResponse> {
+  const all = await db.select().from(attempts).innerJoin(tests, eq(attempts.testId, tests.id))
     .where(ne(attempts.status, 'in_progress')).orderBy(desc(attempts.submittedAt)).limit(500);
+  const rows = all.filter(r =>
+    (!opts.since || (r.attempts.submittedAt ?? r.attempts.updatedAt) >= opts.since) &&
+    (!opts.skill || r.tests.skill === opts.skill || (r.tests.skill === 'mixed' && r.tests.content.parts.some(p => p.skill === opts.skill))));
   const list: AttemptSummary[] = rows.map(r => summarize(r.attempts, r.tests));
 
   // oldest first for the trend lines

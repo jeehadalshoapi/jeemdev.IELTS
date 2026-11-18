@@ -7,6 +7,7 @@ export * from './validate';
 export * from './api';
 export * from './scoring';
 export * from './config/band-tables';
+export * from './feedback';
 export { URBAN_BEEKEEPING } from './examples/urban-beekeeping';
 export { QUESTION_TYPE_EXAMPLES, exampleTestForType } from './examples/question-types';
 export type { QuestionTypeExample } from './examples/question-types';

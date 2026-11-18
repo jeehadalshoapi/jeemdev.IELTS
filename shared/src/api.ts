@@ -279,3 +279,12 @@ export function uploadKindOf(mime: string): UploadKind | null {
 }
 
 export interface UploadResponse { id: string; url: string; name: string; kind: UploadKind; sizeBytes: number }
+
+/* ---------- the Claude connector (Phase 5) ---------- */
+export interface ConnectorConnection { clientId: string; clientName: string | null; connectedAt: string; lastUsedAt: string | null; expiresAt: string }
+export interface ConnectorResponse {
+  /** the address to paste into claude.ai (Customize → Connectors → Add custom connector) */
+  mcpUrl: string;
+  /** apps that are connected now */
+  connections: ConnectorConnection[];
+}

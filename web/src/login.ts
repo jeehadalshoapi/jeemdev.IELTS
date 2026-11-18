@@ -13,7 +13,9 @@ form.addEventListener('submit', async e => {
   button.textContent = 'Logging in…';
   try {
     await api('/auth/login', { method: 'POST', body: { password: input.value }, redirectOn401: false });
-    location.href = '/';
+    // after logging in, go back to the Claude connector's approval page if that is where we came from
+    const next = new URLSearchParams(location.search).get('next');
+    location.href = next && next.startsWith('/oauth/authorize?') && !next.includes('\\') ? next : '/';
   } catch (err) {
     error.textContent = err instanceof ApiError ? err.message : 'Cannot reach the server. Check your connection.';
     error.hidden = false;

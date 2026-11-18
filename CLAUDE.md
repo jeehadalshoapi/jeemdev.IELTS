@@ -9,25 +9,19 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 | 1 | Test format (zod), DB tables, migrations, seed, legacy import | ✅ merged into `main` |
 | 2 | Login, dashboard, runner with server autosave + resume on any device, phone layout, deployment | ✅ merged into `main`, **deployed** |
 | 3 | Auto-scoring, estimated band, results page, review-in-the-test, history | ✅ merged into `main`, **deployed** 2026-11-18 |
-| 4 | Import box (`#/import`: JSON or text format, audio/picture uploads), Tests page (`#/tests`: archive/restore) | ✅ done on branch **`phase-4-import-box`** (pushed). **Waiting for the owner's "go"**, then merge and deploy |
-| 5 | MCP server (all tools in spec §6), auth, MCP Inspector, connect to claude.ai | next |
-| 6 | Task 1 chart drawing, plan+intro drill timers, speaking recording (MediaRecorder upload), listening speech synthesis from transcript | |
+| 4 | Import box (`#/import`: JSON or text format, audio/picture uploads), Tests page (`#/tests`: archive/restore) | ✅ merged into `main`, **deployed** 2026-11-18 |
+| 5 | MCP server at `/mcp` (11 tools of spec §6), own OAuth 2.1 server, MCP Inspector checked | ✅ merged into `main`, **deployed** 2026-11-18 (the owner said "make the code then deploy at once"). The owner still has to add the connector in claude.ai |
+| 6 | Task 1 chart drawing, plan+intro drill timers, speaking recording (MediaRecorder upload), listening speech synthesis from transcript | next |
 | 7 | Render Claude's feedback (spec §6 JSON) on the results page, progress charts | |
 
-- `main` = Phase 3 and is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
-- When the owner says **"go"**:
-  1. `git switch main && git merge --no-ff phase-4-import-box`, then push.
-  2. Record the other sites' status codes (see Deployment), then deploy: `ssh gehad@169.58.112.108 'cd /opt/ielts/stack && ./deploy.sh'`.
-  3. Check `curl https://ielts.jeemdev.net/health`, the other sites again, and a logged-in `GET /api/tests` on the box (cookie jar; read the password file there, never print it).
-  4. Create `phase-5-mcp` and start Phase 5. **Check the current official docs first** (MCP TypeScript SDK, claude.ai custom connector auth).
+- `main` = Phase 5 and is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
+- Next: create `phase-6-extras` from `main` and start Phase 6 (spec §4 writing/speaking/listening, §9 phase 6). Normal rule again: wait for the owner's "go" before merging/deploying, unless they say otherwise.
+- Deploy routine (every phase): record the other sites' status codes (see Deployment), `ssh gehad@169.58.112.108 'cd /opt/ielts/stack && ./deploy.sh'`, then check `/health`, the other sites again, and logged-in calls **on the box** (cookie jar; read the password file there, never print it). For the connector: copy `scripts/e2e/mcp-connect.mjs` to the box and run `E2E_PASSWORD_FILE=/opt/ielts/stack/initial-password.txt node mcp-connect.mjs https://ielts.jeemdev.net` there (a 1-hour token; the password is never printed). If the owner has changed the password, that file is gone: ask the owner to test from claude.ai instead.
 
-### Ideas already noted for Phase 5
-- Reuse what Phase 4 built, so the import box and the connector behave the same:
-  - `create_test`: `validateTest` + `createTest(db, doc, { source: 'claude' })`. `prepareImport()` (`server/src/import/service.ts`) also adds the friendly `where` to each issue, and returns the `summary`.
-  - `archive_test`: `setTestStatus()`. `list_tests`: `listTests()`. `get_test`: `getTest()`.
-  - `get_test_format`: `QUESTION_TYPE_EXAMPLES` / `exampleTestForType()` in `shared/src/examples`.
-- `update_test` must also re-score earlier attempts (`rescoreTestAttempts()` exists from Phase 3).
-- Claude cannot upload audio through the connector. A listening test from Claude has a `transcript` (read aloud in Phase 6), or the owner attaches a recording later. An "attach file to an existing test" feature does not exist yet.
+### Ideas already noted for Phases 6–7
+- Claude cannot upload audio through the connector. A listening test from Claude has a `transcript` (Phase 6 reads it aloud). An "attach a recording to an existing test" feature does not exist yet (only the import box takes files).
+- Speaking recordings: `FileStore.saveStream` + `files.attempt_id` exist; `get_attempt` already lists the files linked to an attempt under `recordings`.
+- Phase 7: `shared/src/feedback.ts` (`Feedback` zod schema) is what `save_feedback` stores (plus `savedAt`); `web/src/pages/result.ts` only shows band, summary and next steps so far.
 
 ## How we work (agreed with the owner)
 - **One branch per phase** (`phase-N-name`). At the end of a phase:
@@ -58,13 +52,15 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
    - A listening transcript is required **unless the part has `audioUrl`, or an earlier listening part has one** ("one recording for the whole test", as in the old text format). The spec says always; relaxed so real recordings without transcripts work. The owner was told about this.
    - Text format additions (Phase 4): `KIND:`, `DUE:`, `TIME: none`. Leaving out `INSTRUCTIONS:` gives standard IELTS instructions per type.
    - Uploads (`POST /api/files?name=…`, raw body, streamed to disk): audio ≤ 100 MB, pictures ≤ 10 MB (PNG/JPG/GIF/WEBP; **no SVG**). Limits in `UPLOAD_MAX_BYTES` (`shared/src/api.ts`).
+   - Tables `oauth_clients`, `oauth_tokens` (migration `0002_oauth`). `attempts.feedback` holds the `Feedback` JSON + `savedAt`; saving it sets status `marked`.
+8. **Connector auth (Phase 5):** the app is its own OAuth 2.1 authorization server, single user (SDK v2 no longer ships one; an external identity provider was overkill for one user). Details in `server/src/mcp/oauth.ts` and README → *The Claude connector*. CIMD is deliberately **not** advertised, so Claude uses dynamic registration.
 7. Deployment follows the box's own runbook (see Deployment). It does **not** ship its own reverse proxy, even though spec §8 suggested one.
 
 ## Commands
 ```bash
 npm install
 npm run dev                 # API :3000 (tsx watch) + website :5173 (Vite); dev password "ielts-dev"
-npm test                    # vitest — 94 tests (shared/test, server/test)
+npm test                    # vitest — 112 tests (shared/test, server/test)
 npm run typecheck           # tsc for shared, server, web (TypeScript 7 — type-checking only)
 npm run build               # vite build web -> web/dist ; esbuild server -> server/dist
 npm start                   # production build on :3000
@@ -83,6 +79,9 @@ node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/cross-device.phone.c
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/cross-device.laptop.cjs # part 2 (a new profile = a new device)
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/results.cjs            # Phase 3 scoring / review / history
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/import.cjs             # Phase 4 import box, uploads (dropped files), tests page
+node scripts/e2e/cdp.cjs http://localhost:3000/login scripts/e2e/connector.cjs     # Phase 5 approval page (run a listener on :33418 to see the code)
+TOKEN=$(node scripts/e2e/mcp-connect.mjs http://localhost:3000)                    # OAuth like claude.ai does; prints a 1-hour token
+npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http --header "Authorization: Bearer $TOKEN" --method tools/list
 ```
 - Screenshots land in `.data/e2e-shots/`. Look at them with the Read tool.
 - Each run of `cdp.cjs` uses a fresh browser profile.
@@ -113,6 +112,13 @@ server/  Express 5 + Drizzle (Postgres / PGlite)
                            checkImport / saveImport;  routes: POST /api/import/check, POST /api/import, GET /api/tests,
                            PATCH /api/tests/:id {status}, POST /api/files?name=
   src/files/store.ts       FileStore.save (buffer) / saveStream (uploads, size-capped)
+  src/mcp/oauth.ts         OAuth 2.1 server: /.well-known/oauth-protected-resource[/mcp], /.well-known/oauth-authorization-server,
+                           /oauth/register (DCR, public clients, Claude callback or loopback only), /oauth/authorize (approval page,
+                           needs the site login; /login?next= comes back), /oauth/token (PKCE S256, refresh rotation), /oauth/revoke;
+                           tokenVerifier for /mcp; listConnections / revokeAllConnections (Tests page card, /api/connector)
+  src/mcp/index.ts         mountMcp: /mcp = cors + rate limit + requireBearerAuth (SDK) + createMcpHandler (a fresh McpServer per request)
+  src/mcp/tools.ts         the 11 tools (spec §6), each logged as "[mcp] <tool> ok|refused (ms)"; applyChanges for update_test
+  src/mcp/attempts.ts      attemptDetail (question text, exact answer, accepted answers, reason, writing/speaking text, times)
 web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/attempt/:id  #/result/:id  #/review/:id  #/history  #/tests  #/import
   src/runner/          runner.ts (exam UI, clock, nav, review mode), render.ts (all question types), tools.ts (highlights/notes),
                        sync.ts (autosave + offline buffer in localStorage), panels.ts (settings/notes/help/audio)
@@ -164,3 +170,7 @@ web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/att
 - **JSON.parse messages** in current Node sometimes have no position (`Unexpected token ',', "…" is not valid JSON`). `jsonErrorOffset()` in `server/src/import/service.ts` finds the line and column itself.
 - **CSRF is checked before the login.** A client with no CSRF cookie gets 403, not 401. Tests that expect 401 first `GET /login` to receive the cookie.
 - **Backups grow with uploads:** `backup.sh` tars the whole uploads volume every night and keeps 14 days. Fine at 162 GB free (Nov 2026); revisit if many recordings are uploaded.
+- **MCP SDK v2** (`@modelcontextprotocol/server` 2.4, `/express` 2.0.2, `/node` 2.1.2): a server instance serves ONE request, so `createMcpHandler(factory)` builds a fresh `McpServer` per request. `registerTool` takes a `z.object(...)` (not a raw shape). The auth-server helpers left v2 (frozen in `server-legacy`). `requireBearerAuth` rejects tokens without `expiresAt`, and with `expectedResource` it needs `AuthInfo.resource`.
+- **`Referrer-Policy: no-referrer` (helmet) makes browsers send `Origin: null` on form posts.** The approval page sets `same-origin`, and its POST treats `null` like a missing Origin; the CSRF token (SameSite=Strict cookie) is the real protection.
+- **CSP `form-action` also covers where a form's redirect goes.** The approval page adds the app's callback origin (e.g. `https://claude.ai`) to `form-action`, or the browser would block the redirect after **Allow**.
+- OAuth authorization codes live in memory for 5 minutes: a deploy in the middle of a sign-in loses the code (Claude shows an error; connecting again works).

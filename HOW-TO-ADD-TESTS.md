@@ -4,8 +4,8 @@ There are three ways to put a test on the site:
 
 | Way | Best for | How |
 |---|---|---|
-| **1. Claude, through the connector** | Everyday homework and drills | *Coming in Phase 5.* In claude.ai: "Upload this reading homework to my site". |
-| **2. Import box: JSON** | A test Claude wrote in the chat (until the connector is ready) | **Tests → ＋ Import a test**, paste the JSON |
+| **1. Claude, through the connector** | Everyday homework and drills | In claude.ai (with the connector on): "Upload this reading homework to my site". Setup: README → *The Claude connector*. |
+| **2. Import box: JSON** | A test Claude wrote in a chat without the connector | **Tests → ＋ Import a test**, paste the JSON |
 | **3. Import box: text format** | Whole tests from a book or PDF | **Tests → ＋ Import a test**, paste the text (format below) |
 
 Tests from the old browser-only site come in with `npm run db:import-legacy -- export.json` (its "Export all" file).
@@ -271,7 +271,7 @@ Capital letters, extra spaces and a final full stop are ignored. Spelling counts
 
 **With Claude:** paste the PDF text and the answer key, and ask for one of these:
 - *"Convert this into the text format below."* Then paste the contents of `templates/example-reading-urban-beekeeping.txt` as the example. This works today.
-- *"Write this as a test JSON for my IELTS site."* This works best once the connector exists (Phase 5): Claude can then read the exact format from the site. Until then, give it a JSON test it wrote before as the example.
+- With the connector on: *"Upload this as a test to my IELTS site."* Claude reads the exact format from the site (`get_test_format`), saves the test, and fixes any problems the site reports.
 
 Then paste the result into the import box and press **Check**. Read the summary: the question numbers and types should match the book.
 

@@ -65,6 +65,26 @@ export async function getTest(db: Db, id: string): Promise<StoredTest | null> {
   return row ? toStored(row) : null;
 }
 
+/**
+ * Replace a test's content and answer key (e.g. Claude fixing a wrong answer). Throws TestValidationError when invalid.
+ * The caller re-scores the submitted attempts (rescoreTestAttempts).
+ */
+export async function replaceTest(db: Db, id: string, input: unknown): Promise<{ warnings: Issue[]; test: TestDocument } | null> {
+  const { test, warnings } = parseTest(input);
+  const { meta, content, answerKey } = splitDocument(test);
+  const [row] = await db.update(tests).set({
+    title: meta.title,
+    skill: meta.skill,
+    kind: meta.kind,
+    dueDate: meta.dueDate ?? null,
+    instructions: meta.instructions ?? null,
+    content,
+    answerKey,
+    updatedAt: new Date()
+  }).where(eq(tests.id, id)).returning({ id: tests.id });
+  return row ? { warnings, test } : null;
+}
+
 /** archive a test (hidden from the dashboard; attempts and results stay) or bring it back. Never hard-deletes. */
 export async function setTestStatus(db: Db, id: string, status: TestStatus): Promise<{ id: string; status: TestStatus } | null> {
   const [row] = await db.update(tests).set({ status, updatedAt: new Date() }).where(eq(tests.id, id)).returning({ id: tests.id, status: tests.status });

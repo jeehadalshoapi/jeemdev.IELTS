@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
   CreateAttemptBody, ImportBody, TestStatusBody, totalMarks, UPLOAD_MAX_BYTES, uploadKindOf,
-  type DashboardResponse, type ImportCheckResponse, type ImportSaveResponse, type TestDetailResponse, type TestsResponse, type UploadResponse
+  type ConnectorResponse, type DashboardResponse, type ImportCheckResponse, type ImportSaveResponse, type TestDetailResponse, type TestsResponse, type UploadResponse
 } from '@ielts/shared';
 import { desc, eq } from 'drizzle-orm';
 import express, { type NextFunction, type Request, type Response } from 'express';
@@ -18,6 +18,8 @@ import { files, tests } from '../db/schema';
 import { EmptyFileError, FileTooLargeError, type FileStore } from '../files/store';
 import { checkImport, prepareImport, saveImport } from '../import/service';
 import { listTests, setTestStatus } from '../tests/repository';
+import { mountMcp } from '../mcp';
+import { listConnections, mcpUrlOf, originOf, revokeAllConnections, safeNext } from '../mcp/oauth';
 import { errorHandler, HttpError, notFound } from './errors';
 import { csrfProtection, ensureCsrfCookie, FailedLoginLimiter, parseCookies, rateLimit, setCookie } from './security';
 
@@ -63,6 +65,9 @@ export function createApp({ database, config, fileStore }: AppDeps) {
   });
   const sessionCookie = { httpOnly: true, secure: config.isProd, sameSite: 'Lax' as const };
 
+  /* ---------- Claude connector: OAuth endpoints and /mcp (bearer tokens, not the session cookie) ---------- */
+  mountMcp(app, db, config);
+
   /* ---------- pages ---------- */
   const page = (name: 'index.html' | 'login.html') => (req: Request, res: Response) => {
     const file = path.join(config.webDir, name);
@@ -72,7 +77,8 @@ export function createApp({ database, config, fileStore }: AppDeps) {
     res.sendFile(file);
   };
   app.get('/login', (req, res) => {
-    if (res.locals.session) res.redirect('/');
+    // ?next= only ever leads back to the connector's approval page
+    if (res.locals.session) res.redirect(safeNext(req.query.next) ?? '/');
     else page('login.html')(req, res);
   });
   app.get(['/', '/index.html'], (req, res) => {
@@ -159,6 +165,17 @@ export function createApp({ database, config, fileStore }: AppDeps) {
   api.get('/attempts/:id', async (req, res) => { res.json(await getAttemptView(db, req.params.id)); });
   api.get('/attempts/:id/result', async (req, res) => { res.json(await getResultView(db, req.params.id)); });
   api.get('/history', async (_req, res) => { res.json(await buildHistory(db)); });
+
+  /* ---------- the Claude connector, seen from the website ---------- */
+  api.get('/connector', async (req, res) => {
+    const body: ConnectorResponse = { mcpUrl: mcpUrlOf(originOf(req, config)), connections: await listConnections(db, config) };
+    res.json(body);
+  });
+  api.post('/connector/disconnect', async (_req, res) => {
+    const n = await revokeAllConnections(db);
+    console.log(`[oauth] the owner disconnected every app (${n} token(s) revoked)`);
+    res.json({ ok: true });
+  });
   api.patch('/attempts/:id', async (req, res) => { res.json(await saveAttempt(db, req.params.id, req.body, req.get('user-agent'))); });
   api.post('/attempts/:id/submit', async (req, res) => {
     const r = await saveAttempt(db, req.params.id, req.body, req.get('user-agent'), { submit: true });
