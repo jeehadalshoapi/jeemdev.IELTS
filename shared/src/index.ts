@@ -7,6 +7,7 @@ export * from './validate';
 export * from './api';
 export * from './scoring';
 export * from './config/band-tables';
+export * from './diff';
 export * from './feedback';
 export * from './speech';
 export { URBAN_BEEKEEPING } from './examples/urban-beekeeping';

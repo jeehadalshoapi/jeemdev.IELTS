@@ -89,6 +89,7 @@ export function summarize(a: AttemptRow, t: TestRow, now = new Date()): AttemptS
     items: progress.total,
     timing: computeTiming(a, t.content, now),
     feedbackReady: a.feedback !== null,
+    feedbackBand: typeof a.feedback?.overallBand === 'number' ? a.feedback.overallBand : null,
     autoScore: auto ? { raw: auto.raw, total: auto.total, band: auto.band ?? null } : null
   };
 }

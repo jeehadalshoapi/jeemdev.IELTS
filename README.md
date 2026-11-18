@@ -10,7 +10,7 @@ A private IELTS practice site at **https://ielts.jeemdev.net**. Claude writes te
 | 4 | Import box (paste JSON or the text format, attach audio / pictures), Tests page (archive / restore) | ✅ |
 | 5 | MCP server: the claude.ai connector (OAuth, 11 tools) | ✅ |
 | 6 | Task 1 charts drawn from data, plan+intro drill timers, speaking recording (+ optional live transcript) with Part 2 timers, listening read aloud | ✅ |
-| 7 | Claude's feedback on the results page, progress charts | next |
+| 7 | Claude's feedback on the results page (criteria, mistakes linked to the answers, corrected essay side by side), progress charts with period / skill filters | ✅ (branch `phase-7-feedback`, waiting for review) |
 
 ## Folders
 - `shared/`: the test format (zod schemas, validation, answer helpers) and the API types. Used by everything else.

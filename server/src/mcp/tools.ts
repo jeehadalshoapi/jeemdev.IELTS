@@ -270,7 +270,7 @@ export function buildMcpServer(db: Db, origin: string): McpServer {
   const ProgressArgs = z.object({ skill: z.enum(SECTION_SKILLS).optional(), since: DateStr.optional() });
   server.registerTool('get_progress', {
     title: 'Get progress',
-    description: 'Progress over time: estimated bands per skill (latest, best, average of the last 5, each attempt), accuracy per question type with the recent trend, and how often each kind of mistake happens.',
+    description: 'Progress over time: estimated bands per skill (latest, best, average of the last 5, each attempt), accuracy per question type with the recent trend, how often each kind of mistake happens (auto-marking reasons), and the categories of the mistakes in your saved feedback.',
     inputSchema: ProgressArgs,
     annotations: RO
   }, logged('get_progress', async (a: z.infer<typeof ProgressArgs>) => {
@@ -280,7 +280,8 @@ export function buildMcpServer(db: Db, origin: string): McpServer {
       attempts: h.attempts.length,
       bySkill: Object.fromEntries(Object.entries(h.bySkill).map(([k, v]) => [k, { ...v, points: v.points.slice(-15) }])),
       byQuestionType: h.byType.map(t => ({ type: t.type, correct: t.raw, total: t.total, accuracyPct: pct(t.raw, t.total), last3AttemptsPct: pct(t.recent.raw, t.recent.total), trendPoints: t.trend })),
-      mistakeReasons: h.reasons
+      mistakeReasons: h.reasons,
+      feedbackMistakeCategories: h.feedbackMistakes
     });
   }));
 
