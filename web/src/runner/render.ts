@@ -35,7 +35,8 @@ export function rangeText(nums: number[]): string {
 /* ======================================================================
    parts
    ====================================================================== */
-export function renderPart(ctx: RenderCtx, part: Part, pi: number, section: SectionSkill): HTMLElement {
+/** `earlierRecording`: an earlier part has the recording for the whole test, so this part needs none of its own */
+export function renderPart(ctx: RenderCtx, part: Part, pi: number, section: SectionSkill, earlierRecording = false): HTMLElement {
   const sec = el('section', { class: `cd-part sec-${section}`, dataset: { part: String(pi), partId: part.id }, hidden: true });
   const zone = (name: string, cls: string, ...kids: Array<Node | null>) =>
     el('div', { class: `pane ${cls} hl-zone`, dataset: { zone: `${part.id}:${name}` } }, ...kids);
@@ -70,7 +71,7 @@ export function renderPart(ctx: RenderCtx, part: Part, pi: number, section: Sect
   if (section === 'listening' && part.transcript) {
     pane.appendChild(el('details', { class: 'transcript no-hl' }, el('summary', null, 'Transcript'), el('div', { html: mdBlock(part.transcript) })));
   }
-  if (section === 'listening' && !part.audioUrl && !ctx.readonly) {
+  if (section === 'listening' && !part.audioUrl && !earlierRecording && !ctx.readonly) {
     pane.appendChild(el('div', { class: 'cd-note no-hl' }, '🔈 This part has no recording yet. Reading the transcript aloud in the browser arrives in Phase 6.'));
   }
   if (part.instructions) pane.appendChild(el('div', { class: 'q-instr', html: mdBlock(part.instructions) }));

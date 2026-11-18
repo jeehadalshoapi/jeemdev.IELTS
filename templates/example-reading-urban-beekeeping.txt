@@ -1,10 +1,10 @@
-// IELTS Practice Studio test file — see HOW-TO-ADD-TESTS.md for the format
+// IELTS Practice test file — see HOW-TO-ADD-TESTS.md for the format
 
 TITLE: Sample Reading — Urban Beekeeping
 MODULE: Reading
 TYPE: Academic
 TIME: 20
-DESCRIPTION: A short one-passage sample that uses every question type. Try it, then open it in the editor to see how it was built.
+DESCRIPTION: A short one-passage sample that uses every question type. Compare it with this file to see how each type is written.
 
 === Passage 1 ===
 TITLE: The Return of the Urban Beekeeper

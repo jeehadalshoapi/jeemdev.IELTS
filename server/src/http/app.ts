@@ -1,6 +1,9 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { CreateAttemptBody, totalMarks, type DashboardResponse, type TestDetailResponse } from '@ielts/shared';
+import {
+  CreateAttemptBody, ImportBody, TestStatusBody, totalMarks, UPLOAD_MAX_BYTES, uploadKindOf,
+  type DashboardResponse, type ImportCheckResponse, type ImportSaveResponse, type TestDetailResponse, type TestsResponse, type UploadResponse
+} from '@ielts/shared';
 import { desc, eq } from 'drizzle-orm';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
@@ -12,7 +15,9 @@ import { createSession, deleteSession, findSession, SESSION_COOKIE } from '../au
 import type { AppConfig } from '../config';
 import type { Database } from '../db/client';
 import { files, tests } from '../db/schema';
-import type { FileStore } from '../files/store';
+import { EmptyFileError, FileTooLargeError, type FileStore } from '../files/store';
+import { checkImport, prepareImport, saveImport } from '../import/service';
+import { listTests, setTestStatus } from '../tests/repository';
 import { errorHandler, HttpError, notFound } from './errors';
 import { csrfProtection, ensureCsrfCookie, FailedLoginLimiter, parseCookies, rateLimit, setCookie } from './security';
 
@@ -161,6 +166,60 @@ export function createApp({ database, config, fileStore }: AppDeps) {
     res.json(r);
   });
 
+  /* ---------- import box and test management (Phase 4) ---------- */
+  api.get('/tests', async (_req, res) => {
+    const list = await listTests(db, { limit: 200 });
+    const body: TestsResponse = { tests: list.map(t => ({ ...t, createdAt: t.createdAt.toISOString() })) };
+    res.json(body);
+  });
+
+  api.patch('/tests/:id', async (req, res) => {
+    if (!isUuid(req.params.id)) throw notFound('Test not found');
+    const { status } = TestStatusBody.parse(req.body ?? {});
+    const row = await setTestStatus(db, req.params.id, status);
+    if (!row) throw notFound('Test not found');
+    console.log(`[test] ${row.id} -> ${status}`);
+    res.json(row);
+  });
+
+  api.post('/import/check', async (req, res) => {
+    const { doc: _doc, fileIds: _fileIds, ...result } = await checkImport(db, ImportBody.parse(req.body ?? {}));
+    const body: ImportCheckResponse = result;
+    res.json(body);
+  });
+
+  api.post('/import', async (req, res) => {
+    const input = ImportBody.parse(req.body ?? {});
+    const r = prepareImport(input.source, input.files);
+    if (!r.ok) throw new HttpError(400, 'invalid_test', `The test has ${r.errors.length} problem${r.errors.length === 1 ? '' : 's'}. Check it and fix ${r.errors.length === 1 ? 'it' : 'them'} first.`, r.errors);
+    const saved = await saveImport(db, r);
+    console.log(`[import] test ${saved.id} saved from ${r.format} (${r.fileIds.length} file(s))`);
+    const body: ImportSaveResponse = { ...saved, warnings: r.warnings };
+    res.status(201).json(body);
+  });
+
+  // audio / pictures for tests: the raw file is the body, its name is ?name=
+  api.post('/files', async (req, res) => {
+    const name = String(req.query.name ?? '').trim().slice(0, 255);
+    if (!name) throw new HttpError(400, 'invalid_request', 'Add the file name: POST /api/files?name=part1.mp3');
+    const mime = (req.get('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
+    const kind = uploadKindOf(mime);
+    if (!kind) throw new HttpError(415, 'unsupported_type', `"${name}" cannot be uploaded: only audio (MP3, M4A, WAV, OGG, WEBM, FLAC) and pictures (PNG, JPG, GIF, WEBP) are allowed.`);
+    const max = UPLOAD_MAX_BYTES[kind];
+    const tooLarge = () => new HttpError(413, 'too_large', `"${name}" is larger than ${max / 1024 / 1024} MB.`);
+    if (Number(req.get('content-length') ?? 0) > max) throw tooLarge();
+    try {
+      const saved = await fileStore.saveStream({ stream: req, maxBytes: max, originalName: name, mimeType: mime, kind });
+      console.log(`[upload] ${kind} ${saved.id} (${saved.sizeBytes} bytes)`);
+      const body: UploadResponse = { id: saved.id, url: saved.url, name, kind, sizeBytes: saved.sizeBytes };
+      res.status(201).json(body);
+    } catch (e) {
+      if (e instanceof FileTooLargeError) throw tooLarge();
+      if (e instanceof EmptyFileError) throw new HttpError(400, 'empty_file', `"${name}" is empty.`);
+      throw e;
+    }
+  });
+
   api.use((_req, _res, next) => next(notFound('No such API route')));
   app.use('/api', api);
 
@@ -173,7 +232,8 @@ export function createApp({ database, config, fileStore }: AppDeps) {
     if (!f) throw notFound('File not found');
     res.setHeader('Cache-Control', 'private, max-age=86400');
     res.type(f.mimeType);
-    res.sendFile(fileStore.absolutePath(f.storagePath), { dotfiles: 'deny' });
+    // "root" limits the dotfile check to the stored name (the upload folder itself may be e.g. ".data/uploads")
+    res.sendFile(f.storagePath, { root: fileStore.rootDir, dotfiles: 'deny' });
   });
 
   app.use((req, res) => { res.status(404).type('text').send('Not found'); });

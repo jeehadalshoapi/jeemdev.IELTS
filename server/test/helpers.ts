@@ -27,7 +27,7 @@ export async function startServer(): Promise<TestServer> {
   await writeFile(path.join(webDir, 'login.html'), '<!doctype html><title>login</title>');
   const database = await openDatabase({ pgliteDir: 'memory://' });
   await database.migrate();
-  const config = await loadConfig({ adminPasswordHash: await hashPassword(PASSWORD), webDir, uploadDir: path.join(dir, 'uploads'), isProd: false });
+  const config = await loadConfig({ adminPasswordHash: await hashPassword(PASSWORD), webDir, uploadDir: path.join(dir, '.data', 'uploads'), isProd: false });
   const fileStore = new FileStore(database.db, config.uploadDir);
   const app = createApp({ database, config, fileStore });
   const server: Server = await new Promise(resolve => { const s = app.listen(0, () => resolve(s)); });

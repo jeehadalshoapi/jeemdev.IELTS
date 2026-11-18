@@ -24,7 +24,8 @@ export async function mountStart(root: HTMLElement, testId: string): Promise<voi
   };
 
   root.append(appHeader(t.title, true), el('div', { class: 'page narrow' }, el('section', { class: 'card start-info' },
-    el('div', { class: 'badges' }, skillBadge(t.skill), kindBadge(t.kind), t.dueDate ? el('span', { class: 'badge' }, `Due ${t.dueDate}`) : null),
+    el('div', { class: 'badges' }, skillBadge(t.skill), kindBadge(t.kind), t.dueDate ? el('span', { class: 'badge' }, `Due ${t.dueDate}`) : null,
+      t.status === 'archived' ? el('a', { class: 'badge badge-archived', href: '#/tests', title: 'Restore it on the Tests page' }, 'Archived') : null),
     el('h1', null, t.title),
     el('div', { class: 'start-meta' },
       el('div', null, el('small', null, 'Time'), el('b', null, t.timeLimitMin ? `${t.timeLimitMin} minutes` : 'No limit')),

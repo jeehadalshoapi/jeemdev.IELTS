@@ -179,6 +179,29 @@ describe('clear errors (path + reason)', () => {
     has(errorsOf(l), 'parts[0].transcript', 'is required for a listening part without "audioUrl"');
   });
 
+  it('one recording for the whole test: later listening parts may rely on an earlier part\'s audioUrl', () => {
+    const part = (id: string, n: number, extra: object) => ({
+      ...(clone(exampleTestForType('form_completion').parts[0]) as any), id, title: id, ...extra,
+      questionGroups: [{ id: `g${id}`, type: 'short_answer', questions: [{ id: `q${n}`, number: n, text: 'What?' }] }]
+    });
+    const doc = (parts: object[]) => ({ title: 'L', skill: 'listening', parts, answerKey: { q1: { accept: ['a'] }, q2: { accept: ['b'] } } });
+    const noTranscript = (p: any) => { delete p.transcript; delete p.audioUrl; return p; };
+    // part 2 has neither audio nor transcript, but part 1 has the recording
+    expect(validateTest(doc([part('L1', 1, { audioUrl: 'https://x.test/all.mp3' }), noTranscript(part('L2', 2, {}))])).ok).toBe(true);
+    // without any recording, the first part without a transcript is reported
+    has(errorsOf(doc([noTranscript(part('L1', 1, {})), part('L2', 2, { audioUrl: 'https://x.test/p2.mp3' })])), 'parts[0].transcript', 'unless an earlier part has one recording');
+  });
+
+  it('a malformed answer-key entry does not hide the other problems', () => {
+    const doc = base();
+    doc.answerKey.q1 = { accept: [] }; // zod error
+    doc.answerKey.q2 = { accept: ['far too many words here'] }; // word-limit error (found by the cross-check)
+    const errs = errorsOf(doc);
+    has(errs, 'answerKey.q1.accept', 'needs at least one accepted answer');
+    has(errs, 'answerKey.q2.accept', 'no accepted answer fits the word limit');
+    expect(errs.filter(e => e.path === 'answerKey.q1')).toEqual([]); // not also reported as "missing"
+  });
+
   it('mixed tests need a section on each part, and types must fit the section', () => {
     const doc = base();
     doc.skill = 'mixed';

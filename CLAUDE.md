@@ -8,23 +8,26 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 |---|---|---|
 | 1 | Test format (zod), DB tables, migrations, seed, legacy import | ✅ merged into `main` |
 | 2 | Login, dashboard, runner with server autosave + resume on any device, phone layout, deployment | ✅ merged into `main`, **deployed** |
-| 3 | Auto-scoring, estimated band, results page, review-in-the-test, history | ✅ done on branch **`phase-3-scoring`** (pushed). **Waiting for the owner's "go"**, then merge and deploy |
-| 4 | Import box: an admin page where the owner pastes test JSON, which is validated and saved | next |
-| 5 | MCP server (all tools in spec §6), auth, MCP Inspector, connect to claude.ai | |
+| 3 | Auto-scoring, estimated band, results page, review-in-the-test, history | ✅ merged into `main`, **deployed** 2026-11-18 |
+| 4 | Import box (`#/import`: JSON or text format, audio/picture uploads), Tests page (`#/tests`: archive/restore) | ✅ done on branch **`phase-4-import-box`** (pushed). **Waiting for the owner's "go"**, then merge and deploy |
+| 5 | MCP server (all tools in spec §6), auth, MCP Inspector, connect to claude.ai | next |
 | 6 | Task 1 chart drawing, plan+intro drill timers, speaking recording (MediaRecorder upload), listening speech synthesis from transcript | |
 | 7 | Render Claude's feedback (spec §6 JSON) on the results page, progress charts | |
 
-- `main` = Phase 2 and is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
+- `main` = Phase 3 and is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
 - When the owner says **"go"**:
-  1. `git switch main && git merge --no-ff phase-3-scoring`, then push.
-  2. Deploy: `ssh gehad@169.58.112.108 'cd /opt/ielts/stack && ./deploy.sh'`.
-  3. Check `curl https://ielts.jeemdev.net/health`.
-  4. Create `phase-4-import-box` and start Phase 4.
+  1. `git switch main && git merge --no-ff phase-4-import-box`, then push.
+  2. Record the other sites' status codes (see Deployment), then deploy: `ssh gehad@169.58.112.108 'cd /opt/ielts/stack && ./deploy.sh'`.
+  3. Check `curl https://ielts.jeemdev.net/health`, the other sites again, and a logged-in `GET /api/tests` on the box (cookie jar; read the password file there, never print it).
+  4. Create `phase-5-mcp` and start Phase 5. **Check the current official docs first** (MCP TypeScript SDK, claude.ai custom connector auth).
 
-### Ideas already noted for Phase 4
-- A page (e.g. `#/admin/import`, login required like everything else) with a textarea for the JSON. Validate with `validateTest()` and show every issue (path + message). Show the warnings, then save with `createTest(db, input, { source: 'manual' })`. Add a `POST /api/tests` route; mind the 1 MB body limit in `express.json`.
-- Optional, but it was liked: also accept the old **text format** (`templates/*.txt`, [HOW-TO-ADD-TESTS.md](HOW-TO-ADD-TESTS.md)). The old parser is `js/textformat.js` in commit `38d7c76` (`git show 38d7c76:js/textformat.js`). It produced the OLD format, so it would have to output the new `TestDocument` (see `server/src/legacy/convert.ts` for how old → new mapping works). Update HOW-TO-ADD-TESTS.md when done.
-- Also useful: archive / list tests from the website (status `archived`; never hard-delete).
+### Ideas already noted for Phase 5
+- Reuse what Phase 4 built, so the import box and the connector behave the same:
+  - `create_test`: `validateTest` + `createTest(db, doc, { source: 'claude' })`. `prepareImport()` (`server/src/import/service.ts`) also adds the friendly `where` to each issue, and returns the `summary`.
+  - `archive_test`: `setTestStatus()`. `list_tests`: `listTests()`. `get_test`: `getTest()`.
+  - `get_test_format`: `QUESTION_TYPE_EXAMPLES` / `exampleTestForType()` in `shared/src/examples`.
+- `update_test` must also re-score earlier attempts (`rescoreTestAttempts()` exists from Phase 3).
+- Claude cannot upload audio through the connector. A listening test from Claude has a `transcript` (read aloud in Phase 6), or the owner attaches a recording later. An "attach file to an existing test" feature does not exist yet.
 
 ## How we work (agreed with the owner)
 - **One branch per phase** (`phase-N-name`). At the end of a phase:
@@ -52,19 +55,21 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
      - The answer key may have `explanation`, `modelAnswer` and `notes`.
      - `variant: academic | general_training`, with a GT band table.
      - Paragraphs may have a `heading`.
-   - A listening transcript is required **unless the part has `audioUrl`** (the spec says always; relaxed so real recordings without transcripts work). The owner was told about this.
+   - A listening transcript is required **unless the part has `audioUrl`, or an earlier listening part has one** ("one recording for the whole test", as in the old text format). The spec says always; relaxed so real recordings without transcripts work. The owner was told about this.
+   - Text format additions (Phase 4): `KIND:`, `DUE:`, `TIME: none`. Leaving out `INSTRUCTIONS:` gives standard IELTS instructions per type.
+   - Uploads (`POST /api/files?name=…`, raw body, streamed to disk): audio ≤ 100 MB, pictures ≤ 10 MB (PNG/JPG/GIF/WEBP; **no SVG**). Limits in `UPLOAD_MAX_BYTES` (`shared/src/api.ts`).
 7. Deployment follows the box's own runbook (see Deployment). It does **not** ship its own reverse proxy, even though spec §8 suggested one.
 
 ## Commands
 ```bash
 npm install
 npm run dev                 # API :3000 (tsx watch) + website :5173 (Vite); dev password "ielts-dev"
-npm test                    # vitest — 75 tests (shared/test, server/test)
+npm test                    # vitest — 94 tests (shared/test, server/test)
 npm run typecheck           # tsc for shared, server, web (TypeScript 7 — type-checking only)
 npm run build               # vite build web -> web/dist ; esbuild server -> server/dist
 npm start                   # production build on :3000
 npm run db:migrate | db:seed | db:tests | db:generate   # drizzle-kit generate after editing server/src/db/schema.ts
-npm run validate -- test.json              # check a test JSON without saving
+npm run validate -- test.json|test.txt     # check a test (JSON or text format) without saving
 npm run db:import-legacy -- export.json    # old site's "Export all" file
 npm run hash-password -- "pw"              # ADMIN_PASSWORD_HASH value
 ```
@@ -77,6 +82,7 @@ PGLITE_DIR=.data/e2e/pglite UPLOAD_DIR=.data/e2e/uploads node server/dist/main.j
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/cross-device.phone.cjs  # spec §10 acceptance, part 1
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/cross-device.laptop.cjs # part 2 (a new profile = a new device)
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/results.cjs            # Phase 3 scoring / review / history
+node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/import.cjs             # Phase 4 import box, uploads (dropped files), tests page
 ```
 - Screenshots land in `.data/e2e-shots/`. Look at them with the Read tool.
 - Each run of `cdp.cjs` uses a fresh browser profile.
@@ -92,7 +98,7 @@ shared/  test format + logic used everywhere (imported as @ielts/shared, TS sour
   src/answers.ts       normalizeAnswer, expandOptional "(the) x", countWords / fitsWordLimit / describeWordLimit
   src/scoring.ts       scoreAnswers() -> AutoScore (reasons: correct | blank | wrong | over_word_limit | likely_spelling)
   src/config/band-tables.ts   raw -> estimated band (listening, academic_reading, general_reading), scaled to 40
-  src/api.ts           REST request/response types + AttemptPatch zod schema
+  src/api.ts           REST request/response types + AttemptPatch / ImportBody zod schemas, upload limits
   src/examples/        URBAN_BEEKEEPING (seed) + one example per question type (tests, and get_test_format in Phase 5)
 server/  Express 5 + Drizzle (Postgres / PGlite)
   src/db/schema.ts, src/db/client.ts, drizzle/*.sql (migrations run on app start)
@@ -101,11 +107,16 @@ server/  Express 5 + Drizzle (Postgres / PGlite)
   src/auth/            scrypt password hash (format scrypt:N:r:p:salt:hash — no "$", safe in compose .env), sessions
   src/attempts/service.ts  timing, autosave merge (only changed keys), submit + scoring, auto-submit on exam expiry, results, rescore
   src/attempts/history.ts  history aggregation
-  src/tests/repository.ts  createTest / getTest / listTests;  src/legacy/  old-site import
-web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/attempt/:id  #/result/:id  #/review/:id  #/history
+  src/tests/repository.ts  createTest / getTest / listTests / setTestStatus;  src/legacy/  old-site import (convert.ts: old -> new)
+  src/import/textformat.ts the text format (HOW-TO-ADD-TESTS.md) -> old test shape -> legacy/convert.ts -> TestDocument
+  src/import/service.ts    prepareImport (JSON or text, ``` fences, file names -> /files/<id>, friendly "where" per issue, summary),
+                           checkImport / saveImport;  routes: POST /api/import/check, POST /api/import, GET /api/tests,
+                           PATCH /api/tests/:id {status}, POST /api/files?name=
+  src/files/store.ts       FileStore.save (buffer) / saveStream (uploads, size-capped)
+web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/attempt/:id  #/result/:id  #/review/:id  #/history  #/tests  #/import
   src/runner/          runner.ts (exam UI, clock, nav, review mode), render.ts (all question types), tools.ts (highlights/notes),
                        sync.ts (autosave + offline buffer in localStorage), panels.ts (settings/notes/help/audio)
-  src/pages/           dashboard, start, result, history;  src/lib/ dom/ui/api/markup/format helpers
+  src/pages/           dashboard, start, result, history, tests, import;  src/lib/ dom/ui/api(+uploadFile, XHR progress)/markup/format helpers
 ```
 - **Security rules from the spec that the code enforces:**
   - Every page, API route and file needs a login, except `/login`, `/assets/*` (hashed bundles) and `/health`.
@@ -148,3 +159,8 @@ web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/att
 - The **server bundle** (`scripts/build-server.mjs`) keeps npm packages external and aliases `@ielts/shared` to its source. PGlite and the `drizzle-orm/pglite` driver are imported dynamically, because PGlite is a dev dependency only.
 - `vitest` server tests start the real app on a random port (`server/test/helpers.ts`, `Client` keeps cookies and sends the CSRF header). The login lockout is per app instance, so lockout tests use their own server.
 - `npm audit` reports 4 moderate advisories: one old esbuild inside `drizzle-kit` (dev tool only, never deployed). The suggested "fix" downgrades drizzle-kit, so it was left as is.
+- **`res.sendFile` and dot-folders:** with `dotfiles: 'deny'`, a full path through `.data/` is refused (403 → 500). Pass the upload folder as `root` (done in `/files/:id`). `FileStore` also resolves a relative `UPLOAD_DIR`. The test server's uploads live in a `.data` folder so this stays covered.
+- **npm workspace scripts run inside `server/`.** Scripts that take a file path resolve it from `process.env.INIT_CWD` (the folder the command was typed in).
+- **JSON.parse messages** in current Node sometimes have no position (`Unexpected token ',', "…" is not valid JSON`). `jsonErrorOffset()` in `server/src/import/service.ts` finds the line and column itself.
+- **CSRF is checked before the login.** A client with no CSRF cookie gets 403, not 401. Tests that expect 401 first `GET /login` to receive the cookie.
+- **Backups grow with uploads:** `backup.sh` tars the whole uploads volume every night and keeps 14 days. Fine at 162 GB free (Nov 2026); revisit if many recordings are uploaded.

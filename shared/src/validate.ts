@@ -76,14 +76,18 @@ export function validateTest(input: unknown): ValidationResult {
 function checkRestOfBrokenTest(input: unknown, error: z.ZodError): Issue[] {
   if (!input || typeof input !== 'object' || !Array.isArray((input as { parts?: unknown }).parts)) return [];
   const broken = new Set<string>();
+  const brokenKeys = new Set<string>();
   for (const iss of error.issues) {
     const [a, pi, b, gi] = iss.path;
+    // a malformed answer-key entry: set it aside too
+    if (a === 'answerKey' && typeof pi === 'string') { brokenKeys.add(pi); continue; }
     if (a !== 'parts' || typeof pi !== 'number') return []; // a problem outside the groups: report it first
     if (b !== 'questionGroups' || typeof gi !== 'number') return [];
     broken.add(`${pi}:${gi}`);
   }
-  const copy = structuredClone(input) as { parts: Array<{ questionGroups?: unknown[] }> };
-  const droppedIds = new Set<string>();
+  const copy = structuredClone(input) as { parts: Array<{ questionGroups?: unknown[] }>; answerKey?: Record<string, unknown> };
+  const droppedIds = new Set<string>(brokenKeys);
+  if (copy.answerKey && typeof copy.answerKey === 'object') for (const id of brokenKeys) delete copy.answerKey[id];
   copy.parts.forEach((part, pi) => {
     if (!Array.isArray(part?.questionGroups)) return;
     part.questionGroups = part.questionGroups.filter((g, gi) => {
@@ -145,6 +149,8 @@ function crossCheck(doc: TestDocument): { errors: Issue[]; warnings: Issue[] } {
   const objective = new Map<string, ObjectiveInfo>();
   const openItems = new Set<string>();
   const numberOrder: number[] = [];
+  /** one recording for the whole test: the audio of an earlier listening part keeps playing through the later parts */
+  let recordingSoFar = false;
 
   doc.parts.forEach((part, pi) => {
     const pp = `parts[${pi}]`;
@@ -161,8 +167,11 @@ function crossCheck(doc: TestDocument): { errors: Issue[]; warnings: Issue[] } {
 
     if (section === 'reading' && !part.passage) err(`${pp}.passage`, 'is required for reading parts: { "title": "…", "paragraphs": [{ "label": "A", "text": "…" }] }');
     if (section && section !== 'reading' && part.passage) err(`${pp}.passage`, `only reading parts have a passage (this part is ${section})`);
-    if (section === 'listening' && !part.transcript && !part.audioUrl) {
-      err(`${pp}.transcript`, 'is required for a listening part without "audioUrl" — the browser reads the transcript aloud, and shows it after submission');
+    if (section === 'listening') {
+      if (part.audioUrl) recordingSoFar = true;
+      else if (!part.transcript && !recordingSoFar) {
+        err(`${pp}.transcript`, 'is required for a listening part without "audioUrl" (unless an earlier part has one recording for the whole test) — the browser reads the transcript aloud, and shows it after submission');
+      }
     }
     if (section && section !== 'listening') {
       if (part.audioUrl) err(`${pp}.audioUrl`, `audio belongs to listening parts (this part is ${section})`);

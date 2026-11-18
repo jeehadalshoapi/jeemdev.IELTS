@@ -1,8 +1,7 @@
 // ============================================================
-//  WRITING TEST TEMPLATE  —  IELTS Practice Studio
-//  For an Academic Task 1 chart: put the picture in the same folder,
-//  write its file name after IMAGE:, and select the .txt AND the picture
-//  together when you import.
+//  WRITING TEST TEMPLATE  —  IELTS Practice
+//  For an Academic Task 1 chart: write the picture's file name after IMAGE:,
+//  then attach the picture in the import box (Website → Tests → Import a test).
 //  Full guide: HOW-TO-ADD-TESTS.md in the main folder.
 // ============================================================
 

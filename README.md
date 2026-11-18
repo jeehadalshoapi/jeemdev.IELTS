@@ -7,16 +7,16 @@ A private IELTS practice site at **https://ielts.jeemdev.net**. Claude writes te
 | 1 | Test format (zod), database, migrations, seed, legacy import | ✅ |
 | 2 | Login, dashboard, test runner with server autosave and resume on any device, phone layout, deployment | ✅ |
 | 3 | Auto-scoring, band estimate, results page, review in the test, history | ✅ |
-| 4 | Import box (paste test JSON) | next |
-| 5 | MCP server: the claude.ai connector | |
+| 4 | Import box (paste JSON or the text format, attach audio / pictures), Tests page (archive / restore) | ✅ |
+| 5 | MCP server: the claude.ai connector | next |
 | 6 | Writing charts, plan+intro timers, speaking recording, listening speech playback | |
 | 7 | Claude's feedback on the results page, progress charts | |
 
 ## Folders
 - `shared/`: the test format (zod schemas, validation, answer helpers) and the API types. Used by everything else.
 - `server/`: Express + PostgreSQL (Drizzle). Login, REST API, file serving, migrations (`server/drizzle`), scripts.
-- `web/`: the website (TypeScript + Vite). Dashboard and the computer-delivered-IELTS-style test runner.
-- `templates/`, `HOW-TO-ADD-TESTS.md`: the old text-file format. It comes back in the Phase 4 import box.
+- `web/`: the website (TypeScript + Vite). Dashboard, import box, and the computer-delivered-IELTS-style test runner.
+- `templates/`, [HOW-TO-ADD-TESTS.md](HOW-TO-ADD-TESTS.md): how to add tests, the text format and its templates.
 
 ## Run it on your PC
 Needs Node.js 22 or newer.
@@ -34,7 +34,7 @@ On your PC the database is a local PGlite folder (`.data/pglite`), so you don't 
 ```bash
 npm run db:seed                            # add the sample reading test
 npm run db:tests                           # list the tests in the database
-npm run validate -- my-test.json           # check a test JSON (e.g. from Claude) without saving it
+npm run validate -- my-test.json           # check a test (JSON from Claude, or a .txt in the text format) without saving it
 npm run db:import-legacy -- export.json    # tests from the old browser-only site's "Export all" file
 npm run hash-password -- "a password"      # a hash for ADMIN_PASSWORD_HASH
 ```
@@ -44,6 +44,7 @@ npm run hash-password -- "a password"      # a hash for ADMIN_PASSWORD_HASH
 - **Autosave:** each answer change is sent within a second, and a heartbeat goes every 10 seconds. Only changes are sent, so two devices never overwrite each other. Offline, unsent changes stay in the browser (the only use of localStorage besides display settings) and sync when the connection is back.
 - **Clock:** exam mode runs on the wall clock: the deadline is fixed on the server and keeps running when the page is closed. When it passes, the server submits the saved answers. Practice mode counts only the time you actually spend in the test, can be paused, and closing the page pauses it.
 - **Secrets stay on the server:** the answer key and listening transcripts are never sent to the browser before you submit.
+- **Adding tests:** the import box (**Tests → Import a test**) takes JSON from Claude or the text format, plus audio and pictures (stored in `UPLOAD_DIR`, served only after login). It lists every problem at once and saves only a checked test. See [HOW-TO-ADD-TESTS.md](HOW-TO-ADD-TESTS.md).
 - **Scoring** happens on the server when you submit, and when the exam clock runs out (`shared/src/scoring.ts`):
   - Matching ignores capital letters, extra spaces and a final full stop. Any answer in `accept[]` counts, and `(optional)` words are allowed.
   - An answer **over the word limit is wrong**. A **misspelling is wrong**, but it is labelled, and the exact typed answer is kept.
