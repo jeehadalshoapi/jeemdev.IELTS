@@ -93,6 +93,38 @@ export const sessions = pgTable('sessions', {
   index('sessions_expires_idx').on(t.expiresAt)
 ]);
 
+/* ---------- Claude connector (MCP) — OAuth 2.1, single user ---------- */
+
+/** OAuth clients registered through dynamic client registration (RFC 7591), e.g. claude.ai */
+export const oauthClients = pgTable('oauth_clients', {
+  clientId: text('client_id').primaryKey(),
+  clientName: text('client_name'),
+  redirectUris: jsonb('redirect_uris').$type<string[]>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true })
+});
+
+/** access and refresh tokens; only their SHA-256 is stored. A refresh rotation keeps the same family. */
+export const oauthTokens = pgTable('oauth_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  kind: text('kind').$type<'access' | 'refresh'>().notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  clientId: text('client_id').notNull(),
+  clientName: text('client_name'),
+  scope: text('scope').notNull(),
+  resource: text('resource').notNull(),
+  familyId: uuid('family_id').notNull(),
+  /** fingerprint of the password hash at issue time: changing the password ends every connection */
+  passwordTag: text('password_tag').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true })
+}, t => [
+  index('oauth_tokens_family_idx').on(t.familyId),
+  index('oauth_tokens_expires_idx').on(t.expiresAt)
+]);
+
 export type TestRow = typeof tests.$inferSelect;
 export type AttemptRow = typeof attempts.$inferSelect;
 export type FileRow = typeof files.$inferSelect;

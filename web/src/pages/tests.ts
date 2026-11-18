@@ -1,15 +1,16 @@
 /* #/tests — every test, with Archive / Restore (tests are never deleted) and the way to the import box. */
-import type { ManagedTest, TestsResponse, TestStatus } from '@ielts/shared';
+import type { ConnectorResponse, ManagedTest, TestsResponse, TestStatus } from '@ielts/shared';
 import { api } from '../lib/api';
 import { el } from '../lib/dom';
 import { fmtDate } from '../lib/format';
-import { toast } from '../lib/ui';
+import { confirmDialog, toast } from '../lib/ui';
 import { appHeader, kindBadge, skillBadge } from './common';
 
 export async function mountTests(root: HTMLElement): Promise<void> {
-  const { tests } = await api<TestsResponse>('/tests');
+  const [{ tests }, connector] = await Promise.all([api<TestsResponse>('/tests'), api<ConnectorResponse>('/connector')]);
   let showArchived = false;
   const body = el('div');
+  const connectorBox = el('section', { class: 'card connector-card' });
   const toggleLabel = el('span');
   const page = el('div', { class: 'page' },
     el('div', { class: 'toolbar' },
@@ -17,7 +18,8 @@ export async function mountTests(root: HTMLElement): Promise<void> {
       el('div', { class: 'toolbar-right' },
         el('label', { class: 'check' }, el('input', { type: 'checkbox', id: 'show-archived', onchange: (e: Event) => { showArchived = (e.target as HTMLInputElement).checked; draw(); } }), toggleLabel),
         el('a', { class: 'btn btn-primary', href: '#/import' }, '＋ Import a test'))),
-    body);
+    body,
+    connectorBox);
   root.append(appHeader('Import, archive and restore tests'), page);
 
   async function setStatus(t: ManagedTest, status: TestStatus) {
@@ -56,5 +58,32 @@ export async function mountTests(root: HTMLElement): Promise<void> {
           ? el('button', { class: 'btn btn-sm', onclick: () => setStatus(t, 'assigned') }, 'Restore')
           : el('button', { class: 'btn btn-sm', onclick: () => setStatus(t, 'archived') }, 'Archive')))))))));
   }
+  function drawConnector(c: ConnectorResponse) {
+    const copy = async () => {
+      try { await navigator.clipboard.writeText(c.mcpUrl); toast('Address copied', 'ok'); } catch { toast('Copying is blocked in this browser', 'err'); }
+    };
+    const disconnect = async () => {
+      if (!await confirmDialog('Disconnect Claude? It has to sign in again (and you approve it again) before it can use the site.', { ok: 'Disconnect', danger: true })) return;
+      try {
+        await api('/connector/disconnect', { method: 'POST', body: {} });
+        drawConnector(await api<ConnectorResponse>('/connector'));
+        toast('Disconnected', 'ok');
+      } catch (e) { toast((e as Error).message, 'err'); }
+    };
+    connectorBox.replaceChildren(
+      el('div', { class: 'card-head' },
+        el('h3', { class: 'card-title' }, '🔌 Claude connector'),
+        c.connections.length ? el('span', { class: 'pill-ok' }, '✓ Connected') : el('span', { class: 'badge' }, 'Not connected')),
+      el('p', null, 'Claude can upload tests, read your answers and save its marking here. In claude.ai: ', el('b', null, 'Customize → Connectors → Add custom connector'), ', then paste this address:'),
+      el('div', { class: 'connector-url' }, el('code', null, c.mcpUrl), el('button', { class: 'btn btn-sm', onclick: copy }, 'Copy')),
+      el('p', { class: 'hint' }, 'Claude then opens this site and asks you to allow the connection.'),
+      c.connections.length
+        ? el('div', null,
+          el('ul', { class: 'plain-list' }, c.connections.map(x => el('li', null,
+            el('b', null, x.clientName || 'An app'), ` — connected ${fmtDate(x.connectedAt)}`, x.lastUsedAt ? `, last used ${fmtDate(x.lastUsedAt)}` : ''))),
+          el('button', { class: 'btn btn-sm btn-danger', onclick: disconnect }, 'Disconnect'))
+        : '');
+  }
   draw();
+  drawConnector(connector);
 }

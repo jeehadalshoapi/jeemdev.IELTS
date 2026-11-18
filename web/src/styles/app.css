@@ -446,6 +446,11 @@ select.input { padding-right: 28px; }
 .tests-table tr.archived a { color: var(--muted); }
 .tests-table .test-action { text-align: right; white-space: nowrap; }
 
+.connector-card { margin-top: 18px; }
+.connector-card p { margin: 0 0 10px; }
+.connector-url { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.connector-url code { font-size: 14px; padding: 6px 10px; overflow-wrap: anywhere; }
+
 .import-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .import-editor { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .import-text { min-height: 440px; font-size: 12.5px; white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 2; }

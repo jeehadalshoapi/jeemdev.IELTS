@@ -8,8 +8,8 @@ A private IELTS practice site at **https://ielts.jeemdev.net**. Claude writes te
 | 2 | Login, dashboard, test runner with server autosave and resume on any device, phone layout, deployment | ✅ |
 | 3 | Auto-scoring, band estimate, results page, review in the test, history | ✅ |
 | 4 | Import box (paste JSON or the text format, attach audio / pictures), Tests page (archive / restore) | ✅ |
-| 5 | MCP server: the claude.ai connector | next |
-| 6 | Writing charts, plan+intro timers, speaking recording, listening speech playback | |
+| 5 | MCP server: the claude.ai connector (OAuth, 11 tools) | ✅ |
+| 6 | Writing charts, plan+intro timers, speaking recording, listening speech playback | next |
 | 7 | Claude's feedback on the results page, progress charts | |
 
 ## Folders
@@ -51,6 +51,27 @@ npm run hash-password -- "a password"      # a hash for ADMIN_PASSWORD_HASH
   - "Choose TWO" gives 1 mark per correct letter.
   - The raw score becomes an **estimated band** using the tables in `shared/src/config/band-tables.ts` (Listening, Academic Reading, General Training Reading), scaled when a test has fewer than 40 questions. A full mock gets a band per section.
   - When an answer key is corrected, `rescoreTestAttempts()` scores the earlier attempts again.
+
+## The Claude connector (MCP)
+Claude reaches the site through a remote MCP server at **`https://ielts.jeemdev.net/mcp`** (Streamable HTTP, stateless; official TypeScript SDK v2: `@modelcontextprotocol/server`, `/express`, `/node`).
+
+**Connect it (once):**
+1. claude.ai → **Customize → Connectors → ＋ Add → Add custom connector**.
+2. Name: `IELTS Practice`. Server URL: `https://ielts.jeemdev.net/mcp`. Continue.
+3. Sign-in: keep the suggested OAuth option (*Use Claude's published identity* or *Register automatically* both work: the site supports automatic registration). Add.
+4. Claude opens the site: log in if asked, then press **Allow**. The Tests page now shows *Connected*.
+
+**Tools:** `get_test_format`, `create_test`, `update_test` (re-scores earlier attempts), `list_tests`, `get_test`, `archive_test`, `list_attempts`, `get_attempt`, `get_latest_attempt`, `save_feedback`, `get_progress`. Every call is logged (`docker compose logs app | grep '\[mcp\]'`).
+
+**Security:** the site is its own small OAuth 2.1 server (`server/src/mcp/oauth.ts`): dynamic client registration for Claude's callback (`https://claude.ai/api/mcp/auth_callback`) or loopback addresses only, PKCE S256, an approval page that needs your site login, access tokens for 1 hour, refresh tokens for 60 days and rotated on every use, only SHA-256 hashes stored. **Disconnect** on the Tests page ends every connection; changing the password does too. `/mcp` and the OAuth endpoints are rate-limited.
+
+**Test it with the MCP Inspector** (before or instead of claude.ai):
+```bash
+TOKEN=$(node scripts/e2e/mcp-connect.mjs http://localhost:3000)     # signs in like Claude does (dev password), prints a 1-hour token
+npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http --header "Authorization: Bearer $TOKEN" --method tools/list
+npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http --header "Authorization: Bearer $TOKEN" --method tools/call --tool-name list_tests
+```
+Without `--cli`, the Inspector opens its web UI, which can also run the OAuth flow itself (it uses a `http://localhost` callback, which the site accepts).
 
 ## Deploy (VPS)
 The VPS runs several projects behind one shared Caddy proxy (`/opt/edge`), following the `contaboserver` repo's `ADD-PROJECT.md`. The IELTS files are in that repo under `stack-ielts/` and on the box in `/opt/ielts/stack/`:
