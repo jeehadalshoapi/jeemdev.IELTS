@@ -6,9 +6,12 @@ import { el } from './lib/dom';
 import { mountDashboard } from './pages/dashboard';
 import { mountHistory } from './pages/history';
 import { mountImport } from './pages/import';
+import { mountLesson, mountLessons } from './pages/lessons';
+import { mountMistakes } from './pages/mistakes';
 import { mountResult } from './pages/result';
 import { mountStart } from './pages/start';
 import { mountTests } from './pages/tests';
+import { mountVocab, mountVocabSet } from './pages/vocab';
 import { mountReview, mountRunner, type RunnerHandle } from './runner/runner';
 
 const app = document.getElementById('app')!;
@@ -37,6 +40,11 @@ async function render(): Promise<void> {
       else if (name === 'result' && id) await mountResult(app, id);
       else if (name === 'history') await mountHistory(app);
       else if (name === 'tests') await mountTests(app);
+      else if (name === 'lessons') await mountLessons(app);
+      else if (name === 'lesson' && id) await mountLesson(app, decodeURIComponent(id));
+      else if (name === 'vocab' && id) await mountVocabSet(app, decodeURIComponent(id));
+      else if (name === 'vocab') await mountVocab(app);
+      else if (name === 'mistakes') await mountMistakes(app);
       else if (name === 'import') view = mountImport(app);
       else await mountDashboard(app);
     }

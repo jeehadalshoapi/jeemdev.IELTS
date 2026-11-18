@@ -29,6 +29,13 @@
       "when": 1794978912599,
       "tag": "0003_recordings",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794994055160,
+      "tag": "0004_study",
+      "breakpoints": true
     }
   ]
 }

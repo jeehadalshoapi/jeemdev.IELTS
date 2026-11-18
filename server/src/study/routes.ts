@@ -1,0 +1,47 @@
+/* Website API for lessons, the vocabulary bank and the mistakes log (Phase 8). Mounted behind the login. */
+import { MISTAKE_CATEGORIES, MistakePatch, MistakeReviewBody, WordPatch, type MistakeCategory } from '@ielts/shared';
+import type { Router } from 'express';
+import { z } from 'zod';
+import type { Db } from '../db/client';
+import { notFound } from '../http/errors';
+import { getLesson, getVocabSet, listLessons, listMistakes, listVocabSets, reviewMistake, updateMistake, updateWord } from './store';
+
+const MistakeQuery = z.strictObject({
+  category: z.enum(MISTAKE_CATEGORIES).optional(),
+  status: z.enum(['active', 'mastered']).optional()
+});
+
+export function mountStudyRoutes(api: Router, db: Db): void {
+  api.get('/lessons', async (_req, res) => { res.json(await listLessons(db)); });
+  api.get('/lessons/:id', async (req, res) => {
+    const v = await getLesson(db, req.params.id);
+    if (!v) throw notFound('Lesson not found');
+    res.json(v);
+  });
+
+  api.get('/vocab/sets', async (_req, res) => { res.json(await listVocabSets(db)); });
+  api.get('/vocab/sets/:id', async (req, res) => {
+    const v = await getVocabSet(db, req.params.id);
+    if (!v) throw notFound('Vocabulary set not found');
+    res.json(v);
+  });
+  /** the owner marks a word (flashcards, table) */
+  api.patch('/vocab/sets/:id/words', async (req, res) => {
+    const p = WordPatch.parse(req.body ?? {});
+    res.json(await updateWord(db, req.params.id, p.word, { ...(p.status ? { status: p.status } : {}), ...(p.timesMissed !== undefined ? { timesMissed: p.timesMissed } : {}) }));
+  });
+
+  api.get('/mistakes', async (req, res) => {
+    const q = MistakeQuery.parse(req.query);
+    res.json(await listMistakes(db, { ...(q.category ? { category: q.category as MistakeCategory } : {}), ...(q.status ? { status: q.status } : {}) }));
+  });
+  api.patch('/mistakes/:id', async (req, res) => {
+    if (!z.uuid().safeParse(req.params.id).success) throw notFound('Mistake not found');
+    res.json(await updateMistake(db, req.params.id, MistakePatch.parse(req.body ?? {})));
+  });
+  api.post('/mistakes/:id/review', async (req, res) => {
+    if (!z.uuid().safeParse(req.params.id).success) throw notFound('Mistake not found');
+    const b = MistakeReviewBody.parse(req.body ?? {});
+    res.json(await reviewMistake(db, req.params.id, b.correct, b.today));
+  });
+}

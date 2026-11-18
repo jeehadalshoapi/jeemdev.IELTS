@@ -10,7 +10,8 @@ A private IELTS practice site at **https://ielts.jeemdev.net**. Claude writes te
 | 4 | Import box (paste JSON or the text format, attach audio / pictures), Tests page (archive / restore) | ✅ |
 | 5 | MCP server: the claude.ai connector (OAuth, 11 tools) | ✅ |
 | 6 | Task 1 charts drawn from data, plan+intro drill timers, speaking recording (+ optional live transcript) with Part 2 timers, listening read aloud | ✅ |
-| 7 | Claude's feedback on the results page (criteria, mistakes linked to the answers, corrected essay side by side), progress charts with period / skill filters | ✅ (branch `phase-7-feedback`, waiting for review) |
+| 7 | Claude's feedback on the results page (criteria, mistakes linked to the answers, corrected essay side by side), progress charts with period / skill filters | ✅ |
+| 8 | Lessons, vocabulary bank (table, flashcards, self-test log), My Mistakes (never-again list, 5-minute daily review); Claude files essay mistakes into the log | ✅ |
 
 ## Folders
 - `shared/`: the test format (zod schemas, validation, answer helpers) and the API types. Used by everything else.
@@ -64,7 +65,7 @@ Claude reaches the site through a remote MCP server at **`https://ielts.jeemdev.
 3. Sign-in: keep the suggested OAuth option (*Use Claude's published identity* or *Register automatically* both work: the site supports automatic registration). Add.
 4. Claude opens the site: log in if asked, then press **Allow**. The Tests page now shows *Connected*.
 
-**Tools:** `get_test_format`, `create_test`, `update_test` (re-scores earlier attempts), `list_tests`, `get_test`, `archive_test`, `list_attempts`, `get_attempt`, `get_latest_attempt`, `save_feedback`, `get_progress`. Every call is logged (`docker compose logs app | grep '\[mcp\]'`).
+**Tools:** `get_test_format`, `create_test`, `update_test` (re-scores earlier attempts), `list_tests`, `get_test`, `archive_test`, `list_attempts`, `get_attempt`, `get_latest_attempt`, `save_feedback`, `get_progress`. Every call is logged (`docker compose logs app | grep '\[mcp\]'`). Phase 8 adds `create_lesson`, `update_lesson`, `get_lesson`, `list_lessons`, `upsert_vocab_set`, `list_vocab_sets`, `get_vocab_set`, `record_vocab_result`, `update_word`, `add_mistakes`, `list_mistakes`, `update_mistake`; `save_feedback` files mistakes marked `addToLog` into the log.
 
 **Security:** the site is its own small OAuth 2.1 server (`server/src/mcp/oauth.ts`): dynamic client registration for Claude's callback (`https://claude.ai/api/mcp/auth_callback`) or loopback addresses only, PKCE S256, an approval page that needs your site login, access tokens for 1 hour, refresh tokens for 60 days and rotated on every use, only SHA-256 hashes stored. **Disconnect** on the Tests page ends every connection; changing the password does too. `/mcp` and the OAuth endpoints are rate-limited.
 

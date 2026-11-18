@@ -8,6 +8,7 @@ import { exampleTestForType } from '../../shared/src';
 import { createAttempt, saveAttempt } from '../../server/src/attempts/service';
 import { openDatabase } from '../../server/src/db/client';
 import { attempts } from '../../server/src/db/schema';
+import { addMistakes, recordVocabResult, saveLesson, upsertVocabSet } from '../../server/src/study/store';
 import { seedSample } from '../../server/src/seed';
 import { createTest } from '../../server/src/tests/repository';
 
@@ -108,6 +109,37 @@ const writingMarked = await finished(essayTest.id, { essay: ESSAY }, 2, {
   correctedText: CORRECTED,
   nextSteps: ['Write at least 260 words: plan 4 paragraphs of about 65 words.', 'Add the spelling words to your daily review.']
 });
+
+// Phase 8: lessons, a vocabulary set with a self-test, a mistakes log
+await saveLesson(d.db, {
+  id: 'day23-band-6-7-8', day: 23, week: 'writing', title: 'What separates band 6, 7 and 8', skill: 'writing', summary: 'Task Response, Coherence, Lexis and Grammar at three levels.',
+  sections: [
+    { heading: 'The one-line difference', markdown: 'Band 6 answers the topic. Band 7 answers **the exact question**. Band 8 does it with precision:\n- a clear position in the introduction\n- every paragraph supports it' },
+    { heading: 'Band descriptors', table: { header: ['', 'Band 6', 'Band 7', 'Band 8'], rows: [['Task Response', 'relevant, some parts unclear', 'clear position throughout', 'fully developed'], ['Lexical Resource', 'adequate range', 'less common items', 'wide range, natural']] } },
+    { heading: 'Same paragraph at three levels', examples: [{ label: 'Band 6', text: 'Parks is good for health because people can walk there.', notes: ['grammar slip', 'vague reason'] }, { label: 'Band 8', text: 'Green spaces encourage regular exercise, which reduces the burden on public health systems.' }] },
+    { tip: 'Before writing, underline the **question words** and answer exactly those.' }
+  ],
+  relatedTestIds: [essayTest.id], vocabularySetIds: ['set-3']
+}, 'create');
+await saveLesson(d.db, { id: 'tfng-rules', kind: 'reference', title: 'True / False / Not Given rules', skill: 'reading', summary: 'How to decide in under a minute.', sections: [{ markdown: '1. Find the topic words\n2. Compare the claim, not the words\n3. No information = NOT GIVEN' }, { tip: '*many* ≠ *most*' }] }, 'create');
+await upsertVocabSet(d.db, {
+  id: 'set-3', number: 3, theme: 'Good and bad effects', studyDay: 23, words: [
+    { word: 'mitigate', pos: 'v', arabic: 'يخفف (من حدة)', meaning: 'make less severe', opposite: 'aggravate', trap: 'mitigate risks/effects; alleviate pain/poverty', example: 'Trees can mitigate the effects of heat.' },
+    { word: 'alleviate', pos: 'v', arabic: 'يخفف', meaning: 'make pain or a problem less', opposite: 'worsen', example: 'Aid alleviated poverty.' },
+    { word: 'exacerbate', pos: 'v', arabic: 'يفاقم', meaning: 'make worse', opposite: 'ease', example: 'Traffic exacerbates pollution.' },
+    { word: 'detrimental', pos: 'adj', arabic: 'ضار', meaning: 'harmful', opposite: 'beneficial', example: 'Noise is detrimental to sleep.' }
+  ]
+});
+await upsertVocabSet(d.db, { id: 'set-1', number: 1, theme: 'Change and trends', studyDay: 18, words: [{ word: 'dwindle', meaning: 'become smaller' }, { word: 'proliferate', meaning: 'increase rapidly' }, { word: 'unprecedented', meaning: 'never done before' }] });
+await recordVocabResult(d.db, { setId: 'set-1', quiz: 1, date: '2026-11-17', score: 4, total: 7, weakWords: ['dwindle', 'proliferate'] });
+await addMistakes(d.db, [
+  { category: 'spelling', wrong: 'experiance', correct: 'experience', rule: 'experi-ence, like science and evidence.', timesWrong: 3 },
+  { category: 'spelling', wrong: 'goverment', correct: 'government', rule: 'govern + ment', timesWrong: 2 },
+  { category: 'spelling', wrong: 'enviroment', correct: 'environment', rule: 'environ + ment' },
+  { category: 'grammar', wrong: 'parks is', correct: 'parks are', rule: 'plural subject, plural verb' },
+  { category: 'capitals', wrong: 'english', correct: 'English', rule: 'Languages take a capital.' },
+  { category: 'reading_trap', wrong: 'most', correct: 'many', rule: 'many ≠ most' }
+]);
 
 writeFileSync('.data/e2e/ids.json', JSON.stringify({ sample: SAMPLE, listening: listening.id, writing: writing.id, gallery: gallery.id, drill: drill.id, speaking: speaking.id, essay: essayTest.id, readingMarked, writingMarked }));
 await d.close();

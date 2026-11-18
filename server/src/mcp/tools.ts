@@ -1,7 +1,7 @@
 /* The connector's tools (spec §6). One McpServer is built per request (stateless Streamable HTTP). */
 import {
   Feedback, KINDS, QUESTION_TYPE_EXAMPLES, QUESTION_TYPES, SECTION_SKILLS, SKILLS, STATUSES, TestDocument as TestDocumentSchema,
-  TestValidationError, URBAN_BEEKEEPING, type ImportIssue, type QuestionType, type TestDocument
+  URBAN_BEEKEEPING, type QuestionType, type TestDocument
 } from '@ielts/shared';
 import { McpServer } from '@modelcontextprotocol/server';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -10,36 +10,14 @@ import { buildHistory } from '../attempts/history';
 import { rescoreTestAttempts } from '../attempts/service';
 import type { Db } from '../db/client';
 import { attempts } from '../db/schema';
-import { HttpError } from '../http/errors';
 import { prepareImport } from '../import/service';
 import { createTest, getTest, listTests, replaceTest, setTestStatus } from '../tests/repository';
 import { attemptDetail, latestSubmittedAttemptId, listAttemptLines } from './attempts';
+import { fail, logged, ok } from './common';
+import { registerStudyTools } from './study-tools';
+import { logFeedbackMistakes } from '../study/feedback-log';
 
 export const SERVER_VERSION = '1.0.0';
-
-interface ToolResult { [k: string]: unknown; content: Array<{ type: 'text'; text: string }>; isError?: boolean }
-const ok = (data: unknown): ToolResult => ({ content: [{ type: 'text', text: typeof data === 'string' ? data : JSON.stringify(data, null, 1) }] });
-const fail = (message: string, issues: ImportIssue[] = []): ToolResult => ({
-  isError: true,
-  content: [{ type: 'text', text: issues.length ? `${message}\n${issues.map(i => `- ${i.path}${i.where ? ` [${i.where}]` : ''}: ${i.message}`).join('\n')}` : message }]
-});
-
-/** every tool call is logged (spec §6): name, outcome, time */
-function logged<A>(name: string, fn: (args: A) => Promise<ToolResult>): (args: A) => Promise<ToolResult> {
-  return async (args: A) => {
-    const t0 = Date.now();
-    try {
-      const r = await fn(args);
-      console.log(`[mcp] ${name} ${r.isError ? 'refused' : 'ok'} (${Date.now() - t0} ms)`);
-      return r;
-    } catch (e) {
-      if (e instanceof TestValidationError) { console.log(`[mcp] ${name} refused (invalid test)`); return fail('The test is not valid. Nothing was saved. Fix every problem below and call the tool again:', e.errors); }
-      if (e instanceof HttpError) { console.log(`[mcp] ${name} refused: ${e.message}`); return fail(e.message); }
-      console.error(`[mcp] ${name} failed`, e);
-      return fail('The server hit an error. Try again; if it repeats, tell the student to check the site.');
-    }
-  };
-}
 
 const TestId = z.uuid({ error: 'must be a test id (a uuid) from list_tests' });
 const AttemptId = z.uuid({ error: 'must be an attempt id (a uuid) from list_attempts' });
@@ -91,7 +69,7 @@ export function buildMcpServer(db: Db, origin: string): McpServer {
   const server = new McpServer(
     { name: 'ielts-practice', version: SERVER_VERSION },
     {
-      instructions: 'The student\'s private IELTS Academic practice site. Use it to upload tests and homework (call get_test_format first), and to mark attempts: get_latest_attempt or get_attempt gives every answer with the correct answer and the reason; then save_feedback. Links in results open the student\'s site.'
+      instructions: 'The student\'s private IELTS Academic practice site. Use it to upload tests and homework (call get_test_format first), and to mark attempts: get_latest_attempt or get_attempt gives every answer with the correct answer and the reason; then save_feedback (mistakes with "addToLog": true also go into the mistakes log). The site also keeps the student\'s lessons (create_lesson, list_lessons), vocabulary sets with a self-test log (upsert_vocab_set, record_vocab_result, update_word) and a mistakes log of misspellings, grammar slips and reading traps (add_mistakes, list_mistakes). Links in results open the student\'s site.'
     }
   );
   const testUrl = (id: string) => `${origin}/#/test/${id}`;
@@ -244,7 +222,7 @@ export function buildMcpServer(db: Db, origin: string): McpServer {
   const FeedbackArgs = z.object({ attemptId: AttemptId, feedback: Feedback });
   server.registerTool('save_feedback', {
     title: 'Save feedback',
-    description: 'Save your marking of a submitted attempt. It shows on the student\'s results page, and the attempt becomes "marked". Saving again replaces the earlier feedback. criteria keys: Writing TR (or TA for Task 1), CC, LR, GRA; Speaking FC, LR, GRA, P. Bands are whole or half numbers.',
+    description: 'Save your marking of a submitted attempt. It shows on the student\'s results page, and the attempt becomes "marked". Saving again replaces the earlier feedback. A mistake with "addToLog": true, "yourAnswer", "correct" and a category (spelling, grammar, capitals, word choice, collocation, reading trap) is also filed in the mistakes log ("rule", or else the explanation, becomes its rule); saving again does not count it twice. criteria keys: Writing TR (or TA for Task 1), CC, LR, GRA; Speaking FC, LR, GRA, P. Bands are whole or half numbers.',
     inputSchema: FeedbackArgs,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
   }, logged('save_feedback', async (a: z.infer<typeof FeedbackArgs>) => {
@@ -260,8 +238,10 @@ export function buildMcpServer(db: Db, origin: string): McpServer {
     const now = new Date();
     await db.update(attempts).set({ feedback: { ...a.feedback, savedAt: now.toISOString() }, status: 'marked', updatedAt: now })
       .where(and(eq(attempts.id, a.attemptId), inArray(attempts.status, ['submitted', 'marked'])));
+    const log = await logFeedbackMistakes(db, a.attemptId, (detail as { test?: { title?: string } }).test?.title ?? '', a.feedback.mistakes, now);
     return ok({
       saved: true, attemptId: a.attemptId, resultsUrl: `${origin}/#/result/${a.attemptId}`,
+      ...(log ? { mistakesLog: log } : {}),
       ...(unknown.length ? { warning: `These questionIds are not in this attempt: ${[...new Set(unknown)].join(', ')}` } : {})
     });
   }));
@@ -285,5 +265,6 @@ export function buildMcpServer(db: Db, origin: string): McpServer {
     });
   }));
 
+  registerStudyTools(server, db, origin);
   return server;
 }
