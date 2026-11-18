@@ -217,10 +217,12 @@ describe('tools', () => {
   let token: string;
   beforeAll(async () => { token = (await connect()).access; });
 
-  it('lists the eleven tools of spec §6', async () => {
+  it('lists the tools: the eleven of spec §6 and the study tools of Phase 8', async () => {
     const r = await rpc(token, 'tools/list');
     const names = ((r.body.result as { tools: Array<{ name: string; annotations?: { readOnlyHint?: boolean } }> }).tools).map(t => t.name).sort();
-    expect(names).toEqual(['archive_test', 'create_test', 'get_attempt', 'get_latest_attempt', 'get_progress', 'get_test', 'get_test_format', 'list_attempts', 'list_tests', 'save_feedback', 'update_test']);
+    expect(names).toEqual(expect.arrayContaining(['archive_test', 'create_test', 'get_attempt', 'get_latest_attempt', 'get_progress', 'get_test', 'get_test_format', 'list_attempts', 'list_tests', 'save_feedback', 'update_test',
+      'create_lesson', 'update_lesson', 'get_lesson', 'list_lessons', 'upsert_vocab_set', 'list_vocab_sets', 'get_vocab_set', 'record_vocab_result', 'update_word',
+      'add_mistakes', 'list_mistakes', 'update_mistake']));
   });
 
   it('get_test_format: rules, one example per type, a full example', async () => {
@@ -322,5 +324,128 @@ describe('tools', () => {
     const doc = { title: 'T', answerKey: { q1: { accept: ['A'] }, q2: { accept: ['B'] } }, dueDate: '2026-01-01' } as never;
     expect(applyChanges(doc, { answerKey: { q1: { accept: ['C'] }, q2: null }, dueDate: null, title: 'New' }))
       .toEqual({ title: 'New', answerKey: { q1: { accept: ['C'] } } });
+  });
+});
+
+describe('study tools (Phase 8): lessons, vocabulary, mistakes log', () => {
+  let token: string;
+  beforeAll(async () => { token = (await connect()).access; });
+
+  const LESSON = {
+    id: 'day23-band-6-7-8', day: 23, week: 'writing', title: 'What separates band 6, 7 and 8', skill: 'writing', summary: 'One line',
+    sections: [
+      { heading: 'The one-line difference', markdown: 'Band 7 **answers the exact question**.' },
+      { heading: 'Band descriptors', table: { header: ['', 'Band 6', 'Band 7'], rows: [['Task Response', 'relevant', 'clear position']] } },
+      { examples: [{ label: 'Band 6', text: 'Some people think…', notes: ['vague'] }] },
+      { tip: 'Underline the question words.' }
+    ],
+    relatedTestIds: [SAMPLE_TEST_ID], vocabularySetIds: ['set-3']
+  };
+
+  it('lessons: create, refuse a duplicate and an invalid one with paths, update, get, list; the website shows them', async () => {
+    const c = await callTool(token, 'create_lesson', { lesson: LESSON });
+    expect(c.isError).toBe(false);
+    expect(c.data).toMatchObject({ saved: true, id: LESSON.id, sections: 4 });
+    expect(c.data.url).toContain('#/lesson/day23-band-6-7-8');
+    expect((await callTool(token, 'create_lesson', { lesson: LESSON })).text).toContain('already exists');
+    const bad = await callTool(token, 'create_lesson', { lesson: { id: 'bad id!', title: '', sections: [{}], kind: 'other' } });
+    expect(bad.isError).toBe(true);
+    expect(bad.text).toContain('- id:');
+    expect(bad.text).toContain('- sections[0]:');
+    expect(bad.text).toContain('- kind:');
+
+    const u = await callTool(token, 'update_lesson', { id: LESSON.id, changes: { summary: 'Better line', week: null } });
+    expect(u.isError).toBe(false);
+    const g = await callTool(token, 'get_lesson', { id: LESSON.id });
+    expect(g.data.lesson).toMatchObject({ summary: 'Better line', kind: 'lesson' });
+    expect(g.data.lesson.week).toBeUndefined();
+    expect(g.data.tests[0]).toMatchObject({ id: SAMPLE_TEST_ID });
+    await callTool(token, 'create_lesson', { lesson: { id: 'tfng-rules', kind: 'reference', title: 'T/F/NG rules', skill: 'reading', sections: [{ markdown: 'NOT GIVEN = no information.' }] } });
+    expect((await callTool(token, 'list_lessons', { kind: 'reference' })).data.lessons.map((l: { id: string }) => l.id)).toEqual(['tfng-rules']);
+    expect((await callTool(token, 'list_lessons', { day: 23 })).data.lessons).toHaveLength(1);
+
+    const list = await json<Array<{ id: string }>>(await me.get('/api/lessons'));
+    expect(list.map(l => l.id).sort()).toEqual(['day23-band-6-7-8', 'tfng-rules']);
+    expect((await me.get('/api/lessons/nope')).status).toBe(404);
+  });
+
+  it('vocabulary: save a set, keep word statuses when it is replaced, record a self-test (weak words), update a word', async () => {
+    const set = { id: 'set-3', number: 3, theme: 'Good and bad effects', studyDay: 23, words: [
+      { word: 'mitigate', pos: 'v', arabic: 'يخفف', meaning: 'make less severe', opposite: 'aggravate' },
+      { word: 'alleviate', pos: 'v', meaning: 'ease pain' }, { word: 'exacerbate', pos: 'v' }] };
+    expect((await callTool(token, 'upsert_vocab_set', { set })).data).toMatchObject({ id: 'set-3', created: true, words: 3 });
+    expect((await callTool(token, 'upsert_vocab_set', { set: { ...set, words: [...set.words, { word: 'Mitigate' }] } })).text).toContain('"Mitigate" is already words[0]');
+
+    const r = await callTool(token, 'record_vocab_result', { result: { setId: 'set-3', quiz: 1, date: '2026-11-17', score: 1, total: 3, weakWords: ['MITIGATE', 'zzz'] } });
+    expect(r.data.weakMarked).toEqual(['mitigate']);
+    expect(r.data.warning).toContain('zzz');
+    await callTool(token, 'update_word', { setId: 'set-3', word: 'alleviate', status: 'learned', example: 'Aspirin alleviates pain.' });
+    // replacing the set keeps statuses of the words that stay, drops the others
+    await callTool(token, 'upsert_vocab_set', { set: { ...set, words: set.words.slice(0, 2) } });
+    const g = await callTool(token, 'get_vocab_set', { id: 'set-3' });
+    expect(g.data.set.words.map((w: { word: string; status: string; timesMissed: number }) => [w.word, w.status, w.timesMissed])).toEqual([['mitigate', 'weak', 1], ['alleviate', 'learned', 0]]);
+    expect(g.data.results[0]).toMatchObject({ score: 1, total: 3, weakWords: ['MITIGATE', 'zzz'] });
+    expect((await callTool(token, 'list_vocab_sets')).data.sets[0]).toMatchObject({ id: 'set-3', words: 2, byStatus: { weak: 1, learned: 1, new: 0, learning: 0 } });
+    expect((await callTool(token, 'update_word', { setId: 'set-3', word: 'nothing' })).text).toContain('is not in set');
+
+    // the website: the owner marks a word
+    expect((await me.patch('/api/vocab/sets/set-3/words', { word: 'mitigate', status: 'learning' })).status).toBe(200);
+    const v = await json<{ set: { words: Array<{ status: string }> } }>(await me.get('/api/vocab/sets/set-3'));
+    expect(v.set.words[0]!.status).toBe('learning');
+    expect((await me.patch('/api/vocab/sets/set-3/words', { word: 'mitigate', status: 'forgotten' })).status).toBe(400);
+  });
+
+  it('mistakes log: bulk add with dedupe, never again at 2, list, update; the daily review masters after 3 days', async () => {
+    const a = await callTool(token, 'add_mistakes', { mistakes: [
+      { category: 'spelling', wrong: 'experiance', correct: 'experience', rule: 'experi-ence' },
+      { category: 'reading_trap', wrong: 'most', correct: 'many', rule: 'many ≠ most' },
+      { category: 'spelling', wrong: 'goverment', correct: 'government', timesWrong: 3 },
+      { category: 'spelling', wrong: 'Experiance ', correct: 'experience' }
+    ] });
+    expect(a.data).toMatchObject({ added: 3, repeated: 1 });
+    expect(a.data.repeatedEntries[0]).toMatchObject({ wrong: 'experiance', timesWrong: 2, neverAgain: true });
+    const bad = await callTool(token, 'add_mistakes', { mistakes: [{ category: 'spelling', wrong: 'x', correct: 'y' }, { category: 'typo', wrong: '', correct: 'z' }] });
+    expect(bad.isError).toBe(true);
+    expect(bad.text).toContain('mistakes[1].category');
+    expect(bad.text).toContain('mistakes[1].wrong');
+    const l = await callTool(token, 'list_mistakes', { neverAgain: true });
+    expect(l.data.mistakes.map((m: { wrong: string }) => m.wrong)).toEqual(['goverment', 'experiance']);
+    expect((await callTool(token, 'list_mistakes', { category: 'reading_trap' })).data.mistakes).toHaveLength(1);
+    const id = l.data.mistakes[1].id as string;
+    expect((await callTool(token, 'update_mistake', { id, changes: { rule: 'experi-ENCE, like science' } })).data.mistake.rule).toBe('experi-ENCE, like science');
+
+    // review: right on 3 different days = mastered; twice on one day counts once; wrong resets
+    const review = (correct: boolean, today: string) => me.post(`/api/mistakes/${id}/review`, { correct, today });
+    expect((await json<{ streak: number }>(await review(true, '2026-11-18'))).streak).toBe(1);
+    expect((await json<{ streak: number }>(await review(true, '2026-11-18'))).streak).toBe(1);
+    expect((await json<{ streak: number }>(await review(false, '2026-11-19'))).streak).toBe(0);
+    for (const d of ['2026-11-20', '2026-11-21']) await review(true, d);
+    const done = await json<{ streak: number; status: string }>(await review(true, '2026-11-22'));
+    expect(done).toMatchObject({ streak: 3, status: 'mastered' });
+    // the same mistake made again: active again, counted again
+    const again = await callTool(token, 'add_mistakes', { mistakes: [{ category: 'spelling', wrong: 'experiance', correct: 'experience' }] });
+    expect(again.data.repeatedEntries[0]).toMatchObject({ timesWrong: 3 });
+    const rows = await json<Array<{ id: string; status: string; streak: number }>>(await me.get('/api/mistakes?category=spelling'));
+    expect(rows.find(m => m.id === id)).toMatchObject({ status: 'active', streak: 0 });
+    expect((await me.get('/api/mistakes?category=nope')).status).toBe(400);
+  });
+
+  it('save_feedback with addToLog files the mistakes once, even when saved again', async () => {
+    const att = await json<{ id: string }>(await me.post(`/api/tests/${SAMPLE_TEST_ID}/attempts`, { mode: 'practice' }));
+    await me.post(`/api/attempts/${att.id}/submit`, { answers: { q12: 'permits' } });
+    const feedback = { summary: 'ok', mistakes: [
+      { questionId: 'q12', yourAnswer: 'permits', correct: 'permit', explanation: 'singular in the key', category: 'Spelling', addToLog: true },
+      { yourAnswer: 'the', correct: 'The', explanation: 'sentence start', category: 'capital', addToLog: true, rule: 'Capital at the start' },
+      { yourAnswer: 'x', explanation: 'no correct form', category: 'grammar', addToLog: true },
+      { explanation: 'not for the log', category: 'timing' }
+    ] };
+    const s1 = await callTool(token, 'save_feedback', { attemptId: att.id, feedback });
+    expect(s1.data.mistakesLog).toMatchObject({ added: 2, repeated: 0, alreadyLogged: 0 });
+    expect(s1.data.mistakesLog.skipped).toEqual([{ index: 2, reason: 'needs both yourAnswer and correct' }]);
+    const s2 = await callTool(token, 'save_feedback', { attemptId: att.id, feedback });
+    expect(s2.data.mistakesLog).toMatchObject({ added: 0, repeated: 0, alreadyLogged: 2 });
+    const caps = (await callTool(token, 'list_mistakes', { category: 'capitals' })).data.mistakes;
+    expect(caps[0]).toMatchObject({ wrong: 'the', correct: 'The', rule: 'Capital at the start', timesWrong: 1 });
+    expect(caps[0].source.attemptId).toBe(att.id);
   });
 });

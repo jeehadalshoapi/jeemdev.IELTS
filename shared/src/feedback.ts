@@ -14,7 +14,11 @@ export const FeedbackMistake = z.looseObject({
   correct: Text.optional(),
   explanation: Text.trim().min(1, { error: 'must not be empty' }),
   /** e.g. "spelling", "word limit", "paraphrase", "grammar", "task response" */
-  category: Text.optional()
+  category: Text.optional(),
+  /** also file it in the mistakes log (needs yourAnswer, correct and a log category) */
+  addToLog: z.boolean({ error: 'must be true or false' }).optional(),
+  /** the rule to remember, for the mistakes log (default: the explanation) */
+  rule: Text.optional()
 });
 
 export const Feedback = z.looseObject({

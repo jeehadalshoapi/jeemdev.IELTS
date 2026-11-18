@@ -8,6 +8,7 @@ import { desc, eq } from 'drizzle-orm';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { z } from 'zod';
+import { mountStudyRoutes } from '../study/routes';
 import { buildHistory } from '../attempts/history';
 import { deleteRecording, saveRecording, speechFor } from '../attempts/media';
 import { createAttempt, getAttemptView, getResultView, isUuid, listAttemptSummaries, saveAttempt } from '../attempts/service';
@@ -183,6 +184,7 @@ export function createApp({ database, config, fileStore }: AppDeps) {
     res.json({ ok: true });
   });
   api.get('/attempts/:id/speech/:partId', async (req, res) => { res.json(await speechFor(db, req.params.id, req.params.partId)); });
+  mountStudyRoutes(api, db);
   api.get('/history', async (req, res) => {
     const q = HistoryQuery.parse(req.query);
     res.json(await buildHistory(db, { ...(q.skill ? { skill: q.skill } : {}), ...(q.since ? { since: new Date(`${q.since}T00:00:00Z`) } : {}) }));

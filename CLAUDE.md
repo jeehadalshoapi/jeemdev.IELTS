@@ -12,13 +12,13 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 | 4 | Import box (`#/import`: JSON or text format, audio/picture uploads), Tests page (`#/tests`: archive/restore) | ✅ merged into `main`, **deployed** 2026-11-18 |
 | 5 | MCP server at `/mcp` (11 tools of spec §6), own OAuth 2.1 server, MCP Inspector checked | ✅ merged into `main`, **deployed** 2026-11-18 (the owner said "make the code then deploy at once") |
 | 6 | Task 1 charts (SVG), plan+intro drill timers, speaking recording + optional live transcript + Part 2 timers, listening read aloud | ✅ merged into `main`, **deployed** 2026-11-18 (the owner said "go with phase 6 and deploy after you finish") |
-| 7 | Claude's feedback on the results page, progress charts on History (filters in the URL) | ✅ built on `phase-7-feedback`, pushed, **waiting for the owner's go** (not merged / not deployed) |
-| 8+ | The owner's new feature list [ielts-site-spec.md](ielts-site-spec.md): lessons, vocabulary bank, mistakes log, vocab quizzes, sentence rewrite, images, study plan, listening pauses, speaking transcripts | not started — see *Next* below |
+| 7 | Claude's feedback on the results page, progress charts on History (filters in the URL) | ✅ merged, **deployed** 2026-11-18 |
+| 8 | Lessons, vocabulary bank, mistakes log: tables (migration `0004_study`), 12 MCP tools (`server/src/mcp/study-tools.ts`), pages `#/lessons` `#/lesson/:id` `#/vocab` `#/vocab/:id` `#/mistakes`; `save_feedback` `addToLog` | ✅ merged, **deployed** 2026-11-18 |
+| 9–11 | The rest of [ielts-site-spec.md](ielts-site-spec.md): 9 vocab quizzes (skill `vocabulary`), sentence rewrite, Task 2 plan box, study-block log; 10 pictures (`upload_asset` SVG, cleaned) + map_labelling from data, study plan + Today, listening pauses; 11 speaking pauses/transcripts | in progress (owner said 2026-11-18: build all and deploy each) |
 
-- `main` = Phase 6 and is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
-- **Phase 7 is on `phase-7-feedback`, waiting for the owner's "go"** to merge into `main` and deploy (deploy routine below).
-- **Next: the owner's new list `ielts-site-spec.md`** (added 2026-11-18, Priority 1 "this week" = Writing Week; Priority 2 before Day 30 ≈ 2026-11-24; Priority 3 before Day 37 ≈ 2026-12-01). Claude reviewed it and proposed phases and questions to the owner (see the end of the 2026-11-18 session); wait for their answers before building. Already true: writing boxes have `spellcheck="false"`; exam-mode read-aloud plays once; the speaking live transcript + recording length reach `get_attempt`.
-- Deploy routine (every phase): record the other sites' status codes (see Deployment), `ssh gehad@169.58.112.108 'cd /opt/ielts/stack && ./deploy.sh'`, then check `/health`, the other sites again, and logged-in calls **on the box** (cookie jar; read the password file there, never print it). For the connector: copy `scripts/e2e/mcp-connect.mjs` to the box and run `E2E_PASSWORD_FILE=/opt/ielts/stack/initial-password.txt node mcp-connect.mjs https://ielts.jeemdev.net` there (a 1-hour token; the password is never printed). If the owner has changed the password, that file is gone: ask the owner to test from claude.ai instead.
+- `main` is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
+- **The owner's list `ielts-site-spec.md`** (2026-11-18): decisions taken — deploy each phase when done; pictures = `upload_asset` (SVG cleaned on the server and served with a sandbox CSP) **and** maps drawn from data; vocabulary quizzes = a new skill `vocabulary` (no band, accuracy only). Already true before Phase 8: writing boxes have `spellcheck="false"`; exam-mode read-aloud plays once; the speaking live transcript + recording length reach `get_attempt`.
+- Deploy routine (every phase): record the other sites' status codes (see Deployment), `ssh gehad@169.58.112.108 'cd /opt/ielts/stack && ./deploy.sh'`, then check `/health`, the other sites again, and logged-in calls **on the box** (cookie jar; read the password file there, never print it). **The box has no Node:** copy `scripts/e2e/prod-check.mjs` and `scripts/e2e/mcp-connect.mjs` to `/tmp` there and run them with the app image, as the password file's owner: `F=/opt/ielts/stack/initial-password.txt; docker run --rm --user $(stat -c %u:%g $F) --entrypoint node -v /tmp:/w:ro -v $F:/pw:ro -e E2E_PASSWORD_FILE=/pw ielts-app:latest /w/prod-check.mjs https://ielts.jeemdev.net [/api/extra …]` (prints only status codes and counts; `mcp-connect.mjs` the same way prints a 1-hour token for a `tools/list` curl). The password is never printed. If the owner has changed the password, that file is gone: ask the owner to test from claude.ai instead.
 
 ### Phase 7 (done 2026-11-18) — what was built
 - Results page (`web/src/pages/result.ts`): the feedback card sits right under the hero once feedback exists: overall band, criteria as a meter list in the official order (jsonb does not keep key order — `orderCriteria`), summary via `mdRich` (text + bullets + numbered lines + `#` headings, escaped), mistakes routed by `routeFeedback` (`q14` / `Q14` / `14` → the answer row, which gets a "Claude:" note and a ✎; a writing/speaking item id → that item's card; anything else → the card), `correctedText` side by side with a word diff (`shared/src/diff.ts`, LCS, gives up above 4M word pairs) when there is one writing item (else in a "Corrected version" box), next steps, "Marked by Claude on …", and unknown extra fields under their own heading (text only). A Task 2 drill is compared on its introduction.
@@ -92,7 +92,7 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 ```bash
 npm install
 npm run dev                 # API :3000 (tsx watch) + website :5173 (Vite); dev password "ielts-dev"
-npm test                    # vitest — 129 tests (shared/test, server/test)
+npm test                    # vitest — 133 tests (shared/test, server/test); hookTimeout 90 s because every server file starts its own PGlite
 npm run typecheck           # tsc for shared, server, web (TypeScript 7 — type-checking only)
 npm run build               # vite build web -> web/dist ; esbuild server -> server/dist
 npm start                   # production build on :3000
@@ -114,6 +114,7 @@ node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/import.cjs          
 node scripts/e2e/cdp.cjs http://localhost:3000/login scripts/e2e/connector.cjs     # Phase 5 approval page (run a listener on :33418 to see the code)
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/extras.cjs             # Phase 6 charts, drill timers, recording (fake mic), read aloud
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/feedback.cjs           # Phase 7 feedback rendering, progress charts, filters, phone
+node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/study.cjs              # Phase 8 lessons, vocabulary (table, flashcards), mistakes + review
 TOKEN=$(node scripts/e2e/mcp-connect.mjs http://localhost:3000)                    # OAuth like claude.ai does; prints a 1-hour token
 npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http --header "Authorization: Bearer $TOKEN" --method tools/list
 ```
@@ -153,6 +154,9 @@ server/  Express 5 + Drizzle (Postgres / PGlite)
                            tokenVerifier for /mcp; listConnections / revokeAllConnections (Tests page card, /api/connector)
   src/mcp/index.ts         mountMcp: /mcp = cors + rate limit + requireBearerAuth (SDK) + createMcpHandler (a fresh McpServer per request)
   src/mcp/tools.ts         the 11 tools (spec §6), each logged as "[mcp] <tool> ok|refused (ms)"; applyChanges for update_test
+  src/mcp/common.ts        ok / fail / logged (a ZodError becomes a refusal listing every path)
+  src/mcp/study-tools.ts   Phase 8 tools: lessons, vocabulary, mistakes log
+  src/study/store.ts       lessons / vocab sets + self-test log / mistakes (dedupe by pair_key, streak -> mastered at 3); routes.ts = website API; feedback-log.ts = save_feedback addToLog (once per attempt)
   src/mcp/attempts.ts      attemptDetail (question text, exact answer, accepted answers, reason, writing/speaking text, times,
                            Task 1 chart data, drill times, Part 2 notes, recording links)
   src/attempts/media.ts    saveRecording / deleteRecording (speaking), speechFor (listening read-aloud lines)

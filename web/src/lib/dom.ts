@@ -56,3 +56,9 @@ export function deviceId(): string {
   if (!id) { id = uid('dev'); local.set('ielts-device', id); }
   return id;
 }
+
+/** replaceChildren that skips null / false children (like el()) */
+export function setChildren(node: Node & ParentNode, ...children: Child[]): void {
+  node.replaceChildren();
+  append(node, children);
+}

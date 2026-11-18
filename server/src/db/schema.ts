@@ -1,6 +1,6 @@
-import type { AnswerKey, Feedback, TestContent } from '@ielts/shared';
+import type { AnswerKey, Feedback, Lesson, MistakeCategory, TestContent, VocabWordRow } from '@ielts/shared';
 import { sql } from 'drizzle-orm';
-import { date, index, integer, jsonb, pgEnum, pgTable, real, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, date, index, integer, jsonb, pgEnum, pgTable, real, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const testSkill = pgEnum('test_skill', ['reading', 'listening', 'writing', 'speaking', 'mixed']);
 export const testKind = pgEnum('test_kind', ['homework', 'practice', 'full_mock']);
@@ -132,3 +132,64 @@ export const oauthTokens = pgTable('oauth_tokens', {
 export type TestRow = typeof tests.$inferSelect;
 export type AttemptRow = typeof attempts.$inferSelect;
 export type FileRow = typeof files.$inferSelect;
+
+/* ---------- study material (Phase 8): lessons, vocabulary bank, mistakes log ---------- */
+
+/** a lesson or a permanent reference page; the whole lesson is in `document`, the columns are for lists */
+export const lessons = pgTable('lessons', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  day: integer('day'),
+  week: text('week'),
+  skill: text('skill'),
+  kind: text('kind').$type<'lesson' | 'reference'>().notNull().default('lesson'),
+  document: jsonb('document').$type<Lesson>().notNull(),
+  ...timestamps
+}, t => [
+  index('lessons_day_idx').on(t.day)
+]);
+
+export const vocabSets = pgTable('vocab_sets', {
+  id: text('id').primaryKey(),
+  number: integer('number'),
+  theme: text('theme').notNull(),
+  studyDay: integer('study_day'),
+  words: jsonb('words').$type<VocabWordRow[]>().notNull(),
+  ...timestamps
+});
+
+/** the self-test log ("Set 1, quiz 1: 4/7, weak: dwindle …") */
+export const vocabResults = pgTable('vocab_results', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  setId: text('set_id').notNull().references(() => vocabSets.id, { onDelete: 'cascade' }),
+  quiz: integer('quiz'),
+  date: date('date').notNull(),
+  score: integer('score').notNull(),
+  total: integer('total').notNull(),
+  weakWords: jsonb('weak_words').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  attemptId: uuid('attempt_id').references(() => attempts.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, t => [
+  index('vocab_results_set_idx').on(t.setId, t.date)
+]);
+
+/** misspelled words, grammar slips, reading traps; one row per wrong -> correct pair (pair_key) */
+export const mistakes = pgTable('mistakes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  category: text('category').$type<MistakeCategory>().notNull(),
+  wrong: text('wrong').notNull(),
+  correct: text('correct').notNull(),
+  pairKey: text('pair_key').notNull().unique(),
+  rule: text('rule'),
+  arabic: text('arabic'),
+  source: jsonb('source').$type<{ date?: string; attemptId?: string; label?: string }>(),
+  timesWrong: integer('times_wrong').notNull().default(1),
+  neverAgain: boolean('never_again').notNull().default(false),
+  /** correct daily reviews in a row */
+  streak: integer('streak').notNull().default(0),
+  status: text('status').$type<'active' | 'mastered'>().notNull().default('active'),
+  lastReviewedOn: date('last_reviewed_on'),
+  ...timestamps
+}, t => [
+  index('mistakes_category_idx').on(t.category, t.status)
+]);
