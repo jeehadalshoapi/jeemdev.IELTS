@@ -67,14 +67,13 @@ function inProgressCard(a: AttemptSummary): HTMLElement {
 
 function completedTable(list: AttemptSummary[]): HTMLElement {
   return el('div', { class: 'panel' }, el('div', { class: 'table-wrap' }, el('table', { class: 'table' },
-    el('thead', null, el('tr', null, ['Submitted', 'Test', 'Mode', 'Answered', 'Time', 'Status'].map(h => el('th', null, h)))),
-    el('tbody', null, list.map(a => el('tr', { class: 'clickable', onclick: () => { location.hash = `#/done/${a.id}`; } },
+    el('thead', null, el('tr', null, ['Submitted', 'Test', 'Mode', 'Score', 'Est. band', 'Time', ''].map(h => el('th', null, h)))),
+    el('tbody', null, list.map(a => el('tr', { class: 'clickable', onclick: () => { location.hash = `#/result/${a.id}`; } },
       el('td', null, fmtDate(a.submittedAt)),
       el('td', null, el('b', null, a.title), ' ', skillBadge(a.skill)),
       el('td', null, a.mode === 'exam' ? 'Exam' : 'Practice'),
-      el('td', null, `${a.answered} / ${a.items}`),
+      el('td', null, a.autoScore?.total ? `${a.autoScore.raw} / ${a.autoScore.total}` : '–'),
+      el('td', null, el('b', null, a.autoScore?.band != null ? a.autoScore.band.toFixed(1) : '–')),
       el('td', null, fmtDuration(a.timing.spentSec.total ?? 0)),
-      el('td', null,
-        a.autoScore?.band != null ? el('b', null, `Band ${a.autoScore.band.toFixed(1)} `) : null,
-        a.feedbackReady ? el('span', { class: 'pill-ok' }, '✓ Feedback ready') : el('span', { class: 'badge' }, a.status === 'marked' ? 'Marked' : 'Submitted'))))))));
+      el('td', null, a.feedbackReady ? el('span', { class: 'pill-ok' }, '✓ Feedback ready') : el('span', { class: 'badge' }, a.status === 'marked' ? 'Marked' : 'Submitted'))))))));
 }

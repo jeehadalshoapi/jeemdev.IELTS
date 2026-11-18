@@ -66,7 +66,11 @@ export function renderPart(ctx: RenderCtx, part: Part, pi: number, section: Sect
   }
 
   const pane = zone('questions', 'pane-single');
-  if (section === 'listening' && !part.audioUrl) {
+  // transcripts only reach the browser after submission (review mode)
+  if (section === 'listening' && part.transcript) {
+    pane.appendChild(el('details', { class: 'transcript no-hl' }, el('summary', null, 'Transcript'), el('div', { html: mdBlock(part.transcript) })));
+  }
+  if (section === 'listening' && !part.audioUrl && !ctx.readonly) {
     pane.appendChild(el('div', { class: 'cd-note no-hl' }, '🔈 This part has no recording yet. Reading the transcript aloud in the browser arrives in Phase 6.'));
   }
   if (part.instructions) pane.appendChild(el('div', { class: 'q-instr', html: mdBlock(part.instructions) }));

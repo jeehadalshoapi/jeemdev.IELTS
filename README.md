@@ -6,8 +6,8 @@ A private IELTS practice site at **https://ielts.jeemdev.net**. Claude writes te
 |---|---|---|
 | 1 | Test format (zod), database, migrations, seed, legacy import | ✅ |
 | 2 | Login, dashboard, test runner with server autosave and resume on any device, phone layout, deployment | ✅ |
-| 3 | Auto-scoring, band estimate, results page, history | next |
-| 4 | Import box (paste test JSON) | |
+| 3 | Auto-scoring, band estimate, results page, review in the test, history | ✅ |
+| 4 | Import box (paste test JSON) | next |
 | 5 | MCP server: the claude.ai connector | |
 | 6 | Writing charts, plan+intro timers, speaking recording, listening speech playback | |
 | 7 | Claude's feedback on the results page, progress charts | |
@@ -44,6 +44,12 @@ npm run hash-password -- "a password"      # a hash for ADMIN_PASSWORD_HASH
 - **Autosave:** each answer change is sent within a second, and a heartbeat goes every 10 seconds. Only changes are sent, so two devices never overwrite each other. Offline, unsent changes stay in the browser (the only use of localStorage besides display settings) and sync when the connection is back.
 - **Clock:** exam mode runs on the wall clock: the deadline is fixed on the server and keeps running when the page is closed. When it passes, the server submits the saved answers. Practice mode counts only the time you actually spend in the test, can be paused, and closing the page pauses it.
 - **Secrets stay on the server:** the answer key and listening transcripts are never sent to the browser before you submit.
+- **Scoring** happens on the server when you submit, and when the exam clock runs out (`shared/src/scoring.ts`):
+  - Matching ignores capital letters, extra spaces and a final full stop. Any answer in `accept[]` counts, and `(optional)` words are allowed.
+  - An answer **over the word limit is wrong**. A **misspelling is wrong**, but it is labelled, and the exact typed answer is kept.
+  - "Choose TWO" gives 1 mark per correct letter.
+  - The raw score becomes an **estimated band** using the tables in `shared/src/config/band-tables.ts` (Listening, Academic Reading, General Training Reading), scaled when a test has fewer than 40 questions. A full mock gets a band per section.
+  - When an answer key is corrected, `rescoreTestAttempts()` scores the earlier attempts again.
 
 ## Deploy (VPS)
 The VPS runs several projects behind one shared Caddy proxy (`/opt/edge`), following the `contaboserver` repo's `ADD-PROJECT.md`. The IELTS files are in that repo under `stack-ielts/` and on the box in `/opt/ielts/stack/`:

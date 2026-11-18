@@ -1,8 +1,9 @@
 import {
-  listItems, progressOf, toPublicContent, totalMarks, AttemptPatch,
-  type AnswerValue, type AttemptMode, type AttemptSummary, type AttemptView, type PublicTest, type SaveResult, type TestContent, type Timing
+  listItems, progressOf, scoreAnswers, toPublicContent, totalMarks, AttemptPatch,
+  type AnswerValue, type AttemptMode, type AttemptSummary, type AttemptView, type AutoScore, type PublicTest, type ResultView,
+  type SaveResult, type TestContent, type Timing
 } from '@ielts/shared';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, ne } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { attempts, tests, type AttemptRow, type TestRow } from '../db/schema';
 import { HttpError, notFound } from '../http/errors';
@@ -41,23 +42,39 @@ function examExpired(a: AttemptRow, content: TestContent, now: Date): Date | nul
   return now.getTime() > deadline.getTime() + EXAM_GRACE_SEC * 1000 ? deadline : null;
 }
 
-/** submit an exam attempt whose clock ran out (submitted at the deadline) */
-async function autoSubmitIfExpired(db: Db, a: AttemptRow, content: TestContent, now = new Date()): Promise<AttemptRow> {
-  const deadline = examExpired(a, content, now);
+/* ---------- scoring ---------- */
+export function scoreFor(answers: Record<string, unknown>, t: TestRow): AutoScore {
+  return scoreAnswers(t.skill, t.content, t.answerKey, answers);
+}
+
+/** submit an exam attempt whose clock ran out (submitted at the deadline, with the answers saved so far) */
+async function autoSubmitIfExpired(db: Db, a: AttemptRow, t: TestRow, now = new Date()): Promise<AttemptRow> {
+  const deadline = examExpired(a, t.content, now);
   if (!deadline) return a;
   const [row] = await db.update(attempts)
-    .set({ status: 'submitted', submittedAt: deadline, updatedAt: now, state: { ...a.state, autoSubmitted: true } })
+    .set({ status: 'submitted', submittedAt: deadline, updatedAt: now, state: { ...a.state, autoSubmitted: true }, autoScore: scoreFor(a.answers, t) as unknown as Record<string, unknown> })
     .where(and(eq(attempts.id, a.id), eq(attempts.status, 'in_progress')))
     .returning();
   return row ?? a;
 }
 
+/** re-score every submitted attempt of a test (after its answer key changed) */
+export async function rescoreTestAttempts(db: Db, testId: string): Promise<number> {
+  const [t] = await db.select().from(tests).where(eq(tests.id, testId)).limit(1);
+  if (!t) return 0;
+  const rows = await db.select().from(attempts).where(and(eq(attempts.testId, testId), ne(attempts.status, 'in_progress')));
+  for (const a of rows) {
+    await db.update(attempts).set({ autoScore: scoreFor(a.answers, t) as unknown as Record<string, unknown> }).where(eq(attempts.id, a.id));
+  }
+  return rows.length;
+}
+
 /* ---------- views ---------- */
-export function publicTest(t: TestRow): PublicTest {
+export function publicTest(t: TestRow, opts: { withTranscripts?: boolean } = {}): PublicTest {
   return {
     id: t.id, title: t.title, skill: t.skill, kind: t.kind, status: t.status,
     instructions: t.instructions, dueDate: t.dueDate,
-    content: toPublicContent(t.content),
+    content: opts.withTranscripts ? t.content : toPublicContent(t.content),
     marks: totalMarks(t.content.parts)
   };
 }
@@ -97,7 +114,7 @@ export async function createAttempt(db: Db, testId: string, mode: AttemptMode, d
 export async function getAttemptView(db: Db, attemptId: string): Promise<AttemptView> {
   const now = new Date();
   const { a: raw, t } = await loadPair(db, attemptId);
-  const a = await autoSubmitIfExpired(db, raw, t.content, now);
+  const a = await autoSubmitIfExpired(db, raw, t, now);
   return {
     attempt: {
       id: a.id, testId: a.testId, status: a.status, mode: a.mode,
@@ -145,7 +162,7 @@ export async function saveAttempt(db: Db, attemptId: string, body: unknown, ua?:
   return db.transaction(async tx => {
     const { a: current, t } = await loadPair(tx as unknown as Db, attemptId);
     const now = new Date();
-    const a = await autoSubmitIfExpired(tx as unknown as Db, current, t.content, now);
+    const a = await autoSubmitIfExpired(tx as unknown as Db, current, t, now);
     if (a.status !== 'in_progress') {
       throw new HttpError(409, a.state.autoSubmitted ? 'time_up' : 'already_submitted',
         a.state.autoSubmitted ? 'Time is up — this attempt was submitted automatically.' : 'This attempt has already been submitted.');
@@ -175,7 +192,7 @@ export async function saveAttempt(db: Db, attemptId: string, body: unknown, ua?:
     const [row] = await tx.update(attempts).set({
       answers, state, timeSpentSec: spent, updatedAt: now,
       deviceLog: logDevice(a.deviceLog, patch.device, ua, now.toISOString()),
-      ...(opts.submit ? { status: 'submitted' as const, submittedAt } : {})
+      ...(opts.submit ? { status: 'submitted' as const, submittedAt, autoScore: scoreFor(answers, t) as unknown as Record<string, unknown> } : {})
     }).where(eq(attempts.id, a.id)).returning();
     if (!row) throw new Error('update returned no row');
     return { status: row.status, savedAt: now.toISOString(), timing: computeTiming(row, t.content, now) };
@@ -190,8 +207,40 @@ export async function listAttemptSummaries(db: Db, opts: { testId?: string; limi
     .orderBy(desc(attempts.updatedAt)).limit(opts.limit ?? 200);
   const out: AttemptSummary[] = [];
   for (const r of rows) {
-    const a = await autoSubmitIfExpired(db, r.attempts, r.tests.content, now);
+    const a = await autoSubmitIfExpired(db, r.attempts, r.tests, now);
     out.push(summarize(a, r.tests, now));
   }
   return out;
+}
+
+/* ---------- results (only after submission) ---------- */
+export async function getResultView(db: Db, attemptId: string): Promise<ResultView> {
+  const now = new Date();
+  const { a: raw, t } = await loadPair(db, attemptId);
+  let a = await autoSubmitIfExpired(db, raw, t, now);
+  if (a.status === 'in_progress') throw new HttpError(409, 'not_submitted', 'Results are available after you submit the attempt.');
+  let autoScore = a.autoScore as unknown as AutoScore | null;
+  if (!autoScore || autoScore.version !== 1) {
+    // attempts submitted before scoring existed: score them now and keep the result
+    autoScore = scoreFor(a.answers, t);
+    const [row] = await db.update(attempts).set({ autoScore: autoScore as unknown as Record<string, unknown> }).where(eq(attempts.id, a.id)).returning();
+    if (row) a = row;
+  }
+  const modelAnswers: Record<string, string> = {};
+  for (const [id, entry] of Object.entries(t.answerKey)) if (entry.modelAnswer) modelAnswers[id] = entry.modelAnswer;
+  const timeUsedSec = a.mode === 'exam' && a.submittedAt
+    ? Math.max(0, Math.round((a.submittedAt.getTime() - a.startedAt.getTime()) / 1000))
+    : Math.round(Number(a.timeSpentSec.total ?? 0));
+  return {
+    attempt: {
+      id: a.id, testId: a.testId, status: a.status, mode: a.mode,
+      answers: a.answers as Record<string, AnswerValue>, state: a.state,
+      startedAt: a.startedAt.toISOString(), submittedAt: a.submittedAt?.toISOString() ?? null,
+      autoSubmitted: a.state.autoSubmitted === true, timeUsedSec, timeSpentSec: a.timeSpentSec
+    },
+    test: publicTest(t, { withTranscripts: true }),
+    autoScore,
+    modelAnswers,
+    feedback: a.feedback
+  };
 }
