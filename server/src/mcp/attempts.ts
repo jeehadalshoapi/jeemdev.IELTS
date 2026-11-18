@@ -1,7 +1,7 @@
 /* What Claude reads when it marks an attempt (get_attempt / get_latest_attempt / list_attempts). */
 import {
   isCompletionType, isMatchingType, isObjectiveType, letter, PLACEHOLDER_RE, type AnswerKey, type AttemptSummary,
-  type AutoScore, type Part, type QuestionGroup, type TestContent
+  type AutoScore, type Part, type QuestionGroup, type RecordingInfo, type TestContent
 } from '@ielts/shared';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import type { Db } from '../db/client';
@@ -135,7 +135,7 @@ export async function attemptDetail(db: Db, attemptId: string, origin: string): 
       answer, words: o.words, ...(o.minWords !== undefined ? { minWords: o.minWords } : {}),
       ...(typeof prep === 'string' && prep.trim() ? { preparationNotes: prep } : {}),
       ...(typeof plan === 'string' && plan.trim() ? { plan } : {}),
-      ...(rec ? { recording: { url: `${origin}${rec.url}`, durationSec: rec.durationSec } } : {}),
+      ...(rec ? { recording: recordingFacts(rec, typeof answer === 'string' ? answer : '', origin) } : {}),
       ...(key[o.id]?.modelAnswer ? { modelAnswer: key[o.id]!.modelAnswer } : {}),
       ...(key[o.id]?.notes ? { markingNotes: key[o.id]!.notes } : {})
     };
@@ -157,7 +157,7 @@ export async function attemptDetail(db: Db, attemptId: string, origin: string): 
     score: { raw: s.raw, total: s.total, estimatedBand: s.band, sections: s.sections, perType: s.perType, reasons: s.reasons },
     questions,
     writingAndSpeaking: openItems,
-    ...(hasSpeaking ? { speakingNote: 'Speaking "answer" is what the student typed or what the browser wrote down while they spoke (it can contain recognition errors). Recordings open only with the student\'s login, so mark from the text; pronunciation cannot be judged from it.' } : {}),
+    ...(hasSpeaking ? { speakingNote: 'Speaking "answer" is what the student typed or what the browser wrote down live while they spoke (it can contain recognition errors). recording.transcript (when present) is the speech-to-text of the recording itself. recording.pausesOver3s / longestPauseSec / speakingSec are measured from the sound while recording; wordsPerMinute uses the transcript (or the answer) and the speaking time. Recordings open only with the student\'s login, so mark from the text; pronunciation cannot be judged from it.' } : {}),
     feedback: r.feedback,
     resultsUrl: `${origin}/#/result/${r.attempt.id}`,
     reasonsExplained: 'correct | wrong | blank (not answered) | over_word_limit (marked wrong, like the real test) | likely_spelling (wrong, but close to a correct answer — see note)'
@@ -172,4 +172,17 @@ function studyBlocks(state: Record<string, unknown>): Array<{ start: string; end
     activeMinutes: Math.round((Number(b.sec) || 0) / 6) / 10,
     words: Number(b.words) || 0
   }));
+}
+
+/** what Claude gets about one speaking recording */
+function recordingFacts(rec: RecordingInfo, answer: string, origin: string) {
+  const text = rec.transcript?.trim() || answer.trim();
+  const words = text ? text.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length : 0;
+  const minutes = (rec.speakingSec ?? rec.durationSec ?? 0) / 60;
+  return {
+    url: `${origin}${rec.url}`, durationSec: rec.durationSec,
+    ...(rec.pausesOver3s !== null && rec.pausesOver3s !== undefined ? { pausesOver3s: rec.pausesOver3s, longestPauseSec: rec.longestPauseSec ?? null, speakingSec: rec.speakingSec ?? null } : {}),
+    ...(rec.transcript ? { transcript: rec.transcript } : rec.transcriptStatus === 'pending' ? { transcript: null, transcriptNote: 'speech-to-text is still running; try again in a minute' } : {}),
+    ...(words && minutes > 0.1 ? { wordsPerMinute: Math.round(words / minutes) } : {})
+  };
 }

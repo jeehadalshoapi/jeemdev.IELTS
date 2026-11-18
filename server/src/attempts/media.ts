@@ -11,8 +11,13 @@ import { isUuid } from './service';
 
 const info = (f: FileRow): RecordingInfo => ({
   id: f.id, url: fileUrl(f.id), mimeType: f.mimeType, sizeBytes: f.sizeBytes,
-  durationSec: f.durationSec === null ? null : Math.round(f.durationSec), createdAt: f.createdAt.toISOString()
+  durationSec: f.durationSec === null ? null : Math.round(f.durationSec), createdAt: f.createdAt.toISOString(),
+  pausesOver3s: f.pausesOver3s, longestPauseSec: f.longestPauseSec, speakingSec: f.speakingSec,
+  transcript: f.transcript, transcriptStatus: f.transcriptStatus
 });
+
+/** a number from the upload's query string, kept inside [0, max] */
+const metric = (v: number | undefined, max: number) => (v !== undefined && Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : null);
 
 async function openAttempt(db: Db, attemptId: string) {
   if (!isUuid(attemptId)) throw notFound('Attempt not found');
@@ -29,7 +34,7 @@ async function removeFiles(db: Db, store: FileStore, rows: FileRow[]) {
 }
 
 /** save a recording for one speaking item; an earlier recording of the same item is replaced */
-export async function saveRecording(db: Db, store: FileStore, p: { attemptId: string; itemId: string; mimeType: string; durationSec?: number; contentLength?: number; stream: Readable }): Promise<RecordingInfo> {
+export async function saveRecording(db: Db, store: FileStore, p: { attemptId: string; itemId: string; mimeType: string; durationSec?: number; pausesOver3s?: number; longestPauseSec?: number; speakingSec?: number; contentLength?: number; stream: Readable }): Promise<RecordingInfo> {
   const { a, t } = await openAttempt(db, p.attemptId);
   if (a.status !== 'in_progress') throw new HttpError(409, 'already_submitted', 'This attempt has been submitted, so recordings can no longer change.');
   const item = listItems(t.content.parts).find(i => i.id === p.itemId);
@@ -47,7 +52,11 @@ export async function saveRecording(db: Db, store: FileStore, p: { attemptId: st
     throw e;
   }
   const duration = p.durationSec !== undefined && Number.isFinite(p.durationSec) ? Math.max(0, Math.min(3600, p.durationSec)) : null;
-  const [row] = await db.update(files).set({ itemId: p.itemId, durationSec: duration }).where(eq(files.id, saved.id)).returning();
+  const [row] = await db.update(files).set({
+    itemId: p.itemId, durationSec: duration,
+    pausesOver3s: metric(p.pausesOver3s, 1000) === null ? null : Math.round(p.pausesOver3s!),
+    longestPauseSec: metric(p.longestPauseSec, 3600), speakingSec: metric(p.speakingSec, 3600)
+  }).where(eq(files.id, saved.id)).returning();
   await removeFiles(db, store, earlier);
   return info(row!);
 }

@@ -79,6 +79,13 @@ export const files = pgTable('files', {
   itemId: text('item_id'),
   /** speaking recordings: length in seconds, as measured by the browser */
   durationSec: real('duration_sec'),
+  /** speaking recordings (Phase 11): silences between speech longer than 3 s, the longest one, and time spent speaking (browser) */
+  pausesOver3s: integer('pauses_over_3s'),
+  longestPauseSec: real('longest_pause_sec'),
+  speakingSec: real('speaking_sec'),
+  /** speaking recordings: text from the speech-to-text server (whisper), when it is switched on */
+  transcript: text('transcript'),
+  transcriptStatus: text('transcript_status').$type<'pending' | 'done' | 'failed'>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, t => [
   index('files_test_idx').on(t.testId),

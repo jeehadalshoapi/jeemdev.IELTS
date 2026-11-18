@@ -167,7 +167,19 @@ function extrasFor(r: ResultView, itemId: string): HTMLElement | null {
   const plan = r.attempt.state[`plan:${itemId}`];
   const drill = r.attempt.state[`drill:${itemId}`] as { planSec?: number; introSec?: number } | undefined;
   const bits: HTMLElement[] = [];
-  if (rec) bits.push(el('div', { class: 'rec-result' }, el('span', null, '🎙 Your recording'), el('audio', { controls: true, preload: 'none', src: rec.url }), rec.durationSec ? el('span', { class: 'muted' }, fmtDuration(rec.durationSec)) : null));
+  if (rec) {
+    bits.push(el('div', { class: 'rec-result' }, el('span', null, '🎙 Your recording'), el('audio', { controls: true, preload: 'none', src: rec.url }), rec.durationSec ? el('span', { class: 'muted' }, fmtDuration(rec.durationSec)) : null));
+    const facts: string[] = [];
+    if (typeof rec.speakingSec === 'number') facts.push(`speaking ${fmtDuration(rec.speakingSec)}`);
+    if (typeof rec.pausesOver3s === 'number') facts.push(`${rec.pausesOver3s} pause${rec.pausesOver3s === 1 ? '' : 's'} over 3 s`);
+    if (typeof rec.longestPauseSec === 'number' && rec.longestPauseSec > 0) facts.push(`longest pause ${rec.longestPauseSec} s`);
+    const text = rec.transcript?.trim() || '';
+    const wpm = text && rec.speakingSec ? Math.round(text.split(/\s+/).length / (rec.speakingSec / 60)) : null;
+    if (wpm) facts.push(`${wpm} words a minute`);
+    if (facts.length) bits.push(el('p', { class: 'muted rec-facts' }, `Fluency: ${facts.join(' · ')}`));
+    if (text) bits.push(el('details', { class: 'details' }, el('summary', null, 'Transcript of the recording'), el('div', { class: 'essay' }, text)));
+    else if (rec.transcriptStatus === 'pending') bits.push(el('p', { class: 'muted' }, 'The transcript of the recording is being made…'));
+  }
   if (typeof plan === 'string' && plan.trim()) bits.push(el('details', { class: 'details' }, el('summary', null, 'Your plan'), el('div', { class: 'essay' }, plan)));
   if (typeof prep === 'string' && prep.trim()) bits.push(el('details', { class: 'details' }, el('summary', null, 'Your preparation notes'), el('div', { class: 'essay' }, prep)));
   if (drill && (drill.planSec || drill.introSec)) bits.push(el('p', { class: 'muted' }, `Time: plan ${fmtDuration(drill.planSec ?? 0)} · introduction ${fmtDuration(drill.introSec ?? 0)}`));

@@ -50,6 +50,13 @@
       "when": 1794996072416,
       "tag": "0006_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794997031432,
+      "tag": "0007_speaking",
+      "breakpoints": true
     }
   ]
 }

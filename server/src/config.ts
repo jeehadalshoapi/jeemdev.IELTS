@@ -13,6 +13,8 @@ export interface AppConfig {
   webDir: string;
   uploadDir: string;
   sessionDays: number;
+  /** speech-to-text server for speaking recordings (whisper.cpp), e.g. http://ielts-whisper:8080; off when empty */
+  whisperUrl?: string;
 }
 
 export async function loadConfig(overrides: Partial<AppConfig> = {}): Promise<AppConfig> {
@@ -33,6 +35,7 @@ export async function loadConfig(overrides: Partial<AppConfig> = {}): Promise<Ap
     webDir: process.env.WEB_DIR?.trim() || path.join(REPO_ROOT, 'web', 'dist'),
     uploadDir: env.uploadDir,
     sessionDays: Number(process.env.SESSION_DAYS) || 30,
+    ...(process.env.WHISPER_URL?.trim() ? { whisperUrl: process.env.WHISPER_URL.trim() } : {}),
     ...overrides
   };
 }
