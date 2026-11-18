@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
-  CreateAttemptBody, ImportBody, TestStatusBody, totalMarks, UPLOAD_MAX_BYTES, uploadKindOf,
+  CreateAttemptBody, HistoryQuery, ImportBody, TestStatusBody, totalMarks, UPLOAD_MAX_BYTES, uploadKindOf,
   type ConnectorResponse, type DashboardResponse, type ImportCheckResponse, type ImportSaveResponse, type TestDetailResponse, type TestsResponse, type UploadResponse
 } from '@ielts/shared';
 import { desc, eq } from 'drizzle-orm';
@@ -183,7 +183,10 @@ export function createApp({ database, config, fileStore }: AppDeps) {
     res.json({ ok: true });
   });
   api.get('/attempts/:id/speech/:partId', async (req, res) => { res.json(await speechFor(db, req.params.id, req.params.partId)); });
-  api.get('/history', async (_req, res) => { res.json(await buildHistory(db)); });
+  api.get('/history', async (req, res) => {
+    const q = HistoryQuery.parse(req.query);
+    res.json(await buildHistory(db, { ...(q.skill ? { skill: q.skill } : {}), ...(q.since ? { since: new Date(`${q.since}T00:00:00Z`) } : {}) }));
+  });
 
   /* ---------- the Claude connector, seen from the website ---------- */
   api.get('/connector', async (req, res) => {

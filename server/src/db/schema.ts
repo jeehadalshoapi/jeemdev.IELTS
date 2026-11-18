@@ -1,4 +1,4 @@
-import type { AnswerKey, TestContent } from '@ielts/shared';
+import type { AnswerKey, Feedback, TestContent } from '@ielts/shared';
 import { sql } from 'drizzle-orm';
 import { date, index, integer, jsonb, pgEnum, pgTable, real, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
@@ -55,7 +55,7 @@ export const attempts = pgTable('attempts', {
   /** per-question correct/incorrect + reason, raw score, estimated band */
   autoScore: jsonb('auto_score').$type<Record<string, unknown>>(),
   /** Claude's marking (save_feedback) */
-  feedback: jsonb('feedback').$type<Record<string, unknown>>(),
+  feedback: jsonb('feedback').$type<Feedback>(),
   /** which devices touched the attempt */
   deviceLog: jsonb('device_log').$type<Array<Record<string, unknown>>>().notNull().default(sql`'[]'::jsonb`)
 }, t => [

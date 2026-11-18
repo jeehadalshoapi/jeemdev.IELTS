@@ -12,16 +12,46 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 | 4 | Import box (`#/import`: JSON or text format, audio/picture uploads), Tests page (`#/tests`: archive/restore) | ✅ merged into `main`, **deployed** 2026-11-18 |
 | 5 | MCP server at `/mcp` (11 tools of spec §6), own OAuth 2.1 server, MCP Inspector checked | ✅ merged into `main`, **deployed** 2026-11-18 (the owner said "make the code then deploy at once") |
 | 6 | Task 1 charts (SVG), plan+intro drill timers, speaking recording + optional live transcript + Part 2 timers, listening read aloud | ✅ merged into `main`, **deployed** 2026-11-18 (the owner said "go with phase 6 and deploy after you finish") |
-| 7 | Render Claude's feedback (spec §6 JSON) on the results page, progress charts | next |
+| 7 | Claude's feedback on the results page, progress charts on History (filters in the URL) | ✅ built on `phase-7-feedback`, pushed, **waiting for the owner's go** (not merged / not deployed) |
+| 8+ | The owner's new feature list [ielts-site-spec.md](ielts-site-spec.md): lessons, vocabulary bank, mistakes log, vocab quizzes, sentence rewrite, images, study plan, listening pauses, speaking transcripts | not started — see *Next* below |
 
 - `main` = Phase 6 and is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
-- Next: create `phase-7-feedback` from `main` and start Phase 7 (spec §5.4–5.5, §6 feedback JSON, §9 phase 7). Normal rule: wait for the owner's "go" before merging/deploying, unless they say otherwise.
+- **Phase 7 is on `phase-7-feedback`, waiting for the owner's "go"** to merge into `main` and deploy (deploy routine below).
+- **Next: the owner's new list `ielts-site-spec.md`** (added 2026-11-18, Priority 1 "this week" = Writing Week; Priority 2 before Day 30 ≈ 2026-11-24; Priority 3 before Day 37 ≈ 2026-12-01). Claude reviewed it and proposed phases and questions to the owner (see the end of the 2026-11-18 session); wait for their answers before building. Already true: writing boxes have `spellcheck="false"`; exam-mode read-aloud plays once; the speaking live transcript + recording length reach `get_attempt`.
 - Deploy routine (every phase): record the other sites' status codes (see Deployment), `ssh gehad@169.58.112.108 'cd /opt/ielts/stack && ./deploy.sh'`, then check `/health`, the other sites again, and logged-in calls **on the box** (cookie jar; read the password file there, never print it). For the connector: copy `scripts/e2e/mcp-connect.mjs` to the box and run `E2E_PASSWORD_FILE=/opt/ielts/stack/initial-password.txt node mcp-connect.mjs https://ielts.jeemdev.net` there (a 1-hour token; the password is never printed). If the owner has changed the password, that file is gone: ask the owner to test from claude.ai instead.
 
-### Ideas already noted for Phase 7 and later
-- An "attach a recording to an existing test" feature does not exist yet (only the import box takes files; Claude's listening tests use read-aloud).
-- Claude cannot listen to speaking recordings (they need the owner's login); it marks from the typed / transcribed text. Pronunciation is therefore not marked.
-- Phase 7: `shared/src/feedback.ts` (`Feedback` zod schema) is what `save_feedback` stores (plus `savedAt`); `web/src/pages/result.ts` only shows band, summary and next steps so far.
+### Phase 7 (done 2026-11-18) — what was built
+- Results page (`web/src/pages/result.ts`): the feedback card sits right under the hero once feedback exists: overall band, criteria as a meter list in the official order (jsonb does not keep key order — `orderCriteria`), summary via `mdRich` (text + bullets + numbered lines + `#` headings, escaped), mistakes routed by `routeFeedback` (`q14` / `Q14` / `14` → the answer row, which gets a "Claude:" note and a ✎; a writing/speaking item id → that item's card; anything else → the card), `correctedText` side by side with a word diff (`shared/src/diff.ts`, LCS, gives up above 4M word pairs) when there is one writing item (else in a "Corrected version" box), next steps, "Marked by Claude on …", and unknown extra fields under their own heading (text only). A Task 2 drill is compared on its introduction.
+- History (`web/src/pages/history.ts`, `web/src/lib/linechart.ts`): small multiples — band over time per skill on one shared band scale, accuracy over time per question type (0–100 %), ranked bars for auto-marking reasons and Claude's mistake categories, tables behind "Show the numbers" / "Show as a table". Tooltips snap to the nearest attempt (mouse, touch: tap shows / second tap opens, keyboard: arrows/Home/End/Enter). The SVG is drawn at the real pixel width (ResizeObserver). Filters (period 7/30/90 days, skill) live in the hash (`#/history?days=30&skill=reading`, updated with `history.replaceState`, so no remount) and call `GET /api/history?skill=&since=YYYY-MM-DD` (`HistoryQuery`, 400 on anything else).
+- `buildHistory` now returns `byType[].points` (one per attempt) and `feedbackMistakes` (categories normalised: lower case, `_`/`-` → space, missing → "other"); with a skill filter a full mock counts only that section's questions. `AttemptSummary.feedbackBand` (dashboard + history show Claude's band for writing/speaking). `get_progress` also returns `feedbackMistakeCategories`.
+- Chart colours for app pages: `.theme-app` vars in `app.css` (`--series-1` #2a78d6 validated on white, one accent hue everywhere). App pages are light only.
+
+### Phase 7 brief (written at the end of Phase 6, kept for reference)
+**Goal** (spec §5.4, §5.5, §6 "Feedback JSON", §9 phase 7): show Claude's marking properly on the results page, and turn History into real progress charts.
+
+1. **Results page: render the feedback** (`web/src/pages/result.ts`, today only `feedbackBlock()`: band, summary, next steps).
+   - Stored shape: `shared/src/feedback.ts` (`Feedback`, a zod `looseObject`) + `savedAt`, in `attempts.feedback`; `save_feedback` sets status `marked` (`server/src/mcp/tools.ts`). Type `ResultView.feedback` as `Feedback | null` (`shared/src/api.ts`) instead of `Record<string, unknown>`.
+   - Show: overall band (hero already falls back to it via `feedbackBand()`), `criteria` as bands per criterion (Writing TR/TA, CC, LR, GRA; Speaking FC, LR, GRA, P — keys are free, show any), `summary` (markdown via `mdBlock`), `mistakes` (questionId may be an objective question id like `q14` → show its number and link/highlight the row in the answers table; or a writing/speaking item id → attach to that item's card), `correctedText` next to the student's essay (a simple side-by-side or word diff), `nextSteps`, and "Marked by Claude on <savedAt>".
+   - Unknown extra fields: keep rendering safe (looseObject allows them); never trust them as HTML (`mdBlock` escapes).
+   - Dashboard "✓ Feedback ready" badge and History "✓ Feedback" already exist.
+2. **History: progress charts** (`web/src/pages/history.ts`, today mini bar sparklines + a table; the code says "full charts arrive in Phase 7").
+   - Data: `GET /api/history` → `HistoryResponse` from `server/src/attempts/history.ts` `buildHistory(db, { skill?, since? })` (filters exist, not exposed on the REST route yet). Writing/speaking bands come from `feedback.overallBand`.
+   - Wanted: estimated band over time per skill (line chart), accuracy per question type over time (e.g. TFNG trend), mistake reasons. Maybe a skill / date-range filter row.
+   - **Load the `dataviz` skill before any chart code** (it is a hard rule in that skill). Phase 6's `web/src/runner/charts.ts` already uses its validated palette, but its colours live on `.cd` (exam page, `web/src/styles/exam.css`); app pages (`theme-app`, `web/src/styles/app.css`) need the `--series-N` vars too. Tooltips on hover; a table view.
+3. **Tests / checks:** vitest for any new server code; a browser check (e.g. `scripts/e2e/feedback.cjs`). To get feedback into the e2e DB, either extend `scripts/e2e/prepare-db.ts` to submit an attempt and write `attempts.feedback` directly, or call the `save_feedback` tool with a token from `scripts/e2e/mcp-connect.mjs`.
+
+**Spec §10 acceptance checks — where they stand:**
+- "Upload this reading homework to my site" from claude.ai — **not yet tried by the owner** (they still have to add the connector; the tools work in tests, MCP Inspector and a live check on the server).
+- Phone → laptop, same answers, clock continues — ✅ (`cross-device.*.cjs`).
+- "Mark my last attempt" → feedback on the results page — tools ✅; real claude.ai run pending the owner; the full rendering is Phase 7.
+- Over-the-limit answer marked wrong with the reason — ✅ (Phase 3).
+- Site and `/mcp` refuse requests without login / token — ✅.
+
+**Owner's open to-dos (remind them briefly when relevant):**
+- Add the connector in claude.ai (README → *The Claude connector*).
+- Change the first password (`./change-password.sh` in `/opt/ielts/stack`). It also disconnects Claude, so reconnect afterwards. Until then `initial-password.txt` is on the box (the production checks above read it there).
+
+**Known limits / ideas after Phase 7:** no "attach a recording to an existing test" yet (only the import box takes files; Claude's listening tests use read-aloud). Claude marks speaking from text only (recordings need the owner's login), so pronunciation is not marked. Nightly backups copy all uploads (fine at 162 GB free).
 
 ## How we work (agreed with the owner)
 - **One branch per phase** (`phase-N-name`). At the end of a phase:
@@ -62,7 +92,7 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 ```bash
 npm install
 npm run dev                 # API :3000 (tsx watch) + website :5173 (Vite); dev password "ielts-dev"
-npm test                    # vitest — 122 tests (shared/test, server/test)
+npm test                    # vitest — 129 tests (shared/test, server/test)
 npm run typecheck           # tsc for shared, server, web (TypeScript 7 — type-checking only)
 npm run build               # vite build web -> web/dist ; esbuild server -> server/dist
 npm start                   # production build on :3000
@@ -83,6 +113,7 @@ node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/results.cjs         
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/import.cjs             # Phase 4 import box, uploads (dropped files), tests page
 node scripts/e2e/cdp.cjs http://localhost:3000/login scripts/e2e/connector.cjs     # Phase 5 approval page (run a listener on :33418 to see the code)
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/extras.cjs             # Phase 6 charts, drill timers, recording (fake mic), read aloud
+node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/feedback.cjs           # Phase 7 feedback rendering, progress charts, filters, phone
 TOKEN=$(node scripts/e2e/mcp-connect.mjs http://localhost:3000)                    # OAuth like claude.ai does; prints a 1-hour token
 npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http --header "Authorization: Bearer $TOKEN" --method tools/list
 ```
@@ -97,6 +128,7 @@ shared/  test format + logic used everywhere (imported as @ielts/shared, TS sour
   src/schema/{common,groups,test}.ts   zod schemas: TestDocument, 23 question types (objective, writing, speaking), charts
   src/validate.ts      validateTest(): zod + cross-checks, errors as {path, message}; reports ALL problems in one pass
   src/document.ts      listItems, splitDocument/joinDocument (DB columns), toPublicContent (strips transcripts), progressOf
+  src/diff.ts          wordDiff (results page: the student's answer vs Claude's correctedText)
   src/answers.ts       normalizeAnswer, expandOptional "(the) x", countWords / fitsWordLimit / describeWordLimit
   src/scoring.ts       scoreAnswers() -> AutoScore (reasons: correct | blank | wrong | over_word_limit | likely_spelling)
   src/config/band-tables.ts   raw -> estimated band (listening, academic_reading, general_reading), scaled to 40
@@ -108,7 +140,7 @@ server/  Express 5 + Drizzle (Postgres / PGlite)
   src/http/security.ts cookies, CSRF (double submit: ielts_csrf cookie + X-CSRF-Token header + Origin check), rate limits
   src/auth/            scrypt password hash (format scrypt:N:r:p:salt:hash — no "$", safe in compose .env), sessions
   src/attempts/service.ts  timing, autosave merge (only changed keys), submit + scoring, auto-submit on exam expiry, results, rescore
-  src/attempts/history.ts  history aggregation
+  src/attempts/history.ts  history aggregation (per-skill bands, per-type points, mistake reasons, Claude's mistake categories; skill/since filters)
   src/tests/repository.ts  createTest / getTest / listTests / setTestStatus;  src/legacy/  old-site import (convert.ts: old -> new)
   src/import/textformat.ts the text format (HOW-TO-ADD-TESTS.md) -> old test shape -> legacy/convert.ts -> TestDocument
   src/import/service.ts    prepareImport (JSON or text, ``` fences, file names -> /files/<id>, friendly "where" per issue, summary),
@@ -129,6 +161,7 @@ web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/att
                        sync.ts (autosave + offline buffer in localStorage), panels.ts (settings/notes/help/audio)
   src/runner/charts.ts  Task 1 charts as SVG/HTML (palette vars --series-N in exam.css, light + dark steps)
   src/runner/extras.ts  drillBox (plan/intro timers), recorder + transcribe switch, speakingGroup (Part 2 timers), speechPlayer
+  src/lib/linechart.ts  progress line chart (tooltip/crosshair/keyboard, drawn at real width) + rankedBars
   src/pages/           dashboard, start, result, history, tests, import;  src/lib/ dom/ui/api(+uploadFile, XHR progress)/markup/format helpers
 ```
 - **Security rules from the spec that the code enforces:**
@@ -184,3 +217,5 @@ web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/att
 - **Headless Edge for the e2e checks** runs with a fake, always-allowed microphone (`--use-fake-device-for-media-stream`, in `cdp.cjs`). Its speech synthesis has voices but the e2e only checks that playback starts, not that it ends.
 - **MediaRecorder webm files have no duration in their header**, so a player shows 0:00 until played; the browser-measured length is stored in `files.duration_sec` and shown next to it.
 - `cross-device.laptop.cjs` always prints two `ERR_INTERNET_DISCONNECTED` lines: they come from its deliberate offline step.
+- **PostgreSQL `jsonb` does not keep the order of object keys** (shorter keys first). Anything shown in a fixed order (feedback `criteria`) must be sorted on the page.
+- **Shell tooling on this PC:** `python3` is the Windows Store stub (does nothing); use `python`. A Bash heredoc that contains curly quotes (’ “ ”) fails to parse in the Bash tool; write such content with the Write tool (or to a scratch file) instead.

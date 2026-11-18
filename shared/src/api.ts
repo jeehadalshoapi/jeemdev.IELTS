@@ -1,7 +1,8 @@
 /* Types for the website <-> server REST API (shared so both sides agree). */
 import { z } from 'zod';
+import type { Feedback } from './feedback';
 import type { QuestionType } from './schema/groups';
-import { STATUSES, type Kind, type SectionSkill, type Skill, type Source, type TestContent, type TestStatus, type Variant } from './schema/test';
+import { SECTION_SKILLS, STATUSES, type Kind, type SectionSkill, type Skill, type Source, type TestContent, type TestStatus, type Variant } from './schema/test';
 import type { AutoScore, MarkReason } from './scoring';
 import type { SpeechLine } from './speech';
 import type { Issue } from './validate';
@@ -119,6 +120,8 @@ export interface AttemptSummary {
   items: number;
   timing: Timing;
   feedbackReady: boolean;
+  /** the overall band in Claude's feedback, when there is one */
+  feedbackBand: number | null;
   autoScore: { raw?: number; total?: number; band?: number | null } | null;
 }
 
@@ -168,8 +171,8 @@ export interface ResultView {
   autoScore: AutoScore;
   /** model answers for writing / speaking items (shown after submission) */
   modelAnswers: Record<string, string>;
-  /** Claude's marking (Phase 5+), or null */
-  feedback: Record<string, unknown> | null;
+  /** Claude's marking (save_feedback), or null */
+  feedback: Feedback | null;
   /** speaking recordings, by item id */
   recordings: Record<string, RecordingInfo>;
 }
@@ -191,6 +194,8 @@ export interface TypeHistory {
   recent: { raw: number; total: number };
   /** accuracy change in percentage points: last 3 attempts vs the 3 before (null when there are not enough) */
   trend: number | null;
+  /** one point per attempt that had this type, oldest first */
+  points: Array<{ attemptId: string; date: string; raw: number; total: number; title: string }>;
 }
 
 export interface HistoryResponse {
@@ -198,7 +203,17 @@ export interface HistoryResponse {
   bySkill: Partial<Record<'reading' | 'listening' | 'writing' | 'speaking', SkillHistory>>;
   byType: TypeHistory[];
   reasons: Record<MarkReason, number>;
+  /** the categories of the mistakes in Claude's feedback ("spelling", "grammar" …), most frequent first */
+  feedbackMistakes: Array<{ category: string; count: number; attempts: number }>;
 }
+
+/** GET /api/history?skill=reading&since=2026-11-01 */
+export const HistoryQuery = z.strictObject({
+  skill: z.enum(SECTION_SKILLS, { error: `must be one of: ${SECTION_SKILLS.join(', ')}` }).optional(),
+  since: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: 'must be a date like 2026-11-01' })
+    .refine(s => !Number.isNaN(Date.parse(`${s}T00:00:00Z`)), { error: 'is not a real date' }).optional()
+});
+export type HistoryQuery = z.infer<typeof HistoryQuery>;
 
 export interface ApiErrorBody {
   error: string;

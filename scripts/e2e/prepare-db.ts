@@ -1,9 +1,13 @@
 // Fresh database for browser checks: the sample reading test, a listening drill (with transcript, read aloud), a writing task,
-// and for Phase 6 a chart gallery, a Task 2 plan + introduction drill and a speaking test.
+// for Phase 6 a chart gallery, a Task 2 plan + introduction drill and a speaking test, and for Phase 7 finished
+// attempts over two weeks (reading, listening, a Task 2 essay), two of them with Claude's feedback.
 //   npx tsx scripts/e2e/prepare-db.ts        (writes .data/e2e/ids.json)
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { eq } from 'drizzle-orm';
 import { exampleTestForType } from '../../shared/src';
+import { createAttempt, saveAttempt } from '../../server/src/attempts/service';
 import { openDatabase } from '../../server/src/db/client';
+import { attempts } from '../../server/src/db/schema';
 import { seedSample } from '../../server/src/seed';
 import { createTest } from '../../server/src/tests/repository';
 
@@ -48,6 +52,63 @@ const speaking = await createTest(d.db, {
     { ...(p2.parts[0] as object), id: 'sp2', title: 'Part 2' } as never
   ]
 }, { source: 'claude' });
-writeFileSync('.data/e2e/ids.json', JSON.stringify({ sample: '5a3f6c1e-0000-4000-8000-000000000001', listening: listening.id, writing: writing.id, gallery: gallery.id, drill: drill.id, speaking: speaking.id }));
+// Phase 7: finished attempts spread over two weeks (for the progress charts), two of them marked by Claude
+const SAMPLE = '5a3f6c1e-0000-4000-8000-000000000001';
+const daysAgo = (n: number) => new Date(Date.now() - n * 86400_000);
+async function finished(testId: string, answers: Record<string, unknown>, ago: number, feedback?: Record<string, unknown>): Promise<string> {
+  const id = await createAttempt(d.db, testId, 'practice');
+  await saveAttempt(d.db, id, { answers }, 'e2e', { submit: true });
+  await d.db.update(attempts).set({
+    startedAt: daysAgo(ago + 0.02), submittedAt: daysAgo(ago), updatedAt: daysAgo(ago), timeSpentSec: { total: 900 + ago * 20 },
+    ...(feedback ? { feedback: { ...feedback, savedAt: daysAgo(ago - 0.05).toISOString() } as never, status: 'marked' as const } : {})
+  }).where(eq(attempts.id, id));
+  return id;
+}
+/** the sample reading test with these questions right and the rest wrong */
+const KEY: Record<string, string | string[]> = { q1: 'iii', q2: 'i', q3: 'v', q4: 'iv', q5: 'vi', q6: 'TRUE', q7: 'NOT GIVEN', q8: 'FALSE', q9: 'FALSE', q10: 'B', q11: 'register', q12: 'permit', q13: 'roofs', q14: 'wild', q15: ['A', 'C'], q17: 'colony collapse disorder' };
+const WRONG: Record<string, string | string[]> = { q1: 'ii', q2: 'iv', q3: 'i', q4: 'v', q5: 'ii', q6: 'FALSE', q7: 'FALSE', q8: 'TRUE', q9: 'NOT GIVEN', q10: 'C', q11: 'record', q12: 'permitt', q13: 'gardens', q14: 'native', q15: ['A', 'D'], q17: 'the colony collapse disorder problem' };
+const reading = (right: string[]) => Object.fromEntries(Object.keys(KEY).map(q => [q, right.includes(q) ? KEY[q]! : WRONG[q]!]));
+const r1 = ['q1', 'q2', 'q6', 'q10', 'q11'];
+await finished(SAMPLE, reading(r1), 13);
+await finished(SAMPLE, reading([...r1, 'q3', 'q7', 'q13']), 9);
+await finished(SAMPLE, reading([...r1, 'q3', 'q7', 'q13', 'q4', 'q8', 'q14']), 6);
+await finished(SAMPLE, reading([...r1, 'q3', 'q7', 'q13', 'q4', 'q8', 'q14', 'q5', 'q9']), 3);
+const readingMarked = await finished(SAMPLE, reading([...r1, 'q3', 'q13', 'q4', 'q8', 'q14', 'q5', 'q9', 'q12', 'q15']), 1, {
+  overallBand: 7,
+  summary: 'A strong attempt: **16 of 17** on the headings, summary and multiple choice.\n\nTwo things cost you marks:\n- the word limit on question 17\n- a NOT GIVEN trap on question 7',
+  mistakes: [
+    { questionId: 'q17', yourAnswer: 'the colony collapse disorder problem', correct: 'colony collapse disorder', explanation: 'Five words where the limit is **NO MORE THAN THREE WORDS**: marked wrong even though the idea is right.', category: 'word limit' },
+    { questionId: '7', yourAnswer: 'FALSE', correct: 'NOT GIVEN', explanation: 'The passage says where losses were *reported*, not where the problem was first found.', category: 'reading trap' },
+    { explanation: 'You spent 11 minutes on the matching headings. Aim for 8.', category: 'timing' }
+  ],
+  nextSteps: ['Count the words of every gap answer before moving on.', 'Do the NOT GIVEN drill on the dashboard.'],
+  strengths: ['Fast and accurate on True / False / Not Given', 'No spelling mistakes this time']
+});
+await finished(listening.id, { q1: 'Mitchel', q2: '07700 900123' }, 10);
+await finished(listening.id, { q1: 'Mitchell', q2: '07700 900123' }, 4);
+
+const essayTest = await createTest(d.db, {
+  title: 'Writing Task 2 — Parks or roads (e2e)', skill: 'writing', kind: 'homework',
+  parts: [{ id: 'task2', title: 'Task 2', questionGroups: [{ id: 'essay', type: 'writing_task2', prompt: 'Some people think cities should spend money on parks rather than on roads. To what extent do you agree or disagree?' }] }]
+}, { source: 'claude' });
+const ESSAY = 'Nowadays many people think that goverments should spend more money on parks than roads. I completely agree with this opinion because parks improve our health and they make cities more beautiful.\n\nFirstly, parks give people a place to do exercise. Many graduates can not find job because of leak of experiance, but they can at least walk in a park for free. In addition, trees clean the air.\n\nIn conclusion, I believe parks is more important than roads.';
+const CORRECTED = 'Nowadays many people think that governments should spend more money on parks than on roads. I completely agree with this opinion because parks improve our health and make cities more beautiful.\n\nFirstly, parks give people a place to exercise. Many young people cannot afford a gym, but they can at least walk in a park for free. In addition, trees clean the air.\n\nIn conclusion, I believe parks are more important than roads.';
+await finished(essayTest.id, { essay: ESSAY }, 11, { overallBand: 5.5, summary: 'A clear position but too short.', mistakes: [{ questionId: 'essay', explanation: 'Under 250 words.', category: 'task response' }] });
+await finished(essayTest.id, { essay: ESSAY }, 7, { overallBand: 6, summary: 'Better paragraphing.', mistakes: [{ questionId: 'essay', yourAnswer: 'goverments', correct: 'governments', explanation: 'Spelling.', category: 'spelling' }] });
+const writingMarked = await finished(essayTest.id, { essay: ESSAY }, 2, {
+  overallBand: 6.5,
+  criteria: { TR: 6, CC: 6.5, LR: 6.5, GRA: 6 },
+  summary: 'Your position is clear from the first paragraph and you keep to it. The essay is **too short** (about 90 words), so Task Response cannot go above 6.',
+  mistakes: [
+    { questionId: 'essay', yourAnswer: 'goverments', correct: 'governments', explanation: 'One of your "never again" words.', category: 'spelling' },
+    { questionId: 'essay', yourAnswer: 'experiance', correct: 'experience', explanation: 'experi-ENCE, like science and evidence.', category: 'spelling' },
+    { questionId: 'essay', yourAnswer: 'can not find job because of leak of', correct: 'cannot find a job because of a lack of', explanation: '*cannot* is one word; *job* needs an article; *leak* means water escaping.', category: 'grammar' },
+    { questionId: 'essay', yourAnswer: 'parks is', correct: 'parks are', explanation: 'Plural subject, plural verb.', category: 'grammar' }
+  ],
+  correctedText: CORRECTED,
+  nextSteps: ['Write at least 260 words: plan 4 paragraphs of about 65 words.', 'Add the spelling words to your daily review.']
+});
+
+writeFileSync('.data/e2e/ids.json', JSON.stringify({ sample: SAMPLE, listening: listening.id, writing: writing.id, gallery: gallery.id, drill: drill.id, speaking: speaking.id, essay: essayTest.id, readingMarked, writingMarked }));
 await d.close();
 console.log('Ready. Start the server with:  PGLITE_DIR=.data/e2e/pglite UPLOAD_DIR=.data/e2e/uploads node server/dist/main.js');

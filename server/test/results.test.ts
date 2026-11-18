@@ -100,3 +100,83 @@ describe('scoring and results', () => {
     expect(h.reasons.likely_spelling).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('progress (Phase 7)', () => {
+  const MOCK = {
+    title: 'Mini mock', skill: 'mixed', kind: 'full_mock',
+    parts: [
+      {
+        id: 'L1', title: 'Listening 1', skill: 'listening', transcript: 'Narrator: The caller spells her name, M-I-T-C-H-E-L-L.',
+        questionGroups: [{ id: 'lg1', type: 'form_completion', instructions: 'Write ONE WORD for each answer.', wordLimit: { maxWords: 1 }, template: 'Name: Sarah {{l1}}', questions: [{ id: 'l1', number: 1 }] }]
+      },
+      {
+        id: 'R1', title: 'Reading 1', skill: 'reading', passage: { title: 'Roofs', paragraphs: [{ text: 'Green roofs keep buildings cool.' }] },
+        questionGroups: [{ id: 'rg1', type: 'tfng', instructions: 'Do the statements agree with the passage?', questions: [{ id: 'r1', number: 2, text: 'Green roofs cool buildings.' }] }]
+      }
+    ],
+    answerKey: { l1: { accept: ['Mitchell'] }, r1: { accept: ['TRUE'] } }
+  };
+
+  it('gives one point per attempt for each question type, and filters by skill (a full mock counts per section)', async () => {
+    const { id: testId } = await createTest(srv.database.db, MOCK, { source: 'claude' });
+    const id = await start(testId);
+    expect((await me.post(`/api/attempts/${id}/submit`, { answers: { l1: 'Mitchel', r1: 'TRUE' } })).status).toBe(200);
+
+    const all = await json<HistoryResponse>(await me.get('/api/history'));
+    const tfng = all.byType.find(t => t.type === 'tfng')!;
+    expect(tfng.points.length).toBeGreaterThanOrEqual(2);
+    expect(tfng.points.at(-1)).toMatchObject({ attemptId: id, raw: 1, total: 1, title: 'Mini mock' });
+    expect(tfng.points.reduce((n, p) => n + p.total, 0)).toBe(tfng.total);
+
+    const reading = await json<HistoryResponse>(await me.get('/api/history?skill=reading'));
+    expect(Object.keys(reading.bySkill)).toEqual(['reading']);
+    expect(reading.byType.find(t => t.type === 'form_completion')).toBeUndefined(); // the mock's listening question is left out
+    expect(reading.byType.find(t => t.type === 'tfng')?.points.at(-1)).toMatchObject({ attemptId: id, raw: 1, total: 1 });
+    expect(reading.attempts.some(a => a.id === id)).toBe(true);
+
+    const listening = await json<HistoryResponse>(await me.get('/api/history?skill=listening'));
+    expect(Object.keys(listening.bySkill)).toEqual(['listening']);
+    expect(listening.byType.map(t => t.type)).toEqual(['form_completion']);
+    expect(listening.byType[0]!.points.at(-1)).toMatchObject({ attemptId: id, raw: 0, total: 1 });
+    // "Mitchel" here, 2 correct in the earlier listening test; the mock's correct reading answer is not counted (it would make 3)
+    expect(listening.reasons).toMatchObject({ likely_spelling: 1, correct: 2 });
+  });
+
+  it('filters by date and refuses a bad filter', async () => {
+    expect((await json<HistoryResponse>(await me.get('/api/history?since=2999-01-01'))).attempts).toEqual([]);
+    expect((await json<HistoryResponse>(await me.get('/api/history?since=2020-01-01'))).attempts.length).toBeGreaterThan(0);
+    for (const q of ['skill=maths', 'since=yesterday', 'days=7']) {
+      const r = await me.get(`/api/history?${q}`);
+      expect(r.status).toBe(400);
+      expect((await json<{ error: string }>(r)).error).toBe('invalid_request');
+    }
+  });
+
+  it('counts Claude\'s mistake categories and shows Claude\'s band for writing', async () => {
+    const { id: testId } = await createTest(srv.database.db, exampleTestForType('writing_task2'), { source: 'claude' });
+    const id = await start(testId);
+    await me.post(`/api/attempts/${id}/submit`, { answers: {} });
+    const feedback = {
+      overallBand: 6.5, criteria: { TR: 6, CC: 6.5, LR: 7, GRA: 6 }, summary: 'Clear position.', nextSteps: [],
+      mistakes: [
+        { explanation: 'experience', category: 'Spelling' }, { explanation: 'goverment', category: 'spelling ' },
+        { explanation: 'a lack of', category: 'word_choice' }, { explanation: 'no category' }
+      ],
+      savedAt: new Date().toISOString()
+    };
+    await srv.database.db.update(attempts).set({ feedback, status: 'marked' }).where(eq(attempts.id, id));
+
+    const h = await json<HistoryResponse>(await me.get('/api/history?skill=writing'));
+    expect(h.feedbackMistakes).toEqual([
+      { category: 'spelling', count: 2, attempts: 1 },
+      { category: 'other', count: 1, attempts: 1 },
+      { category: 'word choice', count: 1, attempts: 1 }
+    ]);
+    expect(h.bySkill.writing?.points.at(-1)).toMatchObject({ attemptId: id, band: 6.5 });
+    expect(h.attempts.find(a => a.id === id)).toMatchObject({ feedbackReady: true, feedbackBand: 6.5, status: 'marked' });
+    const d = await json<DashboardResponse>(await me.get('/api/dashboard'));
+    expect(d.completed.find(a => a.id === id)?.feedbackBand).toBe(6.5);
+    const r = await json<ResultView>(await me.get(`/api/attempts/${id}/result`));
+    expect(r.feedback).toMatchObject({ overallBand: 6.5, criteria: { LR: 7 } });
+  });
+});

@@ -18,6 +18,36 @@ export function mdBlock(text: string | undefined): string {
   }).join('');
 }
 
+/**
+ * Like mdBlock, for Claude's feedback: one paragraph may mix text lines, "- " bullets, "1. " steps and "# " headings
+ * (e.g. "Two things cost you marks:" followed by a list). Escaped like everything else.
+ */
+export function mdRich(text: string | undefined): string {
+  return String(text ?? '').trim().split(/\n\s*\n/).filter(Boolean).map(block => {
+    const out: string[] = [];
+    let kind: 'ul' | 'ol' | 'p' | null = null;
+    let lines: string[] = [];
+    const flush = () => {
+      if (kind === 'p') out.push(`<p>${lines.map(inlineMd).join('<br>')}</p>`);
+      else if (kind) out.push(`<${kind}>${lines.map(l => `<li>${inlineMd(l)}</li>`).join('')}</${kind}>`);
+      kind = null;
+      lines = [];
+    };
+    for (const raw of block.split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+      const heading = /^#{1,6}\s+(.+)$/.exec(line);
+      if (heading) { flush(); out.push(`<h5 class="md-h">${inlineMd(heading[1] ?? '')}</h5>`); continue; }
+      const bullet = /^[-•*]\s+(.+)$/.exec(line), step = /^\d{1,2}[.)]\s+(.+)$/.exec(line);
+      const k = bullet ? 'ul' : step ? 'ol' : 'p';
+      if (k !== kind) { flush(); kind = k; }
+      lines.push(bullet?.[1] ?? step?.[1] ?? line);
+    }
+    flush();
+    return out.join('');
+  }).join('');
+}
+
 export function passageHTML(p: Passage): string {
   return p.paragraphs.map(para => {
     const heading = para.heading ? `<h4 class="psg-sub">${inlineMd(para.heading)}</h4>` : '';
