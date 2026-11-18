@@ -15,13 +15,35 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 | 7 | Render Claude's feedback (spec §6 JSON) on the results page, progress charts | next |
 
 - `main` = Phase 6 and is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
-- Next: create `phase-7-feedback` from `main` and start Phase 7 (spec §5.4–5.5, §6 feedback JSON, §9 phase 7). Normal rule: wait for the owner's "go" before merging/deploying, unless they say otherwise.
+- **Next: Phase 7.** The branch `phase-7-feedback` already exists (made from `main`; it only holds this hand-off). Work there. Brief below. Normal rule: show the owner the compare link and wait for "go" before merging/deploying, unless they say otherwise (for Phases 5 and 6 they said "deploy at once").
 - Deploy routine (every phase): record the other sites' status codes (see Deployment), `ssh gehad@169.58.112.108 'cd /opt/ielts/stack && ./deploy.sh'`, then check `/health`, the other sites again, and logged-in calls **on the box** (cookie jar; read the password file there, never print it). For the connector: copy `scripts/e2e/mcp-connect.mjs` to the box and run `E2E_PASSWORD_FILE=/opt/ielts/stack/initial-password.txt node mcp-connect.mjs https://ielts.jeemdev.net` there (a 1-hour token; the password is never printed). If the owner has changed the password, that file is gone: ask the owner to test from claude.ai instead.
 
-### Ideas already noted for Phase 7 and later
-- An "attach a recording to an existing test" feature does not exist yet (only the import box takes files; Claude's listening tests use read-aloud).
-- Claude cannot listen to speaking recordings (they need the owner's login); it marks from the typed / transcribed text. Pronunciation is therefore not marked.
-- Phase 7: `shared/src/feedback.ts` (`Feedback` zod schema) is what `save_feedback` stores (plus `savedAt`); `web/src/pages/result.ts` only shows band, summary and next steps so far.
+### Phase 7 brief (written at the end of Phase 6, 2026-11-18)
+**Goal** (spec §5.4, §5.5, §6 "Feedback JSON", §9 phase 7): show Claude's marking properly on the results page, and turn History into real progress charts.
+
+1. **Results page: render the feedback** (`web/src/pages/result.ts`, today only `feedbackBlock()`: band, summary, next steps).
+   - Stored shape: `shared/src/feedback.ts` (`Feedback`, a zod `looseObject`) + `savedAt`, in `attempts.feedback`; `save_feedback` sets status `marked` (`server/src/mcp/tools.ts`). Type `ResultView.feedback` as `Feedback | null` (`shared/src/api.ts`) instead of `Record<string, unknown>`.
+   - Show: overall band (hero already falls back to it via `feedbackBand()`), `criteria` as bands per criterion (Writing TR/TA, CC, LR, GRA; Speaking FC, LR, GRA, P — keys are free, show any), `summary` (markdown via `mdBlock`), `mistakes` (questionId may be an objective question id like `q14` → show its number and link/highlight the row in the answers table; or a writing/speaking item id → attach to that item's card), `correctedText` next to the student's essay (a simple side-by-side or word diff), `nextSteps`, and "Marked by Claude on <savedAt>".
+   - Unknown extra fields: keep rendering safe (looseObject allows them); never trust them as HTML (`mdBlock` escapes).
+   - Dashboard "✓ Feedback ready" badge and History "✓ Feedback" already exist.
+2. **History: progress charts** (`web/src/pages/history.ts`, today mini bar sparklines + a table; the code says "full charts arrive in Phase 7").
+   - Data: `GET /api/history` → `HistoryResponse` from `server/src/attempts/history.ts` `buildHistory(db, { skill?, since? })` (filters exist, not exposed on the REST route yet). Writing/speaking bands come from `feedback.overallBand`.
+   - Wanted: estimated band over time per skill (line chart), accuracy per question type over time (e.g. TFNG trend), mistake reasons. Maybe a skill / date-range filter row.
+   - **Load the `dataviz` skill before any chart code** (it is a hard rule in that skill). Phase 6's `web/src/runner/charts.ts` already uses its validated palette, but its colours live on `.cd` (exam page, `web/src/styles/exam.css`); app pages (`theme-app`, `web/src/styles/app.css`) need the `--series-N` vars too. Tooltips on hover; a table view.
+3. **Tests / checks:** vitest for any new server code; a browser check (e.g. `scripts/e2e/feedback.cjs`). To get feedback into the e2e DB, either extend `scripts/e2e/prepare-db.ts` to submit an attempt and write `attempts.feedback` directly, or call the `save_feedback` tool with a token from `scripts/e2e/mcp-connect.mjs`.
+
+**Spec §10 acceptance checks — where they stand:**
+- "Upload this reading homework to my site" from claude.ai — **not yet tried by the owner** (they still have to add the connector; the tools work in tests, MCP Inspector and a live check on the server).
+- Phone → laptop, same answers, clock continues — ✅ (`cross-device.*.cjs`).
+- "Mark my last attempt" → feedback on the results page — tools ✅; real claude.ai run pending the owner; the full rendering is Phase 7.
+- Over-the-limit answer marked wrong with the reason — ✅ (Phase 3).
+- Site and `/mcp` refuse requests without login / token — ✅.
+
+**Owner's open to-dos (remind them briefly when relevant):**
+- Add the connector in claude.ai (README → *The Claude connector*).
+- Change the first password (`./change-password.sh` in `/opt/ielts/stack`). It also disconnects Claude, so reconnect afterwards. Until then `initial-password.txt` is on the box (the production checks above read it there).
+
+**Known limits / ideas after Phase 7:** no "attach a recording to an existing test" yet (only the import box takes files; Claude's listening tests use read-aloud). Claude marks speaking from text only (recordings need the owner's login), so pronunciation is not marked. Nightly backups copy all uploads (fine at 162 GB free).
 
 ## How we work (agreed with the owner)
 - **One branch per phase** (`phase-N-name`). At the end of a phase:
