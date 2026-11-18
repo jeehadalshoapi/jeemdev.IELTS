@@ -9,6 +9,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import helmet from 'helmet';
 import { z } from 'zod';
 import { mountStudyRoutes } from '../study/routes';
+import { Transcriber } from '../files/transcribe';
 import { buildHistory } from '../attempts/history';
 import { deleteRecording, saveRecording, speechFor } from '../attempts/media';
 import { createAttempt, getAttemptView, getResultView, isUuid, listAttemptSummaries, saveAttempt } from '../attempts/service';
@@ -28,6 +29,9 @@ import { csrfProtection, ensureCsrfCookie, FailedLoginLimiter, parseCookies, rat
 export interface AppDeps { database: Database; config: AppConfig; fileStore: FileStore }
 
 export function createApp({ database, config, fileStore }: AppDeps) {
+  // speaking recordings -> text, only when a speech-to-text server is configured (WHISPER_URL)
+  const transcriber = config.whisperUrl ? new Transcriber(database.db, fileStore, config.whisperUrl) : null;
+  if (transcriber) void transcriber.resumePending().catch(e => console.error('[whisper] could not resume', e));
   const db = database.db;
   const app = express();
   app.disable('x-powered-by');
@@ -171,12 +175,16 @@ export function createApp({ database, config, fileStore }: AppDeps) {
   api.post('/attempts/:id/recordings', async (req, res) => {
     const itemId = String(req.query.item ?? '');
     const duration = Number(req.query.duration);
+    const num = (k: string) => { const v = Number(req.query[k]); return req.query[k] !== undefined && Number.isFinite(v) ? v : undefined; };
+    const pauses = num('pauses'), longest = num('longestPause'), speaking = num('speaking');
     const rec = await saveRecording(db, fileStore, {
       attemptId: req.params.id, itemId, mimeType: (req.get('content-type') ?? '').toLowerCase(),
       ...(Number.isFinite(duration) ? { durationSec: duration } : {}),
+      ...(pauses !== undefined ? { pausesOver3s: pauses } : {}), ...(longest !== undefined ? { longestPauseSec: longest } : {}), ...(speaking !== undefined ? { speakingSec: speaking } : {}),
       contentLength: Number(req.get('content-length') ?? 0), stream: req
     });
     console.log(`[recording] ${req.params.id} ${itemId} (${rec.sizeBytes} bytes)`);
+    transcriber?.enqueue(rec.id);
     res.status(201).json(rec);
   });
   api.delete('/attempts/:id/recordings/:itemId', async (req, res) => {

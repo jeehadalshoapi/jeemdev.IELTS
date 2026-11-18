@@ -137,7 +137,10 @@ export async function recordingsOf(db: Db, attemptId: string): Promise<Record<st
   const out: Record<string, RecordingInfo> = {};
   for (const f of rows) {
     if (!f.itemId || out[f.itemId]) continue;
-    out[f.itemId] = { id: f.id, url: `/files/${f.id}`, mimeType: f.mimeType, sizeBytes: f.sizeBytes, durationSec: f.durationSec === null ? null : Math.round(f.durationSec), createdAt: f.createdAt.toISOString() };
+    out[f.itemId] = {
+      id: f.id, url: `/files/${f.id}`, mimeType: f.mimeType, sizeBytes: f.sizeBytes, durationSec: f.durationSec === null ? null : Math.round(f.durationSec), createdAt: f.createdAt.toISOString(),
+      pausesOver3s: f.pausesOver3s, longestPauseSec: f.longestPauseSec, speakingSec: f.speakingSec, transcript: f.transcript, transcriptStatus: f.transcriptStatus
+    };
   }
   return out;
 }

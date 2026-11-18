@@ -86,7 +86,13 @@ export interface AttemptView {
 }
 
 /** a speaking answer recorded in the browser (Phase 6) */
-export interface RecordingInfo { id: string; url: string; mimeType: string; sizeBytes: number; durationSec: number | null; createdAt: string }
+export interface RecordingInfo {
+  id: string; url: string; mimeType: string; sizeBytes: number; durationSec: number | null; createdAt: string;
+  /** Phase 11, measured by the browser while recording (null for older recordings or browsers without Web Audio) */
+  pausesOver3s?: number | null; longestPauseSec?: number | null; speakingSec?: number | null;
+  /** text from the speech-to-text server, when it is switched on */
+  transcript?: string | null; transcriptStatus?: 'pending' | 'done' | 'failed' | null;
+}
 export const RECORDING_MAX_BYTES = 30 * 1024 * 1024;
 
 /** the lines the browser reads aloud for a listening part without a recording */

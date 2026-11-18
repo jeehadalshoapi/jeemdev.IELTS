@@ -108,6 +108,45 @@ const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'a
 
 export interface RecorderHandle { el: HTMLElement; start(): Promise<boolean>; stop(): void; isRecording(): boolean }
 
+interface SilenceStats { pausesOver3s: number; longestPauseSec: number; speakingSec: number }
+
+/**
+ * Listens to the microphone while recording (ielts-site-spec.md item 10): silences between speech longer than 3 s,
+ * the longest silence, and the time spent speaking. The level that counts as silence follows the room's noise.
+ * Silence before the first word and after the last one is not counted.
+ */
+function silenceMeter(stream: MediaStream): { stop(): SilenceStats } | null {
+  const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AC) return null;
+  let ac: AudioContext;
+  try { ac = new AC(); } catch { return null; }
+  const analyser = ac.createAnalyser();
+  analyser.fftSize = 2048;
+  ac.createMediaStreamSource(stream).connect(analyser);
+  const buf = new Float32Array(analyser.fftSize);
+  const STEP = 0.1;
+  let noise = 0.02, spoke = false, silent = 0, pauses = 0, longest = 0, speaking = 0;
+  const timer = setInterval(() => {
+    analyser.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (const v of buf) sum += v * v;
+    const rms = Math.sqrt(sum / buf.length);
+    // the noise floor drops at once to a quieter level and rises only slowly
+    noise = rms < noise ? rms : noise * 0.995 + rms * 0.005;
+    if (rms > Math.max(0.012, noise * 2.5)) {
+      if (spoke && silent > 0) { if (silent > 3) pauses++; longest = Math.max(longest, silent); }
+      spoke = true; silent = 0; speaking += STEP;
+    } else if (spoke) silent += STEP;
+  }, STEP * 1000);
+  return {
+    stop() {
+      clearInterval(timer);
+      void ac.close().catch(() => {});
+      return { pausesOver3s: pauses, longestPauseSec: Math.round(longest * 10) / 10, speakingSec: Math.round(speaking * 10) / 10 };
+    }
+  };
+}
+
 export function recorder(ctx: RenderCtx, itemId: string, o: { maxSec: number; onTranscript?: (text: string) => void; onStop?: () => void }): RecorderHandle {
   const status = el('span', { class: 'rec-status' });
   const interim = el('div', { class: 'rec-interim' });
@@ -123,6 +162,8 @@ export function recorder(ctx: RenderCtx, itemId: string, o: { maxSec: number; on
   let chunks: Blob[] = [];
   let blob: Blob | null = null;
   let t0 = 0, duration = 0;
+  let meter: { stop(): SilenceStats } | null = null;
+  let stats: SilenceStats | null = null;
   let timer: ReturnType<typeof setInterval> | undefined;
 
   function drawPlayer() {
@@ -143,6 +184,7 @@ export function recorder(ctx: RenderCtx, itemId: string, o: { maxSec: number; on
 
   function release() {
     clearInterval(timer);
+    if (meter) { stats = meter.stop(); meter = null; }
     stream?.getTracks().forEach(t => t.stop());
     stream = null;
     if (rec) { rec.onend = null; try { rec.abort(); } catch { /* already stopped */ } rec = null; }
@@ -194,6 +236,8 @@ export function recorder(ctx: RenderCtx, itemId: string, o: { maxSec: number; on
     };
     mr.start(1000);
     t0 = Date.now();
+    stats = null;
+    meter = silenceMeter(stream);
     startBtn.hidden = true; stopBtn.hidden = false; retryBtn.hidden = true;
     box.classList.add('recording');
     const tick = () => {
@@ -215,7 +259,8 @@ export function recorder(ctx: RenderCtx, itemId: string, o: { maxSec: number; on
     retryBtn.hidden = true;
     status.textContent = 'Saving the recording…';
     try {
-      const r = await uploadTo<RecordingInfo>(`/api/attempts/${ctx.attemptId}/recordings?item=${encodeURIComponent(itemId)}&duration=${Math.round(duration)}`, blob, blob.type.split(';')[0] || 'audio/webm',
+      const extra = stats ? `&pauses=${stats.pausesOver3s}&longestPause=${stats.longestPauseSec}&speaking=${stats.speakingSec}` : '';
+      const r = await uploadTo<RecordingInfo>(`/api/attempts/${ctx.attemptId}/recordings?item=${encodeURIComponent(itemId)}&duration=${Math.round(duration)}${extra}`, blob, blob.type.split(';')[0] || 'audio/webm',
         p => { status.textContent = `Saving the recording… ${Math.round(p * 100)}%`; }).done;
       ctx.recordings[itemId] = r;
       blob = null;

@@ -16,7 +16,7 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 | 8 | Lessons, vocabulary bank, mistakes log: tables (migration `0004_study`), 12 MCP tools (`server/src/mcp/study-tools.ts`), pages `#/lessons` `#/lesson/:id` `#/vocab` `#/vocab/:id` `#/mistakes`; `save_feedback` `addToLog` | ✅ merged, **deployed** 2026-11-18 |
 | 9 | Skill `vocabulary` (enum migration `0005`; no band, accuracy; types in `VOCABULARY_TYPES`), `definition_match` / `opposite_match` (matching types), `sentence_rewrite` (a writing type, one open item per sentence; feedback `items` [{itemId, correct, comment, corrected}]), test `vocabularySetId` (on submit → self-test log via `server/src/study/vocab-quiz.ts`, idempotent), "Test me" `POST /api/vocab/sets/:id/quiz`, plan box (state `plan:<groupId>`), study blocks (state `blocks`, runner `trackBlock`) | ✅ merged, **deployed** 2026-11-18 |
 | 10 | `upload_asset` (SVG → `server/src/files/svg.ts` allowlist rebuild; `/files/:id` sends `Content-Security-Policy: … sandbox` for SVG), `map_labelling.map` (features drawn by `renderChart`), plan table `plan_days` (migration `0006`) + `set_plan` / `get_plan` / `update_block` (`server/src/mcp/plan-tools.ts`, `server/src/study/plan.ts`), `GET /api/plan/today?date=` (browser date) → dashboard Today card, `#/plan`, blocks with a testId ticked on submit, review rule every 5th day; read-aloud `partSpeech` (reading time, default 30 s, `readingTimeSec`; `[pause N]` silences; Skip in practice) | ✅ merged, **deployed** 2026-11-18 |
-| 11 | Speaking: pauses > 3 s and words per minute per recording (browser), Whisper decision | in progress |
+| 11 | Recorder `silenceMeter` (Web Audio RMS every 100 ms, adaptive noise floor): `pauses`, `longestPause`, `speaking` sent as upload query params → `files.pauses_over_3s / longest_pause_sec / speaking_sec` (migration `0007`); `get_attempt` recording: + `wordsPerMinute`, `transcript`. `server/src/files/transcribe.ts` (`Transcriber`, one at a time, resumes pending on start) posts to whisper.cpp `POST /inference` (`file`, `response_format=json`) — **only when `WHISPER_URL` is set**. `whisper/Dockerfile` (v1.9.5, base.en, non-root, ffmpeg, `--convert`). | ✅ merged, **deployed** 2026-11-18; **Whisper container NOT started** (see below) |
 
 - `main` is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
 - **The owner's list `ielts-site-spec.md`** (2026-11-18): decisions taken — deploy each phase when done; pictures = `upload_asset` (SVG cleaned on the server and served with a sandbox CSP) **and** maps drawn from data; vocabulary quizzes = a new skill `vocabulary` (no band, accuracy only). Already true before Phase 8: writing boxes have `spellcheck="false"`; exam-mode read-aloud plays once; the speaking live transcript + recording length reach `get_attempt`.
@@ -52,6 +52,19 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 **Owner's open to-dos (remind them briefly when relevant):**
 - Add the connector in claude.ai (README → *The Claude connector*).
 - Change the first password (`./change-password.sh` in `/opt/ielts/stack`). It also disconnects Claude, so reconnect afterwards. Until then `initial-password.txt` is on the box (the production checks above read it there).
+
+**Whisper (Phase 11) — waiting for the owner's OK.** Building and starting a new container on the shared box was refused by the session's permission check (new infrastructure), so it was left for the owner to approve. To switch it on: add to `/opt/ielts/stack/docker-compose.yml` (and to `stack-ielts/` on branch `add-ielts` of the contaboserver repo):
+```yaml
+  whisper:
+    build: { context: ../jeemdev.IELTS/whisper }
+    image: ielts-whisper:latest
+    container_name: ielts-whisper
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 2
+    networks: [internal]   # no ports, not on edge
+```
+and `WHISPER_URL: http://ielts-whisper:8080` under `app.environment`; then `./deploy.sh` (the first build compiles whisper.cpp, a few minutes). The JSON answer shape of `/inference` is not documented; `textOf()` accepts `{text}`, segments or plain text — check `docker logs ielts-app | grep whisper` after the first recording. Existing recordings are transcribed when the app starts.
 
 **Known limits / ideas after Phase 7:** no "attach a recording to an existing test" yet (only the import box takes files; Claude's listening tests use read-aloud). Claude marks speaking from text only (recordings need the owner's login), so pronunciation is not marked. Nightly backups copy all uploads (fine at 162 GB free).
 
@@ -94,7 +107,7 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 ```bash
 npm install
 npm run dev                 # API :3000 (tsx watch) + website :5173 (Vite); dev password "ielts-dev"
-npm test                    # vitest — 151 tests (shared/test, server/test); hookTimeout 90 s because every server file starts its own PGlite
+npm test                    # vitest — 154 tests (shared/test, server/test); hookTimeout 90 s because every server file starts its own PGlite
 npm run typecheck           # tsc for shared, server, web (TypeScript 7 — type-checking only)
 npm run build               # vite build web -> web/dist ; esbuild server -> server/dist
 npm start                   # production build on :3000
