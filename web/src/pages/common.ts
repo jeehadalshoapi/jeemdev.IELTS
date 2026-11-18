@@ -3,8 +3,8 @@ import { api } from '../lib/api';
 import { el } from '../lib/dom';
 import { formatClock } from '../lib/format';
 
-export const SKILL_LABEL: Record<Skill, string> = { reading: 'Reading', listening: 'Listening', writing: 'Writing', speaking: 'Speaking', mixed: 'Full mock' };
-export const SKILL_ICON: Record<Skill, string> = { reading: '📖', listening: '🎧', writing: '✍️', speaking: '🗣', mixed: '🏁' };
+export const SKILL_LABEL: Record<Skill, string> = { reading: 'Reading', listening: 'Listening', writing: 'Writing', speaking: 'Speaking', vocabulary: 'Vocabulary', mixed: 'Full mock' };
+export const SKILL_ICON: Record<Skill, string> = { reading: '📖', listening: '🎧', writing: '✍️', speaking: '🗣', vocabulary: '🔤', mixed: '🏁' };
 export const KIND_LABEL: Record<Kind, string> = { homework: 'Homework', practice: 'Practice', full_mock: 'Full mock' };
 
 export const skillBadge = (s: Skill) => el('span', { class: `badge badge-${s}` }, `${SKILL_ICON[s]} ${SKILL_LABEL[s]}`);
@@ -21,7 +21,7 @@ export function timeText(a: AttemptSummary): string {
 export const TYPE_LABEL: Record<QuestionType, string> = {
   tfng: 'True / False / Not Given', ynng: 'Yes / No / Not Given', mcq_single: 'Multiple choice', mcq_multi: 'Multiple choice (choose 2+)',
   matching_headings: 'Matching headings', matching_information: 'Matching information', matching_features: 'Matching features',
-  matching_sentence_endings: 'Sentence endings', sentence_completion: 'Sentence completion', summary_completion: 'Summary completion',
+  matching_sentence_endings: 'Sentence endings', definition_match: 'Word → meaning', opposite_match: 'Word → opposite', sentence_rewrite: 'Sentence rewrite', sentence_completion: 'Sentence completion', summary_completion: 'Summary completion',
   note_completion: 'Note completion', table_completion: 'Table completion', flowchart_completion: 'Flow-chart completion',
   diagram_labelling: 'Diagram labelling', form_completion: 'Form completion', short_answer: 'Short answer', map_labelling: 'Map labelling',
   writing_task1: 'Writing Task 1', writing_task2: 'Writing Task 2', paragraph: 'Paragraph', speaking_part1: 'Speaking Part 1',

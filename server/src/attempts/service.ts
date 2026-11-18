@@ -3,6 +3,7 @@ import {
   type AnswerValue, type AttemptMode, type AttemptSummary, type AttemptView, type AutoScore, type PublicTest, type ResultView,
   type RecordingInfo, type SaveResult, type TestContent, type Timing
 } from '@ielts/shared';
+import { logVocabQuiz } from '../study/vocab-quiz';
 import { and, desc, eq, isNotNull, ne } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { attempts, files, tests, type AttemptRow, type TestRow } from '../db/schema';
@@ -171,6 +172,17 @@ function logDevice(log: unknown[], deviceId: string | undefined, ua: string | un
  * stored, so two devices never wipe each other's answers. Active time is capped by the real time elapsed.
  */
 export async function saveAttempt(db: Db, attemptId: string, body: unknown, ua?: string, opts: { submit?: boolean } = {}): Promise<SaveResult> {
+  const r = await saveInTransaction(db, attemptId, body, ua, opts);
+  if (opts.submit) await afterSubmit(db, attemptId);
+  return r;
+}
+
+/** follow-ups of a submission that must never fail it (vocabulary quiz -> self-test log) */
+async function afterSubmit(db: Db, attemptId: string): Promise<void> {
+  try { await logVocabQuiz(db, attemptId); } catch (e) { console.error('[vocab] could not log the quiz', e); }
+}
+
+async function saveInTransaction(db: Db, attemptId: string, body: unknown, ua?: string, opts: { submit?: boolean } = {}): Promise<SaveResult> {
   const patch = AttemptPatch.parse(body ?? {});
   return db.transaction(async tx => {
     const { a: current, t } = await loadPair(tx as unknown as Db, attemptId);
@@ -232,6 +244,7 @@ export async function getResultView(db: Db, attemptId: string): Promise<ResultVi
   const { a: raw, t } = await loadPair(db, attemptId);
   let a = await autoSubmitIfExpired(db, raw, t, now);
   if (a.status === 'in_progress') throw new HttpError(409, 'not_submitted', 'Results are available after you submit the attempt.');
+  if (t.content.vocabularySetId) await afterSubmit(db, a.id); // an exam quiz the server submitted when time ran out
   let autoScore = a.autoScore as unknown as AutoScore | null;
   if (!autoScore || autoScore.version !== 1) {
     // attempts submitted before scoring existed: score them now and keep the result

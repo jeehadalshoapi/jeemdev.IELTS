@@ -29,6 +29,14 @@ export const Feedback = z.looseObject({
   /** the main message, markdown allowed */
   summary: Text.trim().min(1, { error: 'must not be empty — write the overall verdict here' }),
   mistakes: z.array(FeedbackMistake).default([]),
+  /** per-item results, e.g. for each sentence of a sentence_rewrite: { itemId, correct, comment } */
+  items: z.array(z.looseObject({
+    itemId: Text.trim().min(1, { error: 'must be the item id, e.g. "r1"' }),
+    correct: z.boolean({ error: 'must be true or false' }).optional(),
+    comment: Text.optional(),
+    /** a better version of this item */
+    corrected: Text.optional()
+  })).optional(),
   /** an improved version of a writing answer */
   correctedText: Text.optional(),
   nextSteps: z.array(Text).default([])

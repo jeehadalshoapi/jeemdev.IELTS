@@ -5,10 +5,12 @@ import { Id, Minutes, NonEmptyText, Option, OptionalText, QuestionNumber, Second
    Question types
    ====================================================================== */
 
-export const MATCHING_TYPES = ['matching_headings', 'matching_information', 'matching_features', 'matching_sentence_endings'] as const;
+export const MATCHING_TYPES = ['matching_headings', 'matching_information', 'matching_features', 'matching_sentence_endings', 'definition_match', 'opposite_match'] as const;
 export const COMPLETION_TYPES = ['sentence_completion', 'summary_completion', 'note_completion', 'table_completion', 'flowchart_completion', 'diagram_labelling', 'form_completion'] as const;
 export const OBJECTIVE_TYPES = ['tfng', 'ynng', 'mcq_single', 'mcq_multi', ...MATCHING_TYPES, ...COMPLETION_TYPES, 'short_answer', 'map_labelling'] as const;
-export const WRITING_TYPES = ['writing_task1', 'writing_task2', 'paragraph'] as const;
+export const WRITING_TYPES = ['writing_task1', 'writing_task2', 'paragraph', 'sentence_rewrite'] as const;
+/** the types a vocabulary quiz may use */
+export const VOCABULARY_TYPES = ['sentence_completion', 'short_answer', 'matching_features', 'mcq_single', 'definition_match', 'opposite_match'] as const;
 export const SPEAKING_TYPES = ['speaking_part1', 'speaking_part2', 'speaking_part3'] as const;
 export const QUESTION_TYPES = [...OBJECTIVE_TYPES, ...WRITING_TYPES, ...SPEAKING_TYPES] as const;
 
@@ -79,6 +81,10 @@ export const MatchingHeadingsGroup = matchingGroup('matching_headings');
 export const MatchingInformationGroup = matchingGroup('matching_information');
 export const MatchingFeaturesGroup = matchingGroup('matching_features');
 export const MatchingSentenceEndingsGroup = matchingGroup('matching_sentence_endings');
+/** vocabulary: each question is a word, the options are meanings */
+export const DefinitionMatchGroup = matchingGroup('definition_match');
+/** vocabulary: each question is a word, the options are opposites (trains the near-opposite trap) */
+export const OppositeMatchGroup = matchingGroup('opposite_match');
 /** listening map / plan labelling: like matching, but the map image is required */
 export const MapLabellingGroup = z.strictObject({ ...groupBase, type: z.literal('map_labelling'), imageUrl: Url, ...matchingFields });
 
@@ -213,6 +219,21 @@ export const ParagraphGroup = z.strictObject({
   timeLimitMin: Minutes.optional()
 });
 
+/** repair task: one answer box per sentence, each marked by Claude (answerKey.<itemId>.modelAnswer shown afterwards) */
+export const SentenceRewriteGroup = z.strictObject({
+  id: Id,
+  type: z.literal('sentence_rewrite'),
+  instructions: OptionalText,
+  title: OptionalText,
+  items: z.array(z.strictObject({
+    id: Id,
+    /** shown as the sentence number (not part of the auto-scored numbering) */
+    number: QuestionNumber.optional(),
+    /** the sentence to rewrite or correct */
+    text: NonEmptyText
+  })).min(1, { error: 'needs at least one sentence' }).max(40, { error: 'can have at most 40 sentences' })
+});
+
 /* ======================================================================
    Speaking (answers: audio recording and/or typed notes)
    ====================================================================== */
@@ -248,10 +269,10 @@ export const SpeakingPart3Group = z.strictObject({
 
 export const QuestionGroup = z.discriminatedUnion('type', [
   TfngGroup, YnngGroup, McqSingleGroup, McqMultiGroup,
-  MatchingHeadingsGroup, MatchingInformationGroup, MatchingFeaturesGroup, MatchingSentenceEndingsGroup, MapLabellingGroup,
+  MatchingHeadingsGroup, MatchingInformationGroup, MatchingFeaturesGroup, MatchingSentenceEndingsGroup, DefinitionMatchGroup, OppositeMatchGroup, MapLabellingGroup,
   SentenceCompletionGroup, SummaryCompletionGroup, NoteCompletionGroup, TableCompletionGroup, FlowchartCompletionGroup, DiagramLabellingGroup, FormCompletionGroup,
   ShortAnswerGroup,
-  WritingTask1Group, WritingTask2Group, ParagraphGroup,
+  WritingTask1Group, WritingTask2Group, ParagraphGroup, SentenceRewriteGroup,
   SpeakingPart1Group, SpeakingPart2Group, SpeakingPart3Group
 ], {
   error: iss => {

@@ -152,10 +152,19 @@ function flashcards(all: VocabWordRow[], save: (w: VocabWordRow, p: { status?: W
 
 function testView(v: VocabSetView): HTMLElement {
   return el('div', null,
-    el('section', { class: 'card' }, el('h3', { class: 'card-title' }, 'Quizzes for this set'),
-      v.tests.length
-        ? el('div', { class: 'row-actions' }, v.tests.map(t => el('a', { class: 'btn', href: `#/test/${t.id}` }, `▶ ${t.title}`)))
-        : el('p', { class: 'muted' }, 'No quiz yet. Ask Claude for a quiz on this set.')),
+    el('section', { class: 'card' }, el('h3', { class: 'card-title' }, 'Test me'),
+      el('p', { class: 'muted' }, 'A quick quiz made from this set: word → meaning and word → opposite, weak words first. The score goes into the self-test log below.'),
+      el('button', {
+        type: 'button', class: 'btn btn-primary', onclick: async (e: Event) => {
+          const b = e.currentTarget as HTMLButtonElement;
+          b.disabled = true;
+          try {
+            const r = await api<{ testId: string }>(`/vocab/sets/${encodeURIComponent(v.set.id)}/quiz`, { method: 'POST', body: {} });
+            location.hash = `#/test/${r.testId}`;
+          } catch (err) { toast((err as Error).message, 'err'); b.disabled = false; }
+        }
+      }, '▶ Make a quiz now'),
+      v.tests.length ? el('div', { class: 'quiz-list' }, el('small', { class: 'muted' }, 'Quizzes on this set:'), el('div', { class: 'row-actions' }, v.tests.map(t => el('a', { class: 'btn btn-sm', href: `#/test/${t.id}` }, t.title)))) : null),
     el('section', { class: 'card' }, el('h3', { class: 'card-title' }, 'Self-test log'),
       v.results.length
         ? el('div', { class: 'table-wrap' }, el('table', { class: 'table compact' },

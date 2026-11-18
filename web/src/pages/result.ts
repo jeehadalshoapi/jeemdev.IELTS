@@ -20,8 +20,10 @@ export async function mountResult(root: HTMLElement, attemptId: string): Promise
   const bandNote = s.bandInfo
     ? s.bandInfo.scaled ? `Estimated band · based on ${s.bandInfo.basedOn} question${s.bandInfo.basedOn === 1 ? '' : 's'} (≈ ${s.bandInfo.scaledRaw}/40)` : 'Estimated band'
     : r.test.skill === 'writing' || r.test.skill === 'speaking' ? 'Band from Claude’s marking' : 'Estimated band';
+  // a vocabulary quiz has no band: the circle shows the share of right answers
+  const vocab = r.test.skill === 'vocabulary';
   page.appendChild(el('section', { class: 'card hero' },
-    el('div', { class: 'hero-band' }, el('div', { class: 'band-num' }, fmtBandValue(s.band ?? feedbackBand(r))), el('div', { class: 'band-label' }, bandNote)),
+    el('div', { class: 'hero-band' }, el('div', { class: 'band-num' }, vocab ? `${pct}%` : fmtBandValue(s.band ?? feedbackBand(r))), el('div', { class: 'band-label' }, vocab ? 'Right answers · vocabulary quiz' : bandNote)),
     el('div', { class: 'hero-info' },
       el('div', { class: 'badges' }, skillBadge(r.test.skill), el('span', { class: 'badge' }, r.attempt.mode === 'exam' ? 'Exam mode' : 'Practice mode')),
       el('h2', null, r.test.title),
@@ -31,6 +33,7 @@ export async function mountResult(root: HTMLElement, attemptId: string): Promise
         el('div', null, el('small', null, 'Time used'), el('b', null, fmtDuration(r.attempt.timeUsedSec))),
         el('div', null, el('small', null, 'Submitted'), el('b', null, fmtDate(r.attempt.submittedAt)))),
       r.attempt.autoSubmitted ? el('p', { class: 'pill-warn inline-note' }, 'Time ran out, so the answers saved at that moment were submitted.') : null,
+      r.test.content.vocabularySetId ? el('p', { class: 'inline-note muted' }, 'Saved in the self-test log of ', el('a', { href: `#/vocab/${encodeURIComponent(r.test.content.vocabularySetId)}` }, 'this vocabulary set'), '; missed words are marked weak.') : null,
       el('div', { class: 'row-actions' },
         el('a', { class: 'btn btn-primary', href: `#/review/${r.attempt.id}` }, '🔍 Review in the test'),
         el('a', { class: 'btn', href: `#/test/${r.test.id}` }, '↻ Take again')))));
@@ -80,7 +83,13 @@ export async function mountResult(root: HTMLElement, attemptId: string): Promise
   }
 
   /* ---------- writing / speaking ---------- */
+  /* ---------- sentence rewrite: one table per task ---------- */
+  const rewriteOf = new Map<string, Extract<QuestionGroup, { type: 'sentence_rewrite' }>>();
+  for (const p of parts) for (const g of p.questionGroups) if (g.type === 'sentence_rewrite') for (const it of g.items) rewriteOf.set(it.id, g);
+  for (const g of new Set(rewriteOf.values())) page.appendChild(rewriteCard(r, g, fb));
+
   for (const item of s.openItems) {
+    if (rewriteOf.has(item.id)) continue;
     const part = parts.find(p => p.id === item.partId);
     const g = part?.questionGroups.find(x => x.id === item.id) ?? part?.questionGroups.find(x => 'questions' in x && (x.questions as Array<{ id: string }>).some(q => q.id === item.id));
     const v = r.attempt.answers[item.id];
@@ -105,6 +114,9 @@ export async function mountResult(root: HTMLElement, attemptId: string): Promise
       r.modelAnswers[item.id] ? el('details', { class: 'details' }, el('summary', null, 'Model answer'), el('div', { class: 'essay', html: mdBlock(r.modelAnswers[item.id]) })) : null,
       r.feedback ? null : el('p', { class: 'muted' }, 'Claude marks writing and speaking: in claude.ai, ask “Mark my last attempt”.')));
   }
+
+  const blocks = studyBlocks(r);
+  if (blocks) page.appendChild(blocks);
 
   if (!r.feedback) {
     page.appendChild(el('section', { class: 'card feedback-card' },
@@ -152,9 +164,11 @@ function speakingQuestion(g: QuestionGroup, itemId: string): HTMLElement | null 
 function extrasFor(r: ResultView, itemId: string): HTMLElement | null {
   const rec = r.recordings?.[itemId];
   const prep = r.attempt.state[`prep:${itemId}`];
+  const plan = r.attempt.state[`plan:${itemId}`];
   const drill = r.attempt.state[`drill:${itemId}`] as { planSec?: number; introSec?: number } | undefined;
   const bits: HTMLElement[] = [];
   if (rec) bits.push(el('div', { class: 'rec-result' }, el('span', null, '🎙 Your recording'), el('audio', { controls: true, preload: 'none', src: rec.url }), rec.durationSec ? el('span', { class: 'muted' }, fmtDuration(rec.durationSec)) : null));
+  if (typeof plan === 'string' && plan.trim()) bits.push(el('details', { class: 'details' }, el('summary', null, 'Your plan'), el('div', { class: 'essay' }, plan)));
   if (typeof prep === 'string' && prep.trim()) bits.push(el('details', { class: 'details' }, el('summary', null, 'Your preparation notes'), el('div', { class: 'essay' }, prep)));
   if (drill && (drill.planSec || drill.introSec)) bits.push(el('p', { class: 'muted' }, `Time: plan ${fmtDuration(drill.planSec ?? 0)} · introduction ${fmtDuration(drill.introSec ?? 0)}`));
   return bits.length ? el('div', { class: 'item-extras' }, bits) : null;
@@ -313,4 +327,48 @@ function compareView(original: string, corrected: string): HTMLElement {
     el('div', { class: 'compare' },
       side('Your answer', d.before.map(p => (p.changed ? el('del', { class: 'diff-del' }, p.text) : p.text)), 'cmp-yours'),
       side('Corrected by Claude', d.after.map(p => (p.changed ? el('ins', { class: 'diff-ins' }, p.text) : p.text)), 'cmp-fixed')));
+}
+
+/** a sentence-rewrite task: the sentence, your version, the model, and Claude's verdict per sentence (feedback "items") */
+function rewriteCard(r: ResultView, g: Extract<QuestionGroup, { type: 'sentence_rewrite' }>, fb: RoutedFeedback | null): HTMLElement {
+  const verdicts = new Map((Array.isArray(r.feedback?.items) ? r.feedback.items : []).map(v => [v.itemId, v]));
+  const right = g.items.filter(it => verdicts.get(it.id)?.correct === true).length;
+  const marked = g.items.filter(it => typeof verdicts.get(it.id)?.correct === 'boolean').length;
+  return el('section', { class: 'card item-card', id: `item-${g.items[0]?.id ?? g.id}` },
+    el('div', { class: 'card-head' },
+      el('h3', { class: 'card-title' }, g.title ?? TYPE_LABEL.sentence_rewrite),
+      marked ? el('span', { class: right === marked ? 'pill-ok' : 'pill-warn' }, `${right} / ${marked} right`) : el('span', { class: 'muted' }, 'Waiting for Claude’s marking')),
+    g.instructions ? el('div', { class: 'muted', html: mdBlock(g.instructions) }) : null,
+    el('div', { class: 'table-wrap' }, el('table', { class: 'table rewrite-table' },
+      el('thead', null, el('tr', null, ['#', 'Sentence', 'Your version', 'Model', 'Claude'].map(h => el('th', null, h)))),
+      el('tbody', null, g.items.map((it, i) => {
+        const v = verdicts.get(it.id);
+        const ans = r.attempt.answers[it.id];
+        const notes = fb?.byItem.get(it.id) ?? [];
+        return el('tr', { id: `item-${it.id}`, class: v?.correct === true ? 'ok' : v?.correct === false ? 'bad' : '' },
+          el('td', null, el('b', null, String(it.number ?? i + 1))),
+          el('td', { class: 'rw-src', html: inlineMd(it.text) }),
+          el('td', null, typeof ans === 'string' && ans.trim() ? el('span', { class: 'rw-yours' }, ans) : el('span', { class: 'muted' }, '— no answer —')),
+          el('td', null, r.modelAnswers[it.id] ? el('span', { html: inlineMd(r.modelAnswers[it.id]!) }) : el('span', { class: 'muted' }, '–')),
+          el('td', { class: 'mark-cell' },
+            v && typeof v.correct === 'boolean' ? el('span', { class: `reason ${v.correct ? 'reason-correct' : 'reason-wrong'}` }, v.correct ? '✓ Right' : '✗ Not yet') : null,
+            typeof v?.comment === 'string' && v.comment ? el('div', { class: 'explanation', html: inlineMd(v.comment) }) : null,
+            typeof v?.corrected === 'string' && v.corrected ? el('div', { class: 'rw-fixed' }, '→ ', v.corrected) : null,
+            notes.map(m => el('div', { class: 'claude-note' }, el('span', { html: inlineMd(m.explanation) })))));
+      })))));
+}
+
+/** the sittings this attempt took (the runner's "blocks" log) */
+function studyBlocks(r: ResultView): HTMLElement | null {
+  const list = Array.isArray(r.attempt.state.blocks) ? (r.attempt.state.blocks as Array<{ start: string; end: string; sec: number; words: number }>).filter(b => b && typeof b.start === 'string' && b.sec >= 30) : [];
+  if (!list.length) return null;
+  const total = list.reduce((n, b) => n + b.sec, 0);
+  return el('details', { class: 'card details blocks-card' },
+    el('summary', null, `Study blocks: ${list.length} sitting${list.length === 1 ? '' : 's'}, ${fmtDuration(total)} of work`),
+    el('div', { class: 'table-wrap' }, el('table', { class: 'table compact' },
+      el('thead', null, el('tr', null, ['Started', 'Worked', 'Words by the end'].map(h => el('th', null, h)))),
+      el('tbody', null, list.map((b, i) => el('tr', null,
+        el('td', { class: 'nowrap' }, fmtDate(b.start)),
+        el('td', { class: 'nowrap' }, fmtDuration(b.sec)),
+        el('td', null, `${b.words}${i > 0 && b.words - list[i - 1]!.words > 0 ? ` (+${b.words - list[i - 1]!.words})` : ''}`)))))));
 }

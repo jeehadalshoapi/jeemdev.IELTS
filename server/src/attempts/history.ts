@@ -28,7 +28,7 @@ export async function buildHistory(db: Db, opts: { skill?: SectionSkill; since?:
   // oldest first for the trend lines
   const chronological = [...rows].reverse();
   const bySkill: HistoryResponse['bySkill'] = {};
-  const add = (skill: 'reading' | 'listening' | 'writing' | 'speaking', p: SkillHistory['points'][number]) => {
+  const add = (skill: SectionSkill, p: SkillHistory['points'][number]) => {
     if (opts.skill && skill !== opts.skill) return;
     const h = bySkill[skill] ??= { attempts: 0, latestBand: null, bestBand: null, averageBand: null, points: [] };
     h.attempts++;
@@ -53,7 +53,7 @@ export async function buildHistory(db: Db, opts: { skill?: SectionSkill; since?:
     }
     if (!s) continue;
     for (const [sec, v] of Object.entries(s.sections)) {
-      if (v) add(sec as 'reading' | 'listening', { attemptId: a.id, date, band: v.band, raw: v.raw, total: v.total, title: t.title });
+      if (v) add(sec as SectionSkill, { attemptId: a.id, date, band: v.band, raw: v.raw, total: v.total, title: t.title });
     }
     // in a full mock filtered to one skill, only that section's questions count
     const partSkill = new Map(t.content.parts.map(p => [p.id, p.skill ?? t.skill]));

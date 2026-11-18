@@ -470,3 +470,16 @@ a.cd-logo { text-decoration: none; }
 .tts-status { font-size: .9em; color: var(--ex-muted); }
 .tts-controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .tts-controls select[hidden] { display: none; }
+
+/* Phase 9: plan box above a full Task 2 essay */
+.plan-box { margin: 0 0 10px; }
+.plan-box summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.w-plan { min-height: 0; margin-top: 6px; }
+.rw-answers { display: flex; flex-direction: column; gap: 14px; }
+.rw-item .rw-orig { margin-bottom: 4px; }
+.rw-list { padding-left: 22px; }
+.rw-list li { margin-bottom: 6px; }
+.rw-item .w-answer { height: auto; }
+.rw-item .w-small .w-text, .rw-item .w-text { min-height: 72px; height: 84px; resize: vertical; }
+.plan-box .w-plan { flex: none; min-height: 96px; height: 120px; width: 100%; resize: vertical; }
+.pane-right:has(.plan-box) > div { display: flex; flex-direction: column; height: 100%; }

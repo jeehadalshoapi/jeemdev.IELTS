@@ -141,6 +141,18 @@ await addMistakes(d.db, [
   { category: 'reading_trap', wrong: 'most', correct: 'many', rule: 'many ≠ most' }
 ]);
 
-writeFileSync('.data/e2e/ids.json', JSON.stringify({ sample: SAMPLE, listening: listening.id, writing: writing.id, gallery: gallery.id, drill: drill.id, speaking: speaking.id, essay: essayTest.id, readingMarked, writingMarked }));
+// Phase 9: a writing homework with a full Task 2 (plan box) and a sentence-rewrite task
+const writing9 = await createTest(d.db, {
+  title: 'Writing homework (e2e Phase 9)', skill: 'writing', kind: 'homework',
+  parts: [
+    { id: 'w9a', title: 'Task 2', questionGroups: [{ id: 'essay9', type: 'writing_task2', prompt: 'Some people think cities should spend money on parks rather than on roads. To what extent do you agree or disagree?' }] },
+    { id: 'w9b', title: 'Repair', questionGroups: [{ id: 'rw9', type: 'sentence_rewrite', instructions: 'Rewrite each sentence at band 7+.', items: [
+      { id: 'r1', number: 1, text: 'Many graduates can not find job because of leak of experience.' },
+      { id: 'r2', number: 2, text: 'Government should to invest more money for public transport.' }] }] }
+  ],
+  answerKey: { r1: { modelAnswer: 'Many graduates cannot find a job because they lack experience.' }, r2: { modelAnswer: 'The government should invest more in public transport.' } }
+}, { source: 'claude' });
+
+writeFileSync('.data/e2e/ids.json', JSON.stringify({ sample: SAMPLE, listening: listening.id, writing: writing.id, gallery: gallery.id, drill: drill.id, speaking: speaking.id, essay: essayTest.id, readingMarked, writingMarked, writing9: writing9.id }));
 await d.close();
 console.log('Ready. Start the server with:  PGLITE_DIR=.data/e2e/pglite UPLOAD_DIR=.data/e2e/uploads node server/dist/main.js');

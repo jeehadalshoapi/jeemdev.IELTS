@@ -200,7 +200,7 @@ export interface TypeHistory {
 
 export interface HistoryResponse {
   attempts: AttemptSummary[];
-  bySkill: Partial<Record<'reading' | 'listening' | 'writing' | 'speaking', SkillHistory>>;
+  bySkill: Partial<Record<SectionSkill, SkillHistory>>;
   byType: TypeHistory[];
   reasons: Record<MarkReason, number>;
   /** the categories of the mistakes in Claude's feedback ("spelling", "grammar" …), most frequent first */

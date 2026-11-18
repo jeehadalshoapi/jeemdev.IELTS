@@ -92,7 +92,7 @@ function content(h: HistoryResponse, f: Filter, reset: () => void): HTMLElement[
 
   /* ---------- bands over time: one small chart per skill, all on the same band scale ---------- */
   const skills = SECTION_SKILLS.filter(s => h.bySkill[s]);
-  const bands = skills.flatMap(s => h.bySkill[s]!.points.map(p => p.band)).filter((b): b is number => b !== null);
+  const bands = skills.filter(s => s !== 'vocabulary').flatMap(s => h.bySkill[s]!.points.map(p => p.band)).filter((b): b is number => b !== null);
   const lo = Math.max(0, Math.min(4, Math.floor(Math.min(9, ...bands))));
   const step = 9 - lo > 6 ? 2 : 1;
   const bandTicks: number[] = [];
@@ -165,6 +165,7 @@ const trendText = (t: number | null) => t === null
   : el('span', { class: t > 0 ? 'trend up' : t < 0 ? 'trend down' : 'trend' }, `${t > 0 ? '▲ +' : t < 0 ? '▼ ' : '■ '}${t} pts`);
 
 function skillCard(skill: SectionSkill, s: SkillHistory, scale: { yMin: number; yMax: number; yTicks: number[] }): HTMLElement {
+  if (skill === 'vocabulary') return vocabCard(s);
   const marked = s.points.filter((p): p is typeof p & { band: number } => p.band !== null);
   const shown = marked.slice(-MAX_POINTS);
   const waiting = s.points.length - marked.length;
@@ -206,4 +207,23 @@ function typeCard(t: TypeHistory): HTMLElement {
       el('span', { class: 'type-acc' }, `${pct(t.raw, t.total)}%`)),
     el('div', { class: 'type-sub muted' }, `${t.raw} / ${t.total} correct · ${t.points.length} attempt${t.points.length === 1 ? '' : 's'} · `, trendText(t.trend)),
     lineChart({ points, yMin: 0, yMax: 100, yTicks: [100, 50, 0], yFormat: v => `${v}%`, label: `${name} accuracy over time`, height: 120 }));
+}
+
+/** vocabulary quizzes have no band: accuracy over time instead */
+function vocabCard(s: SkillHistory): HTMLElement {
+  const pts = s.points.filter(p => p.total > 0).slice(-MAX_POINTS);
+  const acc = pts.map(p => pct(p.raw, p.total));
+  const last5 = acc.slice(-5);
+  const points: LinePoint[] = pts.map(p => ({
+    y: pct(p.raw, p.total), x: fmtShortDate(p.date), href: `#/result/${p.attemptId}`,
+    tip: { value: `${pct(p.raw, p.total)}%`, head: fmtDate(p.date), sub: `${p.title} · ${p.raw}/${p.total}` }
+  }));
+  return el('article', { class: 'card skill-card mod-vocabulary' },
+    el('div', { class: 'card-head' }, skillBadge('vocabulary'), el('span', { class: 'muted' }, `${s.attempts} quiz${s.attempts === 1 ? '' : 'zes'}`)),
+    el('div', { class: 'skill-stats' },
+      el('div', null, el('small', null, 'Latest'), el('b', null, acc.length ? `${acc.at(-1)}%` : '–')),
+      el('div', null, el('small', null, 'Average (last 5)'), el('b', null, last5.length ? `${Math.round(last5.reduce((a, b) => a + b, 0) / last5.length)}%` : '–')),
+      el('div', null, el('small', null, 'Best'), el('b', null, acc.length ? `${Math.max(...acc)}%` : '–'))),
+    points.length ? lineChart({ points, yMin: 0, yMax: 100, yTicks: [100, 50, 0], yFormat: v => `${v}%`, label: 'Vocabulary quiz accuracy over time' }) : el('p', { class: 'muted chart-empty' }, 'No quizzes yet.'),
+    el('p', { class: 'muted chart-note' }, 'Vocabulary quizzes have no band: this is the share of right answers.'));
 }

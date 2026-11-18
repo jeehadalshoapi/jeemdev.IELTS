@@ -3,7 +3,7 @@ import { describeWordLimit, expandOptional, fitsWordLimit, letter, countWords } 
 import { templatePlaceholders } from './document';
 import type { WordLimit } from './schema/common';
 import type { ObjectiveGroup, QuestionGroup } from './schema/groups';
-import { isCompletionType, isMatchingType, isObjectiveType, isSpeakingType, isWritingType, TFNG_CHOICES, YNNG_CHOICES } from './schema/groups';
+import { isCompletionType, isMatchingType, isObjectiveType, isSpeakingType, isWritingType, TFNG_CHOICES, VOCABULARY_TYPES, YNNG_CHOICES } from './schema/groups';
 import type { SectionSkill, TestDocument } from './schema/test';
 import { TestDocument as TestDocumentSchema } from './schema/test';
 
@@ -128,7 +128,8 @@ const allowedInSection: Record<SectionSkill, (t: string) => boolean> = {
   reading: isObjectiveType,
   listening: isObjectiveType,
   writing: isWritingType,
-  speaking: isSpeakingType
+  speaking: isSpeakingType,
+  vocabulary: t => (VOCABULARY_TYPES as readonly string[]).includes(t)
 };
 
 const numbersLabel = (n: number[]) => (n.length > 1 ? `questions ${n.join(' and ')}` : `question ${n[0]}`);
@@ -159,7 +160,7 @@ function crossCheck(doc: TestDocument): { errors: Issue[]; warnings: Issue[] } {
     let section: SectionSkill | undefined;
     if (doc.skill === 'mixed') {
       section = part.skill;
-      if (!section) err(`${pp}.skill`, 'is required when the test skill is "mixed" — set it to reading, listening, writing or speaking');
+      if (!section) err(`${pp}.skill`, 'is required when the test skill is "mixed" — set it to reading, listening, writing, speaking or vocabulary');
     } else {
       section = doc.skill;
       if (part.skill && part.skill !== doc.skill) err(`${pp}.skill`, `is "${part.skill}" but the test skill is "${doc.skill}" — remove it, or make the test skill "mixed"`);
@@ -191,9 +192,10 @@ function crossCheck(doc: TestDocument): { errors: Issue[]; warnings: Issue[] } {
       const gp = `${pp}.questionGroups[${gi}]`;
       useId(g.id, `${gp}.id`);
       if (section && !allowedInSection[section](g.type)) {
-        err(`${gp}.type`, `"${g.type}" cannot be used in a ${section} part`);
+        err(`${gp}.type`, section === 'vocabulary' ? `"${g.type}" cannot be used in a vocabulary quiz — use ${VOCABULARY_TYPES.join(', ')}` : `"${g.type}" cannot be used in a ${section} part`);
       }
       if (isObjectiveType(g.type)) checkObjectiveGroup(g as ObjectiveGroup, gp);
+      else if (g.type === 'sentence_rewrite') g.items.forEach((it, ii) => { useId(it.id, `${gp}.items[${ii}].id`); openItems.add(it.id); });
       else if (isWritingType(g.type)) { openItems.add(g.id); checkWriting(g, gp); }
       else if (g.type === 'speaking_part2') {
         openItems.add(g.id);

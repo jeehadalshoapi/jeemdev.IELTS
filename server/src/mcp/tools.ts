@@ -51,7 +51,7 @@ export function applyChanges(doc: TestDocument, changes: Record<string, unknown>
 
 const FORMAT_RULES = [
   'A test is one JSON object: { title, skill, kind, variant?, timeLimitMin?, instructions?, dueDate?, parts: [...], answerKey: {...} }.',
-  'skill: reading | listening | writing | speaking | mixed (a full mock: then every part needs "skill"). kind: homework | practice | full_mock. variant: academic (default) | general_training. dueDate: "YYYY-MM-DD". timeLimitMin: whole-test countdown; leave it out for no clock.',
+  'skill: reading | listening | writing | speaking | vocabulary | mixed (a full mock: then every part needs "skill"). kind: homework | practice | full_mock. variant: academic (default) | general_training. dueDate: "YYYY-MM-DD". timeLimitMin: whole-test countdown; leave it out for no clock.',
   'A part: { id, title, instructions?, timeLimitMin?, passage? (reading), transcript?/audioUrl? (listening), questionGroups: [...] }.',
   'Ids start with a letter and use letters, digits, "-" or "_"; every id (parts, groups, questions) is unique in the whole test. Question numbers run 1, 2, 3… through the whole test in order; mcq_multi questions take one number per correct option: "numbers": [14, 15].',
   'Reading parts need passage: { title?, subtitle?, paragraphs: [{ label?: "A", heading?, text }] }. **bold** and *italic* work in all texts.',
@@ -62,6 +62,8 @@ const FORMAT_RULES = [
   'wordLimit: { maxWords, allowNumber } — an answer over the limit is marked wrong, like the real test, so every key answer must fit the limit. Say the limit in the instructions too (e.g. "NO MORE THAN TWO WORDS AND/OR A NUMBER").',
   'Completion groups: either questions with "text" containing ______ where the gap is, or a "template" with {{questionId}} at each gap. Template lines: "# heading", "- bullet", "a | b | c" table rows (first row = header), "> flow-chart box".',
   'Writing (writing_task1, writing_task2, paragraph) and speaking groups are marked by you later: no "accept"; put "modelAnswer" / "notes" in answerKey under the writing group id or the speaking question id. Task 1 charts are data (chartType line | bar | pie | table | process | map) drawn by the site.',
+  'Vocabulary quizzes: skill "vocabulary" (or a part with "skill": "vocabulary" in a mixed test). No passage, no band (accuracy only). Allowed types: sentence_completion, short_answer, matching_features, mcq_single, definition_match (word -> meaning), opposite_match (word -> opposite). Add "vocabularySetId": "set-3" to the test to write the score into the self-test log and mark the missed words "weak" (put the word itself as the question text).',
+  'sentence_rewrite (writing): { id, type: "sentence_rewrite", instructions, items: [{ id: "r1", number: 1, text: "sentence to repair" }] } gives one answer box per sentence. Mark each with save_feedback "items": [{ "itemId": "r1", "correct": true|false, "comment": "...", "corrected"?: "..." }]. A full Task 2 essay (mode "essay") has an optional plan box above it; the plan comes back in get_attempt as "plan".',
   'If the test is not valid, nothing is saved and every problem is listed with its path (e.g. parts[0].questionGroups[1].questions[2].number). Fix all of them and call create_test again.'
 ];
 

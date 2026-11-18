@@ -1,0 +1,1 @@
+ALTER TYPE "public"."test_skill" ADD VALUE 'vocabulary' BEFORE 'mixed';

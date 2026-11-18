@@ -37,6 +37,8 @@ export function listItems(parts: readonly Part[]): AnswerItem[] {
           const numbers = q.numbers ?? (q.number !== undefined ? [q.number] : []);
           items.push({ ...base, id: q.id, kind: 'objective', numbers, marks: numbers.length });
         }
+      } else if (g.type === 'sentence_rewrite') {
+        for (const it of g.items) items.push({ ...base, id: it.id, kind: 'writing', numbers: [], marks: 0 });
       } else if (isWritingType(g.type)) {
         items.push({ ...base, id: g.id, kind: 'writing', numbers: [], marks: 0 });
       } else if (isSpeakingType(g.type)) {
@@ -79,12 +81,13 @@ export function totalMarks(parts: readonly Part[]): number {
 
 /** split a validated document into the database columns */
 export function splitDocument(doc: TestDocument): { meta: TestMeta; content: TestContent; answerKey: AnswerKey } {
-  const { title, skill, kind, instructions, dueDate, variant, timeLimitMin, parts, answerKey } = doc;
+  const { title, skill, kind, instructions, dueDate, variant, timeLimitMin, vocabularySetId, parts, answerKey } = doc;
   const meta: TestMeta = { title, skill, kind };
   if (instructions !== undefined) meta.instructions = instructions;
   if (dueDate !== undefined) meta.dueDate = dueDate;
   const content: TestContent = { variant, parts };
   if (timeLimitMin !== undefined) content.timeLimitMin = timeLimitMin;
+  if (vocabularySetId !== undefined) content.vocabularySetId = vocabularySetId;
   return { meta, content, answerKey };
 }
 
@@ -92,6 +95,7 @@ export function splitDocument(doc: TestDocument): { meta: TestMeta; content: Tes
 export function joinDocument(meta: TestMeta, content: TestContent, answerKey: AnswerKey): TestDocument {
   const doc: TestDocument = { title: meta.title, skill: meta.skill, kind: meta.kind, variant: content.variant, parts: content.parts, answerKey };
   if (content.timeLimitMin !== undefined) doc.timeLimitMin = content.timeLimitMin;
+  if (content.vocabularySetId !== undefined) doc.vocabularySetId = content.vocabularySetId;
   if (meta.instructions) doc.instructions = meta.instructions;
   if (meta.dueDate) doc.dueDate = meta.dueDate;
   return doc;
