@@ -492,3 +492,8 @@ select.input { padding-right: 28px; }
   .tests-table th, .tests-table td { padding: 10px; }
   .import-issues, .import-saved-actions { margin-left: 0; }
 }
+
+/* ===== Phase 6 on the results page ===== */
+.item-extras { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.rec-result { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 600; }
+.rec-result audio { height: 36px; max-width: 100%; }

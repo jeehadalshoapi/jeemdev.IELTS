@@ -101,7 +101,7 @@ TRANSCRIPT:
 optional — shown only after you finish
 ```
 - If you have **one audio file for the whole test**, write `AUDIO:` only in Part 1. The recording plays on through the later parts.
-- A part with no recording (and none earlier) needs a `TRANSCRIPT:`. The browser will read it aloud (Phase 6).
+- A part with no recording (and none earlier) needs a `TRANSCRIPT:`. The browser reads it aloud, so write one turn per line with the speaker first, e.g. `Receptionist: Good morning.` Each speaker gets a different voice; `Narrator:` uses the main voice. Text in `[square brackets]` is not read. In exam mode each part plays once.
 
 **Writing**
 ```

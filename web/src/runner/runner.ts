@@ -35,7 +35,8 @@ export async function mountReview(root: HTMLElement, attemptId: string): Promise
   const view: AttemptView = {
     attempt: { id: r.attempt.id, testId: r.attempt.testId, status: r.attempt.status, mode: r.attempt.mode, answers: r.attempt.answers, state: r.attempt.state, startedAt: r.attempt.startedAt, submittedAt: r.attempt.submittedAt, autoSubmitted: r.attempt.autoSubmitted },
     test: r.test,
-    timing: { limitSec: null, remainingSec: null, deadline: null, serverNow: new Date().toISOString(), spentSec: r.attempt.timeSpentSec }
+    timing: { limitSec: null, remainingSec: null, deadline: null, serverNow: new Date().toISOString(), spentSec: r.attempt.timeSpentSec },
+    recordings: r.recordings ?? {}
   };
   return new Runner(root, view, r).handle();
 }
@@ -66,6 +67,9 @@ class Runner {
   private bannerTimer: ReturnType<typeof setTimeout> | undefined;
   private els!: { timer: HTMLButtonElement; sync: HTMLElement; partBar: HTMLElement; banner: HTMLElement; nav: HTMLElement; audioBar: HTMLElement | null };
   private readonly listeners: Array<[EventTarget, string, EventListener]> = [];
+  private readonly tickers: Array<(running: boolean) => void> = [];
+  private readonly cleanups: Array<() => void> = [];
+  private readonly state: Record<string, unknown>;
 
   private readonly results = new Map<number, QuestionResult>();
 
@@ -84,6 +88,7 @@ class Runner {
     }
     this.slots.sort((a, b) => a.num - b.num);
     const st = view.attempt.state;
+    this.state = { ...st };
     if (Array.isArray(st.flags)) for (const n of st.flags) if (typeof n === 'number') this.flags.add(n);
 
     this.sync = new AttemptSync(view.attempt.id, {
@@ -197,6 +202,7 @@ class Runner {
 
   private destroy(): void {
     this.intervals.forEach(clearInterval);
+    for (const fn of this.cleanups) { try { fn(); } catch { /* ignore */ } }
     for (const [t, type, fn] of this.listeners) t.removeEventListener(type, fn);
     if (!this.finished) void this.sync.flush({ keepalive: true });
     this.sync.stop();
@@ -210,7 +216,15 @@ class Runner {
   private ctx(): RenderCtx {
     const self = this;
     return {
+      attemptId: this.view.attempt.id,
+      mode: this.mode,
       answers: this.answers,
+      state: this.state,
+      setState: (key, value) => { self.state[key] = value; if (!self.review) self.sync.setState(key, value); },
+      recordings: { ...(this.view.recordings ?? {}) },
+      everySecond: fn => { self.tickers.push(fn); },
+      paused: () => self.paused,
+      onDestroy: fn => { self.cleanups.push(fn); },
       readonly: !!this.review,
       picked: null,
       afterRender: [],
@@ -314,7 +328,7 @@ class Runner {
     const section = this.sections[pi]!;
     const instruction = p.instructions
       ?? (section === 'writing' ? 'Write your answer in the box.'
-        : section === 'speaking' ? 'Answer the questions. Type notes or what you said.'
+        : section === 'speaking' ? 'Answer each question aloud and record it. The text box keeps what you said (typed, or written down while you speak).'
         : nums.length ? `${section === 'listening' ? 'Listen and answer' : 'Read the text and answer'} ${rangeText(nums).replace(/^Q/, 'q')}.` : '');
     this.els.partBar.replaceChildren(el('b', null, p.title), el('span', { html: mdBlock(instruction).replace(/^<p>|<\/p>$/g, '') }));
     if (this.current === null || !nums.includes(this.current)) this.current = nums[0] ?? null;
@@ -421,7 +435,9 @@ class Runner {
 
   private tick(): void {
     if (this.finished) return;
-    if (!this.paused && document.visibilityState === 'visible') this.sync.addActive(this.parts[this.part]!.id, 1);
+    const running = !this.paused && document.visibilityState === 'visible';
+    if (running) this.sync.addActive(this.parts[this.part]!.id, 1);
+    for (const fn of this.tickers) { try { fn(running); } catch (e) { console.error(e); } }
     const r = this.remaining();
     if (r !== null) {
       for (const t of [600, 300, 60]) {

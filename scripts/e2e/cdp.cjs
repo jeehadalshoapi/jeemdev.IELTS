@@ -19,7 +19,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   fs.mkdirSync(OUT, { recursive: true });
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ielts-e2e-'));
   const proc = spawn(EDGE, ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
-    '--window-size=1400,900', '--no-first-run', '--disable-extensions', 'about:blank'], { stdio: 'ignore' });
+    '--window-size=1400,900', '--no-first-run', '--disable-extensions',
+    // a fake microphone that is always allowed (speaking recordings)
+    '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required',
+    'about:blank'], { stdio: 'ignore' });
   let targets = [];
   for (let i = 0; i < 40; i++) {
     try { targets = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json(); if (targets.find(t => t.type === 'page')) break; } catch { }

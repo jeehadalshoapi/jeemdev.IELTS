@@ -5,7 +5,7 @@ import {
 } from '@ielts/shared';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import type { Db } from '../db/client';
-import { attempts, files, tests } from '../db/schema';
+import { attempts, tests } from '../db/schema';
 import { getAttemptView, getResultView, isUuid, summarize } from '../attempts/service';
 import { notFound } from '../http/errors';
 
@@ -103,7 +103,6 @@ export async function attemptDetail(db: Db, attemptId: string, origin: string): 
   const titles = partTitles(content.parts);
   const [testRow] = await db.select({ answerKey: tests.answerKey }).from(tests).where(eq(tests.id, r.attempt.testId)).limit(1);
   const key = (testRow?.answerKey ?? {}) as AnswerKey;
-  const recordings = await db.select({ id: files.id, name: files.originalName, mime: files.mimeType }).from(files).where(eq(files.attemptId, attemptId));
 
   const questions = s.questions.map(q => {
     const i = info.get(q.questionId);
@@ -118,15 +117,26 @@ export async function attemptDetail(db: Db, attemptId: string, origin: string): 
     };
   });
 
+  const groups = new Map(content.parts.flatMap(p => p.questionGroups.map(g => [g.id, g] as const)));
+  const state = r.attempt.state;
   const openItems = s.openItems.map(o => {
     const answer = r.attempt.answers[o.id] ?? null;
+    const g = groups.get(o.id);
+    const rec = r.recordings[o.id];
+    const drill = state[`drill:${o.id}`] as { planSec?: number; introSec?: number } | undefined;
+    const prep = state[`prep:${o.id}`];
     return {
       id: o.id, type: o.type, part: titles.get(o.partId) ?? o.partId, task: info.get(o.id)?.question ?? '',
+      ...(g?.type === 'writing_task1' && g.charts.length ? { charts: g.charts } : {}),
+      ...(g?.type === 'writing_task2' && g.mode === 'plan_intro' ? { drill: { planTimeMin: g.planTimeMin, introTimeMin: g.introTimeMin, planSecUsed: drill?.planSec ?? null, introSecUsed: drill?.introSec ?? null } } : {}),
       answer, words: o.words, ...(o.minWords !== undefined ? { minWords: o.minWords } : {}),
+      ...(typeof prep === 'string' && prep.trim() ? { preparationNotes: prep } : {}),
+      ...(rec ? { recording: { url: `${origin}${rec.url}`, durationSec: rec.durationSec } } : {}),
       ...(key[o.id]?.modelAnswer ? { modelAnswer: key[o.id]!.modelAnswer } : {}),
       ...(key[o.id]?.notes ? { markingNotes: key[o.id]!.notes } : {})
     };
   });
+  const hasSpeaking = s.openItems.some(o => o.type.startsWith('speaking'));
 
   const perPartTime = Object.fromEntries(Object.entries(r.attempt.timeSpentSec).map(([k, v]) => [k === 'total' ? 'total' : titles.get(k) ?? k, Math.round(v)]));
   return {
@@ -142,7 +152,7 @@ export async function attemptDetail(db: Db, attemptId: string, origin: string): 
     score: { raw: s.raw, total: s.total, estimatedBand: s.band, sections: s.sections, perType: s.perType, reasons: s.reasons },
     questions,
     writingAndSpeaking: openItems,
-    recordings: recordings.map(f => ({ name: f.name, type: f.mime, url: `${origin}/files/${f.id}` })),
+    ...(hasSpeaking ? { speakingNote: 'Speaking "answer" is what the student typed or what the browser wrote down while they spoke (it can contain recognition errors). Recordings open only with the student\'s login, so mark from the text; pronunciation cannot be judged from it.' } : {}),
     feedback: r.feedback,
     resultsUrl: `${origin}/#/result/${r.attempt.id}`,
     reasonsExplained: 'correct | wrong | blank (not answered) | over_word_limit (marked wrong, like the real test) | likely_spelling (wrong, but close to a correct answer — see note)'

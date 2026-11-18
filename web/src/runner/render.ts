@@ -1,14 +1,27 @@
 /* Renders parts and question groups of the new test format (converted from the old js/exam-render.js). */
 import {
   describeWordLimit, letter, TFNG_CHOICES, YNNG_CHOICES,
-  type AnswerValue, type Chart, type CompletionGroup, type Option, type Part, type QuestionGroup, type SectionSkill
+  type AnswerValue, type AttemptMode, type CompletionGroup, type RecordingInfo, type Option, type Part, type QuestionGroup, type SectionSkill
 } from '@ielts/shared';
 import { $, $$, el } from '../lib/dom';
+import { renderChart } from './charts';
+import { drillBox, speakingGroup, speechPlayer } from './extras';
 import { wordCount } from '../lib/format';
 import { blankSentenceHTML, inlineMd, mdBlock, passageHTML, templateHTML } from '../lib/markup';
 
 export interface RenderCtx {
+  attemptId: string;
+  mode: AttemptMode;
   answers: Record<string, AnswerValue>;
+  /** saved per-attempt state (drill timers, Part 2 notes, listening position) */
+  state: Record<string, unknown>;
+  setState(key: string, value: unknown): void;
+  /** speaking recordings saved so far, by item id */
+  recordings: Record<string, RecordingInfo>;
+  /** called once a second while the test is open; running = not paused and the page is visible */
+  everySecond(fn: (running: boolean) => void): void;
+  paused(): boolean;
+  onDestroy(fn: () => void): void;
   readonly: boolean;
   setAnswer(qid: string, v: AnswerValue): void;
   registerNum(n: number, holder: HTMLElement): void;
@@ -71,9 +84,8 @@ export function renderPart(ctx: RenderCtx, part: Part, pi: number, section: Sect
   if (section === 'listening' && part.transcript) {
     pane.appendChild(el('details', { class: 'transcript no-hl' }, el('summary', null, 'Transcript'), el('div', { html: mdBlock(part.transcript) })));
   }
-  if (section === 'listening' && !part.audioUrl && !earlierRecording && !ctx.readonly) {
-    pane.appendChild(el('div', { class: 'cd-note no-hl' }, '🔈 This part has no recording yet. Reading the transcript aloud in the browser arrives in Phase 6.'));
-  }
+  // no recording (and none playing on from an earlier part): the browser reads the transcript aloud
+  if (section === 'listening' && !part.audioUrl && !earlierRecording) pane.appendChild(speechPlayer(ctx, part));
   if (part.instructions) pane.appendChild(el('div', { class: 'q-instr', html: mdBlock(part.instructions) }));
   for (const g of part.questionGroups) pane.appendChild(section === 'speaking' ? speakingGroup(ctx, g) : renderGroup(ctx, g));
   sec.appendChild(el('div', { class: 'cd-single' }, pane));
@@ -329,33 +341,17 @@ export function refreshGroup(ctx: RenderCtx, groupId: string): void {
 /* ======================================================================
    writing
    ====================================================================== */
-function chartTable(c: Chart): HTMLElement {
-  const caption = el('div', { class: 'chart-title' }, c.title ?? '', c.unit ? el('span', { class: 'muted' }, ` (${c.unit})`) : null);
-  const table = (head: string[], rows: Array<Array<string | number | null>>) => el('table', { class: 'cmp-table chart-table' },
-    el('tr', null, head.map(h => el('th', null, h))),
-    rows.map(r => el('tr', null, r.map(v => el('td', null, v === null ? '–' : String(v))))));
-  let body: HTMLElement;
-  switch (c.chartType) {
-    case 'line': case 'bar': body = table(['', ...c.labels], c.series.map(s => [s.name, ...s.values])); break;
-    case 'pie': body = el('div', { class: 'chart-pies' }, c.pies.map(p => el('div', null, p.title ? el('b', null, p.title) : null, table(['', 'Value'], p.slices.map(s => [s.label, s.value]))))); break;
-    case 'table': body = table(c.columns, c.rows); break;
-    case 'process': body = el('ol', { class: 'chart-steps' }, c.steps.map(s => el('li', null, el('b', null, s.label), s.detail ? ` — ${s.detail}` : '')), c.cyclic ? el('li', { class: 'muted' }, '↻ back to the first step') : null); break;
-    case 'map': body = el('div', { class: 'chart-pies' }, c.maps.map(m => el('div', null, el('b', null, m.title), el('ul', null, m.features.map(f => el('li', null, `${f.label} (${f.shape})`)))))); break;
-  }
-  return el('figure', { class: `chart chart-${c.chartType}` }, caption, body, el('figcaption', { class: 'muted' }, `${c.chartType} chart — drawing it as a picture arrives in Phase 6`));
-}
-
 function writingPrompt(g: QuestionGroup): HTMLElement {
   if (g.type !== 'writing_task1' && g.type !== 'writing_task2' && g.type !== 'paragraph') return el('div');
   return el('div', { class: 'w-prompt', dataset: { group: g.id } },
     g.instructions ? el('div', { class: 'q-instr', html: mdBlock(g.instructions) }) : null,
     el('div', { html: mdBlock(g.prompt) }),
     g.type === 'writing_task1' && g.imageUrl ? el('img', { class: 'w-img', src: g.imageUrl, alt: '' }) : null,
-    g.type === 'writing_task1' ? g.charts.map(chartTable) : null,
+    g.type === 'writing_task1' ? g.charts.map(renderChart) : null,
     g.type === 'paragraph' && g.structure === 'PEEL' ? el('p', { class: 'muted' }, 'Structure: Point · Explain · Example · Link') : null);
 }
 
-function textArea(ctx: RenderCtx, value: string, minWords: number, label: string | null, onChange: (v: string) => void, rows?: number): HTMLElement {
+export function textArea(ctx: RenderCtx, value: string, minWords: number, label: string | null, onChange: (v: string) => void, rows?: number): HTMLElement {
   const count = el('span', { class: 'wc-num' }, String(wordCount(value)));
   const ta = el('textarea', {
     class: 'w-text', spellcheck: 'false', autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off', disabled: ctx.readonly,
@@ -368,52 +364,10 @@ function textArea(ctx: RenderCtx, value: string, minWords: number, label: string
 }
 
 function writingAnswer(ctx: RenderCtx, g: QuestionGroup): HTMLElement {
-  if (g.type === 'writing_task2' && g.mode === 'plan_intro') {
-    const cur = (ctx.answers[g.id] && typeof ctx.answers[g.id] === 'object' && !Array.isArray(ctx.answers[g.id]) ? ctx.answers[g.id] : {}) as { plan?: string; introduction?: string };
-    const value = { plan: cur.plan ?? '', introduction: cur.introduction ?? '' };
-    const save = () => ctx.setAnswer(g.id, { ...value });
-    return el('div', { class: 'w-drill', dataset: { group: g.id } },
-      el('p', { class: 'muted' }, `Drill: plan (about ${g.planTimeMin} min), then the introduction (about ${g.introTimeMin} min). Separate timers arrive in Phase 6.`),
-      textArea(ctx, value.plan, 0, '1 · Plan', v => { value.plan = v; save(); }, 8),
-      textArea(ctx, value.introduction, g.introMinWords, '2 · Introduction', v => { value.introduction = v; save(); }, 8));
-  }
+  if (g.type === 'writing_task2' && g.mode === 'plan_intro') return drillBox(ctx, g, textArea);
   if (g.type === 'writing_task1' || g.type === 'writing_task2' || g.type === 'paragraph') {
     const v = ctx.answers[g.id];
     return textArea(ctx, typeof v === 'string' ? v : '', g.minWords, null, val => ctx.setAnswer(g.id, val));
   }
   return el('div');
-}
-
-/* ======================================================================
-   speaking (typed notes now; recording arrives in Phase 6)
-   ====================================================================== */
-function notesBox(ctx: RenderCtx, id: string, prompt: string): HTMLElement {
-  const v = ctx.answers[id];
-  return el('div', { class: 'sp-item' },
-    el('div', { class: 'q-text', html: inlineMd(prompt) }),
-    el('textarea', {
-      class: 'w-text sp-notes', rows: 3, placeholder: 'Notes or what you said (recording arrives in Phase 6)', value: typeof v === 'string' ? v : '', disabled: ctx.readonly,
-      oninput: (e: Event) => ctx.setAnswer(id, (e.target as HTMLTextAreaElement).value)
-    }));
-}
-
-function speakingGroup(ctx: RenderCtx, g: QuestionGroup): HTMLElement {
-  const box = el('div', { class: 'q-group sp-group', dataset: { group: g.id } });
-  const titles: Record<string, string> = { speaking_part1: 'Part 1 — Introduction and interview', speaking_part2: 'Part 2 — Long turn', speaking_part3: 'Part 3 — Discussion' };
-  box.appendChild(el('h3', { class: 'q-range' }, titles[g.type] ?? g.type));
-  if ('instructions' in g && g.instructions) box.appendChild(el('div', { class: 'q-instr', html: mdBlock(g.instructions) }));
-  if (g.type === 'speaking_part1' || g.type === 'speaking_part3') {
-    if (g.topic) box.appendChild(el('h4', { class: 'q-title' }, g.topic));
-    g.questions.forEach(q => box.appendChild(notesBox(ctx, q.id, q.text)));
-  } else if (g.type === 'speaking_part2') {
-    box.appendChild(el('div', { class: 'cue-card' },
-      el('p', { class: 'cue-topic', html: inlineMd(g.cueCard.topic) }),
-      el('p', null, 'You should say:'),
-      el('ul', null, g.cueCard.bullets.map(b => el('li', { html: inlineMd(b) }))),
-      g.cueCard.closing ? el('p', { html: inlineMd(g.cueCard.closing) }) : null,
-      el('p', { class: 'muted' }, `Preparation ${Math.round(g.prepTimeSec / 60)} min · talk ${Math.round(g.talkTimeSec / 60)} min (timers arrive in Phase 6)`)));
-    box.appendChild(notesBox(ctx, g.id, 'Your notes'));
-    g.followUps.forEach(q => box.appendChild(notesBox(ctx, q.id, q.text)));
-  }
-  return box;
 }

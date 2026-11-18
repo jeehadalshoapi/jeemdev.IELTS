@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { QuestionType } from './schema/groups';
 import { STATUSES, type Kind, type SectionSkill, type Skill, type Source, type TestContent, type TestStatus, type Variant } from './schema/test';
 import type { AutoScore, MarkReason } from './scoring';
+import type { SpeechLine } from './speech';
 import type { Issue } from './validate';
 
 export const ATTEMPT_MODES = ['exam', 'practice'] as const;
@@ -79,6 +80,22 @@ export interface AttemptView {
   };
   test: PublicTest;
   timing: Timing;
+  /** speaking recordings saved so far, by item (question) id */
+  recordings: Record<string, RecordingInfo>;
+}
+
+/** a speaking answer recorded in the browser (Phase 6) */
+export interface RecordingInfo { id: string; url: string; mimeType: string; sizeBytes: number; durationSec: number | null; createdAt: string }
+export const RECORDING_MAX_BYTES = 30 * 1024 * 1024;
+
+/** the lines the browser reads aloud for a listening part without a recording */
+export interface SpeechResponse {
+  partId: string;
+  /** exam mode: only the lines not played yet (the part is heard once); otherwise all of them */
+  lines: SpeechLine[];
+  /** index of the first line returned */
+  from: number;
+  total: number;
 }
 
 export interface SaveResult {
@@ -153,6 +170,8 @@ export interface ResultView {
   modelAnswers: Record<string, string>;
   /** Claude's marking (Phase 5+), or null */
   feedback: Record<string, unknown> | null;
+  /** speaking recordings, by item id */
+  recordings: Record<string, RecordingInfo>;
 }
 
 export interface SkillHistory {
