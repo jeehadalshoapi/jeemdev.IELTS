@@ -449,3 +449,39 @@ describe('study tools (Phase 8): lessons, vocabulary, mistakes log', () => {
     expect(caps[0].source.attemptId).toBe(att.id);
   });
 });
+
+describe('plan and picture tools (Phase 10)', () => {
+  let token: string;
+  beforeAll(async () => { token = (await connect()).access; });
+
+  it('upload_asset: saves a cleaned SVG, served only to the logged-in owner with a sandbox CSP', async () => {
+    const r = await callTool(token, 'upload_asset', { name: 'Campus map', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" onclick="x()"><rect width="200" height="100" fill="#f1efe9"/><text x="20" y="40">A</text><script>alert(1)</script></svg>' });
+    expect(r.isError).toBe(false);
+    expect(r.data.url).toMatch(/^\/files\/[0-9a-f-]{36}$/);
+    expect(r.data.removed).toEqual(expect.arrayContaining(['<script>', 'event handlers (on…)']));
+    const f = await me.get(r.data.url);
+    expect(f.status).toBe(200);
+    expect(f.headers.get('content-type')).toContain('image/svg+xml');
+    expect(f.headers.get('content-security-policy')).toContain('sandbox');
+    const body = await f.text();
+    expect(body).toContain('<text x="20" y="40">A</text>');
+    expect(body).not.toContain('script');
+    expect((await fetch(srv.url + r.data.url)).status).toBe(401);
+    // a test can use it
+    const t = await callTool(token, 'create_test', { test: { title: 'Map', skill: 'listening', parts: [{ id: 'p1', title: 'Part 2', transcript: 'Guide: The library is A.', questionGroups: [{ id: 'g1', type: 'map_labelling', imageUrl: r.data.url, options: [{ label: 'A' }, { label: 'B' }], questions: [{ id: 'q1', number: 1, text: 'Library' }] }] }], answerKey: { q1: { accept: ['A'] } } } });
+    expect(t.isError).toBe(false);
+    expect((await callTool(token, 'upload_asset', { svg: '<svg><g></svg>  not closed  ' })).text).toContain('not saved');
+  });
+
+  it('set_plan, get_plan, update_block', async () => {
+    const s = await callTool(token, 'set_plan', { days: [{ day: 30, date: '2026-11-24', title: 'Listening week starts', blocks: [{ id: 'd30b1', title: 'Maps' }] }] });
+    expect(s.data).toMatchObject({ saved: 1, deleted: 0 });
+    const bad = await callTool(token, 'set_plan', { days: [{ day: 31, date: 'soon', title: '', blocks: [{ id: 'x', title: 'a' }, { id: 'x', title: 'b' }] }] });
+    expect(bad.isError).toBe(true);
+    expect(bad.text).toContain('days[0].date');
+    expect(bad.text).toContain('block id "x" is already used');
+    expect((await callTool(token, 'update_block', { id: 'd30b1', status: 'done' })).data.block.status).toBe('done');
+    expect((await callTool(token, 'get_plan', { fromDay: 30 })).data.days[0].blocks[0].status).toBe('done');
+    expect((await callTool(token, 'update_block', { id: 'nope', status: 'done' })).text).toContain('no plan block');
+  });
+});

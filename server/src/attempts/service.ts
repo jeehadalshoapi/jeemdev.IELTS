@@ -3,6 +3,7 @@ import {
   type AnswerValue, type AttemptMode, type AttemptSummary, type AttemptView, type AutoScore, type PublicTest, type ResultView,
   type RecordingInfo, type SaveResult, type TestContent, type Timing
 } from '@ielts/shared';
+import { tickTestBlocks } from '../study/plan';
 import { logVocabQuiz } from '../study/vocab-quiz';
 import { and, desc, eq, isNotNull, ne } from 'drizzle-orm';
 import type { Db } from '../db/client';
@@ -180,6 +181,10 @@ export async function saveAttempt(db: Db, attemptId: string, body: unknown, ua?:
 /** follow-ups of a submission that must never fail it (vocabulary quiz -> self-test log) */
 async function afterSubmit(db: Db, attemptId: string): Promise<void> {
   try { await logVocabQuiz(db, attemptId); } catch (e) { console.error('[vocab] could not log the quiz', e); }
+  try {
+    const [a] = await db.select({ testId: attempts.testId }).from(attempts).where(eq(attempts.id, attemptId)).limit(1);
+    if (a) await tickTestBlocks(db, a.testId);
+  } catch (e) { console.error('[plan] could not tick the block', e); }
 }
 
 async function saveInTransaction(db: Db, attemptId: string, body: unknown, ua?: string, opts: { submit?: boolean } = {}): Promise<SaveResult> {

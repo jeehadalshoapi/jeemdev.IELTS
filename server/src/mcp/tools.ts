@@ -14,7 +14,9 @@ import { prepareImport } from '../import/service';
 import { createTest, getTest, listTests, replaceTest, setTestStatus } from '../tests/repository';
 import { attemptDetail, latestSubmittedAttemptId, listAttemptLines } from './attempts';
 import { fail, logged, ok } from './common';
+import { registerPlanTools } from './plan-tools';
 import { registerStudyTools } from './study-tools';
+import type { FileStore } from '../files/store';
 import { logFeedbackMistakes } from '../study/feedback-log';
 
 export const SERVER_VERSION = '1.0.0';
@@ -64,10 +66,12 @@ const FORMAT_RULES = [
   'Writing (writing_task1, writing_task2, paragraph) and speaking groups are marked by you later: no "accept"; put "modelAnswer" / "notes" in answerKey under the writing group id or the speaking question id. Task 1 charts are data (chartType line | bar | pie | table | process | map) drawn by the site.',
   'Vocabulary quizzes: skill "vocabulary" (or a part with "skill": "vocabulary" in a mixed test). No passage, no band (accuracy only). Allowed types: sentence_completion, short_answer, matching_features, mcq_single, definition_match (word -> meaning), opposite_match (word -> opposite). Add "vocabularySetId": "set-3" to the test to write the score into the self-test log and mark the missed words "weak" (put the word itself as the question text).',
   'sentence_rewrite (writing): { id, type: "sentence_rewrite", instructions, items: [{ id: "r1", number: 1, text: "sentence to repair" }] } gives one answer box per sentence. Mark each with save_feedback "items": [{ "itemId": "r1", "correct": true|false, "comment": "...", "corrected"?: "..." }]. A full Task 2 essay (mode "essay") has an optional plan box above it; the plan comes back in get_attempt as "plan".',
+  'Pictures: you cannot upload image files, but upload_asset takes an SVG drawing as text and returns a "/files/<id>" url to use as imageUrl (diagram_labelling, Task 1, any group). map_labelling takes either imageUrl or "map": { "features": [{ "label": "A", "shape": "point", "x": 30, "y": 40 }, { "label": "Main entrance", "shape": "building", "x": 50, "y": 95, "width": 20, "height": 6 }] } drawn by the site (x / y in % of the map; shapes building, area, road, water, trees, point).',
+  'Read-aloud listening: each part starts with "You now have 30 seconds to look at questions X to Y" and a 30-second silence (set the part\'s "readingTimeSec" to change it, 0 for none). Put "[pause 30]" in a transcript for a silence of 30 seconds.',
   'If the test is not valid, nothing is saved and every problem is listed with its path (e.g. parts[0].questionGroups[1].questions[2].number). Fix all of them and call create_test again.'
 ];
 
-export function buildMcpServer(db: Db, origin: string): McpServer {
+export function buildMcpServer(db: Db, origin: string, fileStore?: FileStore): McpServer {
   const server = new McpServer(
     { name: 'ielts-practice', version: SERVER_VERSION },
     {
@@ -268,5 +272,6 @@ export function buildMcpServer(db: Db, origin: string): McpServer {
   }));
 
   registerStudyTools(server, db, origin);
+  registerPlanTools(server, db, origin, fileStore);
   return server;
 }

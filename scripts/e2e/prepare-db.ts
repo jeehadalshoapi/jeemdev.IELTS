@@ -8,6 +8,9 @@ import { exampleTestForType } from '../../shared/src';
 import { createAttempt, saveAttempt } from '../../server/src/attempts/service';
 import { openDatabase } from '../../server/src/db/client';
 import { attempts } from '../../server/src/db/schema';
+import { FileStore } from '../../server/src/files/store';
+import { sanitizeSvg } from '../../server/src/files/svg';
+import { setPlan } from '../../server/src/study/plan';
 import { addMistakes, recordVocabResult, saveLesson, upsertVocabSet } from '../../server/src/study/store';
 import { seedSample } from '../../server/src/seed';
 import { createTest } from '../../server/src/tests/repository';
@@ -153,6 +156,35 @@ const writing9 = await createTest(d.db, {
   answerKey: { r1: { modelAnswer: 'Many graduates cannot find a job because they lack experience.' }, r2: { modelAnswer: 'The government should invest more in public transport.' } }
 }, { source: 'claude' });
 
-writeFileSync('.data/e2e/ids.json', JSON.stringify({ sample: SAMPLE, listening: listening.id, writing: writing.id, gallery: gallery.id, drill: drill.id, speaking: speaking.id, essay: essayTest.id, readingMarked, writingMarked, writing9: writing9.id }));
+// Phase 10: a listening map drawn from data, a diagram uploaded as SVG, a study plan around today
+const store = new FileStore(d.db, '.data/e2e/uploads');
+const diagram = sanitizeSvg('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200"><rect x="20" y="40" width="120" height="80" rx="8" fill="#cde2fb" stroke="#1c5cab"/><text x="80" y="85" text-anchor="middle" font-size="16">Tank</text><path d="M140 80 H260" stroke="#333" stroke-width="3"/><circle cx="300" cy="80" r="40" fill="#fde9e4" stroke="#c4320a"/><text x="300" y="86" text-anchor="middle" font-size="16">A</text><text x="200" y="70" text-anchor="middle" font-size="14">B</text><script>alert(1)</script></svg>');
+const svgFile = await store.save({ data: new TextEncoder().encode(diagram.svg), originalName: 'solar-heater.svg', mimeType: 'image/svg+xml', kind: 'image' });
+const mapTest = await createTest(d.db, {
+  title: 'Listening — Campus map (e2e Phase 10)', skill: 'listening', kind: 'practice',
+  parts: [{
+    id: 'm1', title: 'Part 2', readingTimeSec: 0,
+    transcript: '[pause 4]\nGuide: Welcome to the campus. [pause 3] Guide: The library is the building marked A, next to the main entrance.',
+    questionGroups: [
+      { id: 'mg', type: 'map_labelling', instructions: 'Label the map. Write the correct letter, A–C.', map: { title: 'Campus', features: [
+        { label: 'Main entrance', shape: 'building', x: 50, y: 85, width: 24, height: 8 }, { label: 'Lake', shape: 'water', x: 20, y: 30, width: 26, height: 18 },
+        { label: 'A', shape: 'point', x: 62, y: 70 }, { label: 'B', shape: 'point', x: 30, y: 60 }, { label: 'C', shape: 'point', x: 75, y: 25 }] },
+        options: [{ label: 'A' }, { label: 'B' }, { label: 'C' }], questions: [{ id: 'q1', number: 1, text: 'Library' }, { id: 'q2', number: 2, text: 'Café' }] },
+      { id: 'dg', type: 'diagram_labelling', instructions: 'Label the diagram. ONE WORD.', imageUrl: svgFile.url, wordLimit: { maxWords: 1 }, questions: [{ id: 'q3', number: 3, text: 'A: ______' }] }
+    ]
+  }],
+  answerKey: { q1: { accept: ['A'] }, q2: { accept: ['B'] }, q3: { accept: ['collector'] } }
+}, { source: 'claude' });
+const iso = (n: number) => { const x = new Date(Date.now() + n * 86400_000); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+await setPlan(d.db, { days: [
+  { day: 24, date: iso(-1), title: 'Thesis precision', skill: 'writing', blocks: [{ id: 'd24b1', title: 'Set 3 flashcards', minutes: 10, vocabularySetId: 'set-3' }, { id: 'd24b2', title: 'Old essay', status: 'done' }] },
+  { day: 25, date: iso(0), title: 'Band 6, 7 and 8', skill: 'writing', notes: 'Two 15-minute blocks.', blocks: [
+    { id: 'd25b1', title: 'Lesson: what separates band 6, 7 and 8', minutes: 15, lessonId: 'day23-band-6-7-8' },
+    { id: 'd25b2', title: 'Writing homework', minutes: 40, testId: writing9.id },
+    { id: 'd25b3', title: 'Campus map listening', minutes: 10, testId: mapTest.id }] },
+  { day: 26, date: iso(1), title: 'Coherence', blocks: [{ id: 'd26b1', title: 'Linking words' }] }
+] });
+
+writeFileSync('.data/e2e/ids.json', JSON.stringify({ sample: SAMPLE, listening: listening.id, writing: writing.id, gallery: gallery.id, drill: drill.id, speaking: speaking.id, essay: essayTest.id, readingMarked, writingMarked, writing9: writing9.id, map: mapTest.id }));
 await d.close();
 console.log('Ready. Start the server with:  PGLITE_DIR=.data/e2e/pglite UPLOAD_DIR=.data/e2e/uploads node server/dist/main.js');

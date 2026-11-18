@@ -47,6 +47,8 @@ export const Part = z.strictObject({
   /** listening parts: recording (optional) and transcript (hidden until the attempt is submitted) */
   audioUrl: Url.optional(),
   transcript: OptionalText,
+  /** read-aloud listening: seconds to look at the questions before the part starts (default 30; 0 = none) */
+  readingTimeSec: z.number({ error: 'must be a number of seconds' }).int().min(0).max(120).optional(),
   questionGroups: z.array(QuestionGroup).min(1, { error: 'needs at least one question group' })
 });
 

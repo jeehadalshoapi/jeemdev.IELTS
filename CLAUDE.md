@@ -15,7 +15,8 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 | 7 | Claude's feedback on the results page, progress charts on History (filters in the URL) | ✅ merged, **deployed** 2026-11-18 |
 | 8 | Lessons, vocabulary bank, mistakes log: tables (migration `0004_study`), 12 MCP tools (`server/src/mcp/study-tools.ts`), pages `#/lessons` `#/lesson/:id` `#/vocab` `#/vocab/:id` `#/mistakes`; `save_feedback` `addToLog` | ✅ merged, **deployed** 2026-11-18 |
 | 9 | Skill `vocabulary` (enum migration `0005`; no band, accuracy; types in `VOCABULARY_TYPES`), `definition_match` / `opposite_match` (matching types), `sentence_rewrite` (a writing type, one open item per sentence; feedback `items` [{itemId, correct, comment, corrected}]), test `vocabularySetId` (on submit → self-test log via `server/src/study/vocab-quiz.ts`, idempotent), "Test me" `POST /api/vocab/sets/:id/quiz`, plan box (state `plan:<groupId>`), study blocks (state `blocks`, runner `trackBlock`) | ✅ merged, **deployed** 2026-11-18 |
-| 10–11 | 10 pictures (`upload_asset` SVG cleaned + sandbox CSP) + map_labelling from data, study plan + Today, listening pauses; 11 speaking pauses/transcripts | in progress (owner: build all, deploy each) |
+| 10 | `upload_asset` (SVG → `server/src/files/svg.ts` allowlist rebuild; `/files/:id` sends `Content-Security-Policy: … sandbox` for SVG), `map_labelling.map` (features drawn by `renderChart`), plan table `plan_days` (migration `0006`) + `set_plan` / `get_plan` / `update_block` (`server/src/mcp/plan-tools.ts`, `server/src/study/plan.ts`), `GET /api/plan/today?date=` (browser date) → dashboard Today card, `#/plan`, blocks with a testId ticked on submit, review rule every 5th day; read-aloud `partSpeech` (reading time, default 30 s, `readingTimeSec`; `[pause N]` silences; Skip in practice) | ✅ merged, **deployed** 2026-11-18 |
+| 11 | Speaking: pauses > 3 s and words per minute per recording (browser), Whisper decision | in progress |
 
 - `main` is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
 - **The owner's list `ielts-site-spec.md`** (2026-11-18): decisions taken — deploy each phase when done; pictures = `upload_asset` (SVG cleaned on the server and served with a sandbox CSP) **and** maps drawn from data; vocabulary quizzes = a new skill `vocabulary` (no band, accuracy only). Already true before Phase 8: writing boxes have `spellcheck="false"`; exam-mode read-aloud plays once; the speaking live transcript + recording length reach `get_attempt`.
@@ -93,7 +94,7 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 ```bash
 npm install
 npm run dev                 # API :3000 (tsx watch) + website :5173 (Vite); dev password "ielts-dev"
-npm test                    # vitest — 141 tests (shared/test, server/test); hookTimeout 90 s because every server file starts its own PGlite
+npm test                    # vitest — 151 tests (shared/test, server/test); hookTimeout 90 s because every server file starts its own PGlite
 npm run typecheck           # tsc for shared, server, web (TypeScript 7 — type-checking only)
 npm run build               # vite build web -> web/dist ; esbuild server -> server/dist
 npm start                   # production build on :3000
@@ -117,6 +118,7 @@ node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/extras.cjs          
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/feedback.cjs           # Phase 7 feedback rendering, progress charts, filters, phone
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/study.cjs              # Phase 8 lessons, vocabulary (table, flashcards), mistakes + review
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/format9.cjs            # Phase 9 Test me quiz, plan box, sentence rewrite, study blocks (fresh DB: it submits)
+node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/plan10.cjs             # Phase 10 Today card, plan page, map from data, SVG diagram, silence + Skip (fresh DB)
 TOKEN=$(node scripts/e2e/mcp-connect.mjs http://localhost:3000)                    # OAuth like claude.ai does; prints a 1-hour token
 npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http --header "Authorization: Bearer $TOKEN" --method tools/list
 ```
@@ -220,7 +222,7 @@ web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/att
 - **`Referrer-Policy: no-referrer` (helmet) makes browsers send `Origin: null` on form posts.** The approval page sets `same-origin`, and its POST treats `null` like a missing Origin; the CSRF token (SameSite=Strict cookie) is the real protection.
 - **CSP `form-action` also covers where a form's redirect goes.** The approval page adds the app's callback origin (e.g. `https://claude.ai`) to `form-action`, or the browser would block the redirect after **Allow**.
 - OAuth authorization codes live in memory for 5 minutes: a deploy in the middle of a sign-in loses the code (Claude shows an error; connecting again works).
-- **Headless Edge for the e2e checks** runs with a fake, always-allowed microphone (`--use-fake-device-for-media-stream`, in `cdp.cjs`). Its speech synthesis has voices but the e2e only checks that playback starts, not that it ends.
+- **Headless Edge for the e2e checks** runs with a fake, always-allowed microphone (`--use-fake-device-for-media-stream`, in `cdp.cjs`). Its speech synthesis has voices but an utterance never ends there, so the e2e only checks that playback starts; to test silences the e2e transcript starts with `[pause 4]`.
 - **MediaRecorder webm files have no duration in their header**, so a player shows 0:00 until played; the browser-measured length is stored in `files.duration_sec` and shown next to it.
 - `cross-device.laptop.cjs` always prints two `ERR_INTERNET_DISCONNECTED` lines: they come from its deliberate offline step.
 - **PostgreSQL `jsonb` does not keep the order of object keys** (shorter keys first). Anything shown in a fixed order (feedback `criteria`) must be sorted on the page.

@@ -85,8 +85,25 @@ export const MatchingSentenceEndingsGroup = matchingGroup('matching_sentence_end
 export const DefinitionMatchGroup = matchingGroup('definition_match');
 /** vocabulary: each question is a word, the options are opposites (trains the near-opposite trap) */
 export const OppositeMatchGroup = matchingGroup('opposite_match');
-/** listening map / plan labelling: like matching, but the map image is required */
-export const MapLabellingGroup = z.strictObject({ ...groupBase, type: z.literal('map_labelling'), imageUrl: Url, ...matchingFields });
+/** one feature of a map drawn by the site; positions are percentages of the map area */
+export const MapFeature = z.strictObject({
+  label: NonEmptyText,
+  shape: z.enum(['building', 'area', 'road', 'water', 'trees', 'point'], { error: 'must be one of building, area, road, water, trees, point' }).default('building'),
+  x: z.number().min(0).max(100, { error: 'x must be 0–100 (% of the width)' }),
+  y: z.number().min(0).max(100, { error: 'y must be 0–100 (% of the height)' }),
+  width: z.number().min(0).max(100).optional(),
+  height: z.number().min(0).max(100).optional()
+});
+
+/**
+ * listening map / plan labelling: like matching, with a picture of the map — either "imageUrl" (e.g. from upload_asset)
+ * or "map": features drawn by the site (letters A, B… as point or building labels, plus named landmarks)
+ */
+export const MapLabellingGroup = z.strictObject({
+  ...groupBase, type: z.literal('map_labelling'),
+  map: z.strictObject({ title: OptionalText, features: z.array(MapFeature).min(1, { error: 'needs at least one feature' }) }).optional(),
+  ...matchingFields
+});
 
 /* ---------- completion (gap filling) ----------
    Two layouts:
@@ -166,14 +183,7 @@ const MapChart = z.strictObject({
   /** one or two maps (e.g. "1990" and "Today"); positions are percentages of the map area */
   maps: z.array(z.strictObject({
     title: NonEmptyText,
-    features: z.array(z.strictObject({
-      label: NonEmptyText,
-      shape: z.enum(['building', 'area', 'road', 'water', 'trees', 'point'], { error: 'must be one of building, area, road, water, trees, point' }).default('building'),
-      x: z.number().min(0).max(100, { error: 'x must be 0–100 (% of the width)' }),
-      y: z.number().min(0).max(100, { error: 'y must be 0–100 (% of the height)' }),
-      width: z.number().min(0).max(100).optional(),
-      height: z.number().min(0).max(100).optional()
-    })).min(1, { error: 'needs at least one feature' })
+    features: z.array(MapFeature).min(1, { error: 'needs at least one feature' })
   })).min(1, { error: 'needs at least one map' }).max(2, { error: 'can have at most 2 maps' })
 });
 

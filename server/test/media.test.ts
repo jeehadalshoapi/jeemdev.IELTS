@@ -93,17 +93,20 @@ describe('listening read aloud', () => {
     const view = await json<AttemptView>(await me.get(`/api/attempts/${id}`));
     expect(view.test.content.parts[0]!.transcript).toBeUndefined();
     const s = await json<SpeechResponse>(await me.get(`/api/attempts/${id}/speech/${view.test.content.parts[0]!.id}`));
-    expect(s).toMatchObject({ from: 0, total: 3 });
-    expect(s.lines[1]).toEqual({ speaker: 'Woman', text: 'Hello, my name is Sarah Mitchell.' });
+    // Phase 10: the reading time comes first ("You now have 30 seconds…" + a 30-second silence)
+    expect(s).toMatchObject({ from: 0, total: 5 });
+    expect(s.lines[0]!.text).toMatch(/^You now have 30 seconds to look at question/);
+    expect(s.lines[1]).toEqual({ speaker: null, text: '', pauseSec: 30 });
+    expect(s.lines[3]).toEqual({ speaker: 'Woman', text: 'Hello, my name is Sarah Mitchell.' });
   });
 
   it('exam: only the lines not heard yet (each part plays once)', async () => {
     const id = await start(listeningTest, 'exam');
     const partId = (await json<AttemptView>(await me.get(`/api/attempts/${id}`))).test.content.parts[0]!.id;
-    await me.patch(`/api/attempts/${id}`, { state: { [`tts:${partId}`]: { line: 2 } } });
+    await me.patch(`/api/attempts/${id}`, { state: { [`tts:${partId}`]: { line: 4 } } });
     const s = await json<SpeechResponse>(await me.get(`/api/attempts/${id}/speech/${partId}`));
-    expect(s).toMatchObject({ from: 2, total: 3, lines: [{ speaker: 'Man', text: 'And your phone number?' }] });
-    await me.patch(`/api/attempts/${id}`, { state: { [`tts:${partId}`]: { line: 3 } } });
+    expect(s).toMatchObject({ from: 4, total: 5, lines: [{ speaker: 'Man', text: 'And your phone number?' }] });
+    await me.patch(`/api/attempts/${id}`, { state: { [`tts:${partId}`]: { line: 5 } } });
     expect((await json<SpeechResponse>(await me.get(`/api/attempts/${id}/speech/${partId}`))).lines).toEqual([]);
   });
 

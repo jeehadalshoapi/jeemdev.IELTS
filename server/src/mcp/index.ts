@@ -5,11 +5,12 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import type { Express, NextFunction, Request, RequestHandler, Response } from 'express';
 import type { AppConfig } from '../config';
 import type { Db } from '../db/client';
+import type { FileStore } from '../files/store';
 import { rateLimit } from '../http/security';
 import { mcpUrlOf, oauthRouter, originOf, SCOPE, tokenVerifier } from './oauth';
 import { buildMcpServer } from './tools';
 
-export function mountMcp(app: Express, db: Db, config: AppConfig): void {
+export function mountMcp(app: Express, db: Db, config: AppConfig, fileStore?: FileStore): void {
   app.use(oauthRouter(db, config));
 
   const verifier = tokenVerifier(db, config);
@@ -18,7 +19,7 @@ export function mountMcp(app: Express, db: Db, config: AppConfig): void {
       // the token says which address it was issued for (https://<site>/mcp): links in tool results use that site
       const resource = ctx.authInfo?.resource;
       const origin = resource ? new URL(resource).origin : config.publicOrigin ?? '';
-      return buildMcpServer(db, origin);
+      return buildMcpServer(db, origin, fileStore);
     },
     { onerror: e => console.warn(`[mcp] ${e.message}`) }
   );

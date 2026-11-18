@@ -68,7 +68,7 @@ export function createApp({ database, config, fileStore }: AppDeps) {
   const sessionCookie = { httpOnly: true, secure: config.isProd, sameSite: 'Lax' as const };
 
   /* ---------- Claude connector: OAuth endpoints and /mcp (bearer tokens, not the session cookie) ---------- */
-  mountMcp(app, db, config);
+  mountMcp(app, db, config, fileStore);
 
   /* ---------- pages ---------- */
   const page = (name: 'index.html' | 'login.html') => (req: Request, res: Response) => {
@@ -273,6 +273,8 @@ export function createApp({ database, config, fileStore }: AppDeps) {
     if (!f) throw notFound('File not found');
     res.setHeader('Cache-Control', 'private, max-age=86400');
     res.type(f.mimeType);
+    // drawings from upload_asset: cleaned when saved, and opened on their own they still cannot run anything
+    if (f.mimeType === 'image/svg+xml') res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     // "root" limits the dotfile check to the stored name (the upload folder itself may be e.g. ".data/uploads")
     res.sendFile(f.storagePath, { root: fileStore.rootDir, dotfiles: 'deny' });
   });

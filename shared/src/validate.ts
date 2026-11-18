@@ -228,6 +228,8 @@ function crossCheck(doc: TestDocument): { errors: Issue[]; warnings: Issue[] } {
       objective.set(q.id, info);
     });
 
+    if (g.type === 'map_labelling' && !g.imageUrl && !g.map) err(`${gp}.imageUrl`, 'a map is needed: give "imageUrl" (a picture, e.g. from upload_asset) or "map": { "features": [...] } drawn by the site');
+    if (g.type === 'map_labelling' && g.imageUrl && g.map) err(`${gp}.map`, 'give either "imageUrl" or "map", not both');
     if (isMatchingType(g.type) || (isCompletionType(g.type) && 'options' in g && g.options)) {
       const opts = (g as { options: Array<{ label: string }> }).options;
       const seen = new Map<string, number>();

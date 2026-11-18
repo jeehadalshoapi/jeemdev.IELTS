@@ -757,3 +757,29 @@ tr.flash td, .card.flash { animation: flash 1.6s ease-out; }
 .rw-fixed { margin-top: 4px; color: var(--ok); font-weight: 600; }
 .blocks-card summary { font-size: 15px; }
 .quiz-list { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+/* ===== Phase 10: study plan, Today card ===== */
+.today-card { border-top: 4px solid #2a78d6; }
+.today-card .card-head .btn { margin-left: auto; }
+.today-bar { height: 8px; border-radius: 999px; background: #cde2fb; overflow: hidden; margin: -4px 0 12px; }
+.today-bar span { display: block; height: 100%; background: #2a78d6; border-radius: 999px; }
+.review-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 12px; border-radius: 8px; background: #fff7e0; border: 1px solid #f2d38b; }
+.plan-blocks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.plan-block { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.plan-block.st-done { background: var(--ok-soft); border-color: #a6dcc4; }
+.plan-block.st-done b { text-decoration: line-through; text-decoration-color: var(--ok); }
+.plan-block.st-skipped { opacity: .55; }
+.plan-check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; min-width: 0; }
+.plan-check input { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; }
+.plan-note { font-size: 12.5px; }
+.plan-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.pending { margin-top: 14px; }
+.pending h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+.plan-page { max-width: 900px; }
+.plan-day.is-today { border-color: #2a78d6; box-shadow: 0 0 0 2px #cde2fb; }
+.plan-day.is-past { opacity: .85; }
+.plan-day .card-head { gap: 10px; }
+@media (max-width: 560px) {
+  .plan-block { flex-direction: column; align-items: stretch; }
+  .plan-actions { justify-content: flex-end; }
+}

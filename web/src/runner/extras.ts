@@ -4,7 +4,7 @@
  *  - Speaking: recording (MediaRecorder, uploaded to the server), optional live transcript, Part 2 timers
  *  - Listening without a recording: the transcript read aloud by the browser (speech synthesis)
  */
-import { RECORDING_MAX_BYTES, speechLines, type Part, type QuestionGroup, type RecordingInfo, type SpeechLine, type SpeechResponse } from '@ielts/shared';
+import { RECORDING_MAX_BYTES, type Part, type QuestionGroup, type RecordingInfo, type SpeechLine, type SpeechResponse, listItems, partSpeech } from '@ielts/shared';
 import { api, ApiError, uploadTo } from '../lib/api';
 import { el, local } from '../lib/dom';
 import { formatClock } from '../lib/format';
@@ -363,6 +363,11 @@ export function speechPlayer(ctx: RenderCtx, part: Part): HTMLElement {
   const status = el('span', { class: 'tts-status' });
   const playBtn = el('button', { class: 'btn-ex btn-ex-primary', onclick: () => void play() });
   const pauseBtn = el('button', { class: 'btn-ex', hidden: true, onclick: () => pause() }, '⏸ Pause');
+  // silences: the reading time before the part, and "[pause 30]" in the transcript
+  let silenceLeft: number | null = null;
+  let silenceTimer: ReturnType<typeof setInterval> | undefined;
+  const stopSilence = () => { if (silenceTimer) clearInterval(silenceTimer); silenceTimer = undefined; silenceLeft = null; };
+  const skipBtn = el('button', { class: 'btn-ex', hidden: true, title: 'Skip the silence', onclick: () => { stopSilence(); idx++; speak(); } }, '⏭ Skip');
   const backBtn = el('button', { class: 'btn-ex', title: 'Back one sentence', hidden: exam, onclick: () => { idx = Math.max(from, idx - 1); if (playing) speak(); else draw(); } }, '⏮');
   const restartBtn = el('button', { class: 'btn-ex', title: 'From the start', hidden: exam, onclick: () => { idx = from; finished = false; if (playing) speak(); else draw(); } }, '⟲');
   const rate = el('select', { class: 'aud-select', title: 'Speed', hidden: exam, onchange: () => local.set(RATE_KEY, rate.value) },
@@ -371,7 +376,7 @@ export function speechPlayer(ctx: RenderCtx, part: Part): HTMLElement {
   const bar = el('div', { class: 'tts no-hl' },
     el('span', { class: 'aud-icon' }, '🔈'),
     el('div', { class: 'tts-text' }, el('b', null, 'Listening — read aloud by your browser'), status),
-    el('div', { class: 'tts-controls' }, playBtn, pauseBtn, backBtn, restartBtn, rate, voiceSel));
+    el('div', { class: 'tts-controls' }, playBtn, pauseBtn, skipBtn, backBtn, restartBtn, rate, voiceSel));
 
   if (!synth) {
     status.textContent = 'This browser cannot read text aloud. Try Chrome, Edge or Safari.';
@@ -388,6 +393,11 @@ export function speechPlayer(ctx: RenderCtx, part: Part): HTMLElement {
     playBtn.hidden = playing || (exam && finished);
     playBtn.textContent = exam ? (heard ? '▶ Carry on listening' : '▶ Start listening') : finished ? '▶ Play again' : idx > from ? '▶ Resume' : '▶ Play';
     pauseBtn.hidden = !playing || exam;
+    skipBtn.hidden = exam || silenceLeft === null;
+    if (silenceLeft !== null) {
+      status.textContent = idx - from <= 1 && lines?.[0]?.text.startsWith('You now have') ? `Look at the questions — ${silenceLeft} s` : `Pause — ${silenceLeft} s`;
+      return;
+    }
     status.textContent = finished ? (exam ? 'You have heard this part. In exam mode each part plays once.' : 'Finished.')
       : lines ? `${playing ? 'Playing' : 'Paused'} — sentence ${Math.min(idx + 1, total)} of ${total}`
       : exam ? (heard ? 'Stopped part-way — it carries on from where it stopped.' : 'In exam mode each part plays once, like the real test.')
@@ -397,7 +407,7 @@ export function speechPlayer(ctx: RenderCtx, part: Part): HTMLElement {
   async function load(): Promise<boolean> {
     if (lines) return true;
     try {
-      if (ctx.readonly && part.transcript) { lines = speechLines(part.transcript); from = 0; total = lines.length; }
+      if (ctx.readonly && part.transcript) { lines = partSpeech(part, listItems([part]).flatMap(i => i.numbers)); from = 0; total = lines.length; }
       else {
         const r = await api<SpeechResponse>(`/attempts/${ctx.attemptId}/speech/${encodeURIComponent(part.id)}`);
         lines = r.lines; from = r.from; total = r.total;
@@ -434,6 +444,19 @@ export function speechPlayer(ctx: RenderCtx, part: Part): HTMLElement {
       return;
     }
     const line = lines[idx - from]!;
+    if (line.pauseSec) {
+      stopSilence();
+      silenceLeft = line.pauseSec;
+      if (exam) ctx.setState(stateKey, { line: idx });
+      const mine = idx;
+      silenceTimer = setInterval(() => {
+        if (!playing || idx !== mine) { stopSilence(); draw(); return; }
+        silenceLeft = (silenceLeft ?? 1) - 1;
+        if (silenceLeft <= 0) { stopSilence(); idx++; speak(); } else draw();
+      }, 1000);
+      draw();
+      return;
+    }
     const u = new SpeechSynthesisUtterance(line.text);
     const v = voiceFor(line.speaker);
     if (v.voice) u.voice = v.voice;
@@ -455,11 +478,11 @@ export function speechPlayer(ctx: RenderCtx, part: Part): HTMLElement {
     playing = true;
     speak();
   }
-  function pause() { playing = false; synth?.cancel(); draw(); }
+  function pause() { playing = false; stopSilence(); synth?.cancel(); draw(); }
 
   // the practice pause button stops the voice too
   ctx.everySecond(() => { if (playing && ctx.paused()) pause(); });
-  ctx.onDestroy(() => { playing = false; synth?.cancel(); });
+  ctx.onDestroy(() => { playing = false; stopSilence(); synth?.cancel(); });
   draw();
   return bar;
 }
