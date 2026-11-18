@@ -2,7 +2,7 @@ import type { AnswerKey, Feedback, Lesson, MistakeCategory, TestContent, VocabWo
 import { sql } from 'drizzle-orm';
 import { boolean, date, index, integer, jsonb, pgEnum, pgTable, real, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-export const testSkill = pgEnum('test_skill', ['reading', 'listening', 'writing', 'speaking', 'mixed']);
+export const testSkill = pgEnum('test_skill', ['reading', 'listening', 'writing', 'speaking', 'vocabulary', 'mixed']);
 export const testKind = pgEnum('test_kind', ['homework', 'practice', 'full_mock']);
 export const testStatus = pgEnum('test_status', ['assigned', 'archived']);
 export const testSource = pgEnum('test_source', ['claude', 'manual']);

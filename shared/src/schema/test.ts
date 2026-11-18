@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { Id, Minutes, NonEmptyText, OptionalText, Url } from './common';
 import { QuestionGroup } from './groups';
 
-export const SKILLS = ['reading', 'listening', 'writing', 'speaking', 'mixed'] as const;
-export const SECTION_SKILLS = ['reading', 'listening', 'writing', 'speaking'] as const;
+export const SKILLS = ['reading', 'listening', 'writing', 'speaking', 'vocabulary', 'mixed'] as const;
+export const SECTION_SKILLS = ['reading', 'listening', 'writing', 'speaking', 'vocabulary'] as const;
 export const KINDS = ['homework', 'practice', 'full_mock'] as const;
 export const STATUSES = ['assigned', 'archived'] as const;
 export const SOURCES = ['claude', 'manual'] as const;
@@ -76,6 +76,8 @@ export const TestDocument = z.strictObject({
   /** shown before the test starts */
   instructions: OptionalText,
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: 'must be a date like "2026-11-30"' }).optional(),
+  /** a vocabulary quiz on a set of the vocabulary bank: the result goes into the set's self-test log, missed words become "weak" */
+  vocabularySetId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/, { error: 'must be a vocabulary set id such as "set-3"' }).optional(),
   parts: z.array(Part).min(1, { error: 'needs at least one part' }),
   answerKey: AnswerKey.default({})
 });
@@ -94,6 +96,7 @@ export type TestDocumentInput = z.input<typeof TestDocument>;
 export interface TestContent {
   variant: Variant;
   timeLimitMin?: number;
+  vocabularySetId?: string;
   parts: Part[];
 }
 

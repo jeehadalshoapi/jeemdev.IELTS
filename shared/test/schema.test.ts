@@ -233,7 +233,7 @@ describe('clear errors (path + reason)', () => {
     const errs = errorsOf(doc);
     has(errs, 'parts[0].questionGroups[0].questions[0].id', 'must start with a letter');
     has(errs, 'timeLimitMin', 'must be a number of minutes');
-    has(errs, 'skill', 'must be one of: reading, listening, writing, speaking, mixed');
+    has(errs, 'skill', 'must be one of: reading, listening, writing, speaking, vocabulary, mixed');
   });
 
   it('reports every problem at once, even when one group is malformed', () => {

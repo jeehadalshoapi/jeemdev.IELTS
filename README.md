@@ -12,6 +12,7 @@ A private IELTS practice site at **https://ielts.jeemdev.net**. Claude writes te
 | 6 | Task 1 charts drawn from data, plan+intro drill timers, speaking recording (+ optional live transcript) with Part 2 timers, listening read aloud | ✅ |
 | 7 | Claude's feedback on the results page (criteria, mistakes linked to the answers, corrected essay side by side), progress charts with period / skill filters | ✅ |
 | 8 | Lessons, vocabulary bank (table, flashcards, self-test log), My Mistakes (never-again list, 5-minute daily review); Claude files essay mistakes into the log | ✅ |
+| 9 | Vocabulary quizzes (skill `vocabulary`, word → meaning / opposite, "Test me" on a set, results go into the set's self-test log), sentence rewrite with a mark per sentence, a plan box above Task 2 essays, a study-block log per attempt | ✅ |
 
 ## Folders
 - `shared/`: the test format (zod schemas, validation, answer helpers) and the API types. Used by everything else.

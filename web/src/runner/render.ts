@@ -1,7 +1,7 @@
 /* Renders parts and question groups of the new test format (converted from the old js/exam-render.js). */
 import {
   describeWordLimit, letter, TFNG_CHOICES, YNNG_CHOICES,
-  type AnswerValue, type AttemptMode, type CompletionGroup, type RecordingInfo, type Option, type Part, type QuestionGroup, type SectionSkill
+  type AnswerValue, type AttemptMode, type CompletionGroup, type MatchingLikeGroup, type RecordingInfo, type Option, type Part, type QuestionGroup, type SectionSkill
 } from '@ielts/shared';
 import { $, $$, el } from '../lib/dom';
 import { renderChart } from './charts';
@@ -119,6 +119,7 @@ export function renderGroup(ctx: RenderCtx, g: QuestionGroup): HTMLElement {
     case 'mcq_single': box.appendChild(mcqSingle(ctx, g)); break;
     case 'mcq_multi': box.appendChild(mcqMulti(ctx, g)); break;
     case 'matching_headings': case 'matching_information': case 'matching_features': case 'matching_sentence_endings': case 'map_labelling':
+    case 'definition_match': case 'opposite_match':
       box.appendChild(matching(ctx, g)); break;
     case 'short_answer': box.appendChild(shortAnswer(ctx, g)); break;
     case 'sentence_completion': case 'summary_completion': case 'note_completion': case 'table_completion':
@@ -225,7 +226,7 @@ function completion(ctx: RenderCtx, g: CompletionGroup): HTMLElement {
 }
 
 /* ---------- matching: drag & drop, or click an option then a box ---------- */
-type MatchingG = Extract<QuestionGroup, { type: 'matching_headings' | 'matching_information' | 'matching_features' | 'matching_sentence_endings' | 'map_labelling' }>;
+type MatchingG = MatchingLikeGroup;
 
 function matching(ctx: RenderCtx, g: MatchingG): HTMLElement {
   const qs = el('div', { class: 'match-qs' }, g.questions.map(q => {
@@ -342,6 +343,13 @@ export function refreshGroup(ctx: RenderCtx, groupId: string): void {
    writing
    ====================================================================== */
 function writingPrompt(g: QuestionGroup): HTMLElement {
+  if (g.type === 'sentence_rewrite') {
+    return el('div', { class: 'w-prompt', dataset: { group: g.id } },
+      g.title ? el('h3', null, g.title) : null,
+      el('div', { class: 'q-instr', html: mdBlock(g.instructions ?? 'Rewrite each sentence.') }),
+      el('ol', { class: 'rw-list' }, g.items.map(it => el('li', { value: it.number ?? null, html: inlineMd(it.text) }))),
+      el('p', { class: 'muted' }, 'Write your version of each sentence in its box. Claude marks each one.'));
+  }
   if (g.type !== 'writing_task1' && g.type !== 'writing_task2' && g.type !== 'paragraph') return el('div');
   return el('div', { class: 'w-prompt', dataset: { group: g.id } },
     g.instructions ? el('div', { class: 'q-instr', html: mdBlock(g.instructions) }) : null,
@@ -365,7 +373,29 @@ export function textArea(ctx: RenderCtx, value: string, minWords: number, label:
 
 function writingAnswer(ctx: RenderCtx, g: QuestionGroup): HTMLElement {
   if (g.type === 'writing_task2' && g.mode === 'plan_intro') return drillBox(ctx, g, textArea);
-  if (g.type === 'writing_task1' || g.type === 'writing_task2' || g.type === 'paragraph') {
+  if (g.type === 'sentence_rewrite') {
+    return el('div', { class: 'rw-answers', dataset: { group: g.id } }, g.items.map((it, i) => {
+      const v = ctx.answers[it.id];
+      return el('div', { class: 'rw-item' },
+        el('div', { class: 'rw-orig' }, el('b', null, `${it.number ?? i + 1}. `), el('span', { html: inlineMd(it.text) })),
+        textArea(ctx, typeof v === 'string' ? v : '', 0, null, val => ctx.setAnswer(it.id, val), 2));
+    }));
+  }
+  if (g.type === 'writing_task2') {
+    // a full essay: an optional plan above it, stored apart from the essay (state "plan:<id>"), not counted or marked as the essay
+    const key = `plan:${g.id}`;
+    const saved = typeof ctx.state[key] === 'string' ? ctx.state[key] as string : '';
+    const v = ctx.answers[g.id];
+    const plan = el('textarea', {
+      class: 'w-text w-plan', rows: 5, spellcheck: 'false', autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off', disabled: ctx.readonly,
+      placeholder: 'Position · main idea of each body paragraph · examples', value: saved,
+      oninput: () => ctx.setState(key, plan.value.slice(0, 4000))
+    });
+    return el('div', null,
+      el('details', { class: 'plan-box no-hl', open: !!saved.trim() || !ctx.readonly }, el('summary', null, '📝 Plan (optional — kept apart from the essay)'), plan),
+      textArea(ctx, typeof v === 'string' ? v : '', g.minWords, null, val => ctx.setAnswer(g.id, val)));
+  }
+  if (g.type === 'writing_task1' || g.type === 'paragraph') {
     const v = ctx.answers[g.id];
     return textArea(ctx, typeof v === 'string' ? v : '', g.minWords, null, val => ctx.setAnswer(g.id, val));
   }

@@ -32,6 +32,8 @@ function itemInfo(content: TestContent): Map<string, ItemInfo> {
         }
       } else if (g.type === 'writing_task1' || g.type === 'writing_task2' || g.type === 'paragraph') {
         out.set(g.id, { ...base, question: g.prompt });
+      } else if (g.type === 'sentence_rewrite') {
+        for (const it of g.items) out.set(it.id, { ...base, question: `${g.instructions ? `${g.instructions}\n` : ''}${it.number !== undefined ? `${it.number}. ` : ''}${it.text}` });
       } else if (g.type === 'speaking_part2') {
         out.set(g.id, { ...base, question: `${g.cueCard.topic}\nYou should say: ${g.cueCard.bullets.join('; ')}${g.cueCard.closing ? `\n${g.cueCard.closing}` : ''}` });
         for (const q of g.followUps) out.set(q.id, { ...base, question: q.text });
@@ -125,12 +127,14 @@ export async function attemptDetail(db: Db, attemptId: string, origin: string): 
     const rec = r.recordings[o.id];
     const drill = state[`drill:${o.id}`] as { planSec?: number; introSec?: number } | undefined;
     const prep = state[`prep:${o.id}`];
+    const plan = state[`plan:${o.id}`];
     return {
       id: o.id, type: o.type, part: titles.get(o.partId) ?? o.partId, task: info.get(o.id)?.question ?? '',
       ...(g?.type === 'writing_task1' && g.charts.length ? { charts: g.charts } : {}),
       ...(g?.type === 'writing_task2' && g.mode === 'plan_intro' ? { drill: { planTimeMin: g.planTimeMin, introTimeMin: g.introTimeMin, planSecUsed: drill?.planSec ?? null, introSecUsed: drill?.introSec ?? null } } : {}),
       answer, words: o.words, ...(o.minWords !== undefined ? { minWords: o.minWords } : {}),
       ...(typeof prep === 'string' && prep.trim() ? { preparationNotes: prep } : {}),
+      ...(typeof plan === 'string' && plan.trim() ? { plan } : {}),
       ...(rec ? { recording: { url: `${origin}${rec.url}`, durationSec: rec.durationSec } } : {}),
       ...(key[o.id]?.modelAnswer ? { modelAnswer: key[o.id]!.modelAnswer } : {}),
       ...(key[o.id]?.notes ? { markingNotes: key[o.id]!.notes } : {})
@@ -149,6 +153,7 @@ export async function attemptDetail(db: Db, attemptId: string, origin: string): 
     autoSubmittedWhenTimeRanOut: r.attempt.autoSubmitted,
     timeUsedSec: r.attempt.timeUsedSec,
     timePerPartSec: perPartTime,
+    ...(studyBlocks(state).length ? { studyBlocks: studyBlocks(state), studyBlocksNote: 'Each block is one sitting (a new block starts after a pause or a break of a minute or more): start, end, active minutes, and the total words written by its end.' } : {}),
     score: { raw: s.raw, total: s.total, estimatedBand: s.band, sections: s.sections, perType: s.perType, reasons: s.reasons },
     questions,
     writingAndSpeaking: openItems,
@@ -157,4 +162,14 @@ export async function attemptDetail(db: Db, attemptId: string, origin: string): 
     resultsUrl: `${origin}/#/result/${r.attempt.id}`,
     reasonsExplained: 'correct | wrong | blank (not answered) | over_word_limit (marked wrong, like the real test) | likely_spelling (wrong, but close to a correct answer — see note)'
   };
+}
+
+/** the runner's study-block log (state key "blocks"), tidied for Claude */
+function studyBlocks(state: Record<string, unknown>): Array<{ start: string; end: string; activeMinutes: number; words: number }> {
+  const list = Array.isArray(state.blocks) ? state.blocks as Array<{ start?: unknown; end?: unknown; sec?: unknown; words?: unknown }> : [];
+  return list.filter(b => typeof b.start === 'string' && typeof b.end === 'string').map(b => ({
+    start: b.start as string, end: b.end as string,
+    activeMinutes: Math.round((Number(b.sec) || 0) / 6) / 10,
+    words: Number(b.words) || 0
+  }));
 }

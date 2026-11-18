@@ -13,6 +13,8 @@ import { rangeText, renderPart, showTab, type RenderCtx } from './render';
 import { AttemptSync, type SyncStatus } from './sync';
 import { Tools, type SavedHighlight } from './tools';
 
+interface StudyBlock { start: string; end: string; sec: number; words: number }
+
 interface Slot { num: number; partIndex: number; qid: string; sub: number; type: string }
 
 const isAnswered = (v: AnswerValue | undefined) =>
@@ -70,6 +72,12 @@ class Runner {
   private readonly tickers: Array<(running: boolean) => void> = [];
   private readonly cleanups: Array<() => void> = [];
   private readonly state: Record<string, unknown>;
+  /** study-block log (ielts-site-spec.md item 6): one entry per sitting, saved in state "blocks" */
+  private blocks: StudyBlock[] = [];
+  private blockOpen = false;
+  private idleSec = 0;
+  private blockUnsaved = 0;
+  private openItemIds: string[] = [];
 
   private readonly results = new Map<number, QuestionResult>();
 
@@ -90,6 +98,8 @@ class Runner {
     const st = view.attempt.state;
     this.state = { ...st };
     if (Array.isArray(st.flags)) for (const n of st.flags) if (typeof n === 'number') this.flags.add(n);
+    if (Array.isArray(st.blocks)) this.blocks = (st.blocks as StudyBlock[]).filter(b => b && typeof b.start === 'string').map(b => ({ ...b }));
+    this.openItemIds = listItems(this.parts).filter(i => i.kind !== 'objective').map(i => i.id);
 
     this.sync = new AttemptSync(view.attempt.id, {
       onSaved: r => this.onSaved(r),
@@ -138,8 +148,8 @@ class Runner {
       if (this.audio) this.sync.setState('audio', this.audio.position());
       void this.sync.flush();
     }, 10_000));
-    this.on(document, 'visibilitychange', () => { if (document.visibilityState === 'hidden') void this.sync.flush({ keepalive: true }); });
-    this.on(window, 'pagehide', () => { void this.sync.flush({ keepalive: true }); });
+    this.on(document, 'visibilitychange', () => { if (document.visibilityState === 'hidden') { this.saveBlocks(); void this.sync.flush({ keepalive: true }); } });
+    this.on(window, 'pagehide', () => { this.saveBlocks(); void this.sync.flush({ keepalive: true }); });
     this.drawTimer();
   }
 
@@ -437,6 +447,7 @@ class Runner {
     if (this.finished) return;
     const running = !this.paused && document.visibilityState === 'visible';
     if (running) this.sync.addActive(this.parts[this.part]!.id, 1);
+    this.trackBlock(running);
     for (const fn of this.tickers) { try { fn(running); } catch (e) { console.error(e); } }
     const r = this.remaining();
     if (r !== null) {
@@ -474,7 +485,44 @@ class Runner {
     if (s === 'offline') this.flash('You are offline. Your answers are kept on this device and will be saved when the connection is back.', 'warn');
   }
 
+  /** a sitting goes on while the test is worked on; a pause or a break of a minute or more ends it */
+  private trackBlock(running: boolean): void {
+    if (!running) {
+      if (this.blockOpen && ++this.idleSec >= 60) { this.blockOpen = false; this.saveBlocks(); }
+      return;
+    }
+    this.idleSec = 0;
+    const now = new Date().toISOString();
+    if (!this.blockOpen) {
+      this.blocks = [...this.blocks, { start: now, end: now, sec: 0, words: this.wordsWritten() }].slice(-60);
+      this.blockOpen = true;
+    }
+    const b = this.blocks[this.blocks.length - 1]!;
+    b.end = now;
+    b.sec++;
+    if (++this.blockUnsaved >= 15) this.saveBlocks();
+  }
+
+  private wordsWritten(): number {
+    let n = 0;
+    for (const id of this.openItemIds) {
+      const v = this.answers[id];
+      if (typeof v === 'string') n += wordCount(v);
+      else if (v && typeof v === 'object' && !Array.isArray(v)) for (const x of Object.values(v)) n += wordCount(x);
+    }
+    return n;
+  }
+
+  private saveBlocks(): void {
+    if (this.review || !this.blocks.length) return;
+    this.blocks[this.blocks.length - 1]!.words = this.wordsWritten();
+    this.blockUnsaved = 0;
+    this.state.blocks = this.blocks;
+    this.sync.setState('blocks', this.blocks.map(b => ({ ...b })));
+  }
+
   private setPaused(on: boolean): void {
+    if (on) { this.saveBlocks(); this.blockOpen = false; }
     this.paused = on;
     if (this.audio) { if (on) this.audio.audio.pause(); }
     $('.pause-overlay', this.cd)?.remove();
@@ -531,6 +579,7 @@ class Runner {
     this.finished = true;
     this.audio?.stop();
     if (this.audio) this.sync.setState('audio', this.audio.position());
+    this.saveBlocks();
     try {
       await this.sync.submit();
     } catch (e) {

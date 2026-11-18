@@ -14,7 +14,8 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 | 6 | Task 1 charts (SVG), plan+intro drill timers, speaking recording + optional live transcript + Part 2 timers, listening read aloud | ✅ merged into `main`, **deployed** 2026-11-18 (the owner said "go with phase 6 and deploy after you finish") |
 | 7 | Claude's feedback on the results page, progress charts on History (filters in the URL) | ✅ merged, **deployed** 2026-11-18 |
 | 8 | Lessons, vocabulary bank, mistakes log: tables (migration `0004_study`), 12 MCP tools (`server/src/mcp/study-tools.ts`), pages `#/lessons` `#/lesson/:id` `#/vocab` `#/vocab/:id` `#/mistakes`; `save_feedback` `addToLog` | ✅ merged, **deployed** 2026-11-18 |
-| 9–11 | The rest of [ielts-site-spec.md](ielts-site-spec.md): 9 vocab quizzes (skill `vocabulary`), sentence rewrite, Task 2 plan box, study-block log; 10 pictures (`upload_asset` SVG, cleaned) + map_labelling from data, study plan + Today, listening pauses; 11 speaking pauses/transcripts | in progress (owner said 2026-11-18: build all and deploy each) |
+| 9 | Skill `vocabulary` (enum migration `0005`; no band, accuracy; types in `VOCABULARY_TYPES`), `definition_match` / `opposite_match` (matching types), `sentence_rewrite` (a writing type, one open item per sentence; feedback `items` [{itemId, correct, comment, corrected}]), test `vocabularySetId` (on submit → self-test log via `server/src/study/vocab-quiz.ts`, idempotent), "Test me" `POST /api/vocab/sets/:id/quiz`, plan box (state `plan:<groupId>`), study blocks (state `blocks`, runner `trackBlock`) | ✅ merged, **deployed** 2026-11-18 |
+| 10–11 | 10 pictures (`upload_asset` SVG cleaned + sandbox CSP) + map_labelling from data, study plan + Today, listening pauses; 11 speaking pauses/transcripts | in progress (owner: build all, deploy each) |
 
 - `main` is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
 - **The owner's list `ielts-site-spec.md`** (2026-11-18): decisions taken — deploy each phase when done; pictures = `upload_asset` (SVG cleaned on the server and served with a sandbox CSP) **and** maps drawn from data; vocabulary quizzes = a new skill `vocabulary` (no band, accuracy only). Already true before Phase 8: writing boxes have `spellcheck="false"`; exam-mode read-aloud plays once; the speaking live transcript + recording length reach `get_attempt`.
@@ -92,7 +93,7 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 ```bash
 npm install
 npm run dev                 # API :3000 (tsx watch) + website :5173 (Vite); dev password "ielts-dev"
-npm test                    # vitest — 133 tests (shared/test, server/test); hookTimeout 90 s because every server file starts its own PGlite
+npm test                    # vitest — 141 tests (shared/test, server/test); hookTimeout 90 s because every server file starts its own PGlite
 npm run typecheck           # tsc for shared, server, web (TypeScript 7 — type-checking only)
 npm run build               # vite build web -> web/dist ; esbuild server -> server/dist
 npm start                   # production build on :3000
@@ -115,6 +116,7 @@ node scripts/e2e/cdp.cjs http://localhost:3000/login scripts/e2e/connector.cjs  
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/extras.cjs             # Phase 6 charts, drill timers, recording (fake mic), read aloud
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/feedback.cjs           # Phase 7 feedback rendering, progress charts, filters, phone
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/study.cjs              # Phase 8 lessons, vocabulary (table, flashcards), mistakes + review
+node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/format9.cjs            # Phase 9 Test me quiz, plan box, sentence rewrite, study blocks (fresh DB: it submits)
 TOKEN=$(node scripts/e2e/mcp-connect.mjs http://localhost:3000)                    # OAuth like claude.ai does; prints a 1-hour token
 npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http --header "Authorization: Bearer $TOKEN" --method tools/list
 ```

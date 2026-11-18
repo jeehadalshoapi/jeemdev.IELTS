@@ -742,3 +742,18 @@ tr.flash td, .card.flash { animation: flash 1.6s ease-out; }
   .fc-word { font-size: 26px; }
   .rv-card { padding: 16px; }
 }
+
+/* ===== Phase 9: vocabulary skill, sentence rewrite, plan box, study blocks ===== */
+.badge-vocabulary { background: #e8f1fd; color: #1c5cab; }
+.test-card.mod-vocabulary, .sec-card.mod-vocabulary, .skill-card.mod-vocabulary { border-top-color: #2a78d6; }
+.rw-list { margin: 8px 0; padding-left: 22px; }
+.rw-list li { margin-bottom: 6px; }
+.rw-answers { display: flex; flex-direction: column; gap: 14px; }
+.rw-item .rw-orig { font-size: 14px; margin-bottom: 4px; }
+.rw-item .w-answer { margin: 0; }
+.rewrite-table td { vertical-align: top; }
+.rewrite-table .rw-src { color: #7a271a; }
+.rewrite-table .rw-yours { font-family: Georgia, "Times New Roman", serif; }
+.rw-fixed { margin-top: 4px; color: var(--ok); font-weight: 600; }
+.blocks-card summary { font-size: 15px; }
+.quiz-list { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }

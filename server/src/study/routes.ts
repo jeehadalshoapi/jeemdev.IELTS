@@ -4,6 +4,7 @@ import type { Router } from 'express';
 import { z } from 'zod';
 import type { Db } from '../db/client';
 import { notFound } from '../http/errors';
+import { makeQuiz } from './vocab-quiz';
 import { getLesson, getVocabSet, listLessons, listMistakes, listVocabSets, reviewMistake, updateMistake, updateWord } from './store';
 
 const MistakeQuery = z.strictObject({
@@ -25,6 +26,8 @@ export function mountStudyRoutes(api: Router, db: Db): void {
     if (!v) throw notFound('Vocabulary set not found');
     res.json(v);
   });
+  /** "Test me": a quiz made from the set (an unused one is reused) */
+  api.post('/vocab/sets/:id/quiz', async (req, res) => { res.json(await makeQuiz(db, req.params.id)); });
   /** the owner marks a word (flashcards, table) */
   api.patch('/vocab/sets/:id/words', async (req, res) => {
     const p = WordPatch.parse(req.body ?? {});

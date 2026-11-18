@@ -62,6 +62,18 @@ export const QUESTION_TYPE_EXAMPLES: Record<QuestionType, QuestionTypeExample> =
     group: { id: 'g1', type: 'matching_sentence_endings', instructions: 'Complete each sentence with the correct ending, A–C.', options: [{ label: 'A', text: 'reflect more sunlight.' }, { label: 'B', text: 'store heat overnight.' }, { label: 'C', text: 'need less water.' }], questions: [{ id: 'q1', number: 1, text: 'Light-coloured roofs' }] },
     answerKey: { q1: { accept: ['A'] } }
   },
+  definition_match: {
+    description: 'Vocabulary quiz (skill "vocabulary", no passage): match each word with its meaning. Add "vocabularySetId" to the test to log the result in that set.',
+    section: 'vocabulary',
+    group: { id: 'g1', type: 'definition_match', instructions: 'Match each word with its meaning, A-D.', optionsTitle: 'Meanings', options: [{ label: 'A', text: 'make less severe' }, { label: 'B', text: 'make worse' }, { label: 'C', text: 'harmful' }, { label: 'D', text: 'become smaller' }], questions: [{ id: 'q1', number: 1, text: 'mitigate' }, { id: 'q2', number: 2, text: 'exacerbate' }] },
+    answerKey: { q1: { accept: ['A'] }, q2: { accept: ['B'] } }
+  },
+  opposite_match: {
+    description: 'Vocabulary quiz: match each word with its opposite (trains the near-opposite trap of word boxes).',
+    section: 'vocabulary',
+    group: { id: 'g1', type: 'opposite_match', instructions: 'Choose the OPPOSITE of each word, A-C.', optionsTitle: 'Opposites', options: [{ label: 'A', text: 'aggravate' }, { label: 'B', text: 'beneficial' }, { label: 'C', text: 'proliferate' }], questions: [{ id: 'q1', number: 1, text: 'mitigate' }, { id: 'q2', number: 2, text: 'detrimental' }] },
+    answerKey: { q1: { accept: ['A'] }, q2: { accept: ['B'] } }
+  },
   map_labelling: {
     description: 'Listening: label a map or plan with letters. imageUrl is required.',
     section: 'listening',
@@ -133,6 +145,12 @@ export const QUESTION_TYPE_EXAMPLES: Record<QuestionType, QuestionTypeExample> =
     group: { id: 'w1', type: 'writing_task2', prompt: 'Some people think cities should spend money on parks rather than on roads. To what extent do you agree or disagree?', mode: 'plan_intro', planTimeMin: 5, introTimeMin: 10, introMinWords: 40 },
     answerKey: { w1: { modelAnswer: 'Plan: … Introduction: …' } }
   },
+  sentence_rewrite: {
+    description: 'Repair task / sentence homework: one answer box per sentence, each marked by you (save_feedback "items": [{ "itemId": "r1", "correct": true, "comment": "..." }]). answerKey.<itemId>.modelAnswer is shown after marking.',
+    section: 'writing',
+    group: { id: 'w1', type: 'sentence_rewrite', instructions: 'Rewrite each sentence at band 7+.', items: [{ id: 'r1', number: 1, text: 'Many graduates can not find job because of leak of experience.' }, { id: 'r2', number: 2, text: 'Government should to invest more money for public transport.' }] },
+    answerKey: { r1: { modelAnswer: 'Many graduates cannot find a job because they lack experience.' }, r2: { modelAnswer: 'The government should invest more in public transport.' } }
+  },
   paragraph: {
     description: 'A single body paragraph (PEEL: Point, Explain, Example, Link).',
     section: 'writing',
@@ -172,6 +190,7 @@ export function exampleTestForType(type: QuestionType): TestDocumentInput {
   const ex = QUESTION_TYPE_EXAMPLES[type];
   const part: Record<string, unknown> = { id: 'p1', title: ex.section === 'writing' ? 'Task' : ex.section === 'speaking' ? 'Speaking' : 'Part 1', questionGroups: [ex.group] };
   if (ex.section === 'reading') part.passage = EXAMPLE_PASSAGE;
+  if (ex.section === 'vocabulary') part.title = 'Vocabulary';
   if (ex.section === 'listening') part.transcript = 'Narrator: You will hear a conversation about … (the full transcript goes here).';
   return {
     title: `Example — ${type}`,

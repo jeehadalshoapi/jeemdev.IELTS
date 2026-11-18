@@ -37,7 +37,7 @@ interface Attached {
   abort?: () => void;
 }
 
-const SECTION_ICON: Record<SectionSkill, string> = { reading: '📖', listening: '🎧', writing: '✍️', speaking: '🗣' };
+const SECTION_ICON: Record<SectionSkill, string> = { reading: '📖', listening: '🎧', writing: '✍️', vocabulary: '🔤', speaking: '🗣' };
 const mb = (bytes: number) => (bytes < 1024 * 1024
   ? `${Math.max(1, Math.round(bytes / 1024))} KB`
   : `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`);
