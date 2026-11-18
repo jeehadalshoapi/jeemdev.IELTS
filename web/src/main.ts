@@ -5,8 +5,10 @@ import { ApiError } from './lib/api';
 import { el } from './lib/dom';
 import { mountDashboard } from './pages/dashboard';
 import { mountHistory } from './pages/history';
+import { mountImport } from './pages/import';
 import { mountResult } from './pages/result';
 import { mountStart } from './pages/start';
+import { mountTests } from './pages/tests';
 import { mountReview, mountRunner, type RunnerHandle } from './runner/runner';
 
 const app = document.getElementById('app')!;
@@ -34,6 +36,8 @@ async function render(): Promise<void> {
       if (name === 'test' && id) await mountStart(app, id);
       else if (name === 'result' && id) await mountResult(app, id);
       else if (name === 'history') await mountHistory(app);
+      else if (name === 'tests') await mountTests(app);
+      else if (name === 'import') view = mountImport(app);
       else await mountDashboard(app);
     }
   } catch (e) {

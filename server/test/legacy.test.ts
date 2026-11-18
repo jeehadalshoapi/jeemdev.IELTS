@@ -86,10 +86,11 @@ describe('legacy import (old site → database)', () => {
     const data = JSON.parse(await readFile(FIXTURE, 'utf8'));
     const exam = data.exams.find((e: { module: string }) => e.module === 'listening');
     exam.title = 'Broken listening';
-    exam.parts[2].audioId = null; // no audio and no transcript
+    // no recording and no transcript anywhere (a later part may rely on an earlier part's recording, so clear them all)
+    for (const p of exam.parts) { p.audioId = null; p.transcript = ''; }
     const [r] = await importLegacyExport(database.db, store, { exams: [exam], files: data.files });
     expect(r?.status).toBe('invalid');
-    expect(r?.errors).toContainEqual({ path: 'parts[2].transcript', message: expect.stringContaining('is required for a listening part') });
+    expect(r?.errors).toContainEqual({ path: 'parts[0].transcript', message: expect.stringContaining('is required for a listening part') });
   });
 
   it('infers word limits from instructions', () => {

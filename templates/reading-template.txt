@@ -1,8 +1,8 @@
 // ============================================================
-//  READING TEST TEMPLATE  —  IELTS Practice Studio
+//  READING TEST TEMPLATE  —  IELTS Practice
 //  1. Save a copy of this file (e.g. "Cambridge 18 Test 1 Reading.txt")
 //  2. Replace the example text with your test
-//  3. Dashboard → Import → choose the .txt file
+//  3. Website → Tests → Import a test: paste the text, press Check, then Save test
 //  Lines starting with // are comments and are ignored.
 //  Full guide: HOW-TO-ADD-TESTS.md in the main folder.
 // ============================================================

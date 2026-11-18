@@ -1,4 +1,4 @@
-import type { ApiErrorBody } from '@ielts/shared';
+import type { ApiErrorBody, UploadResponse } from '@ielts/shared';
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string, message: string, readonly issues: ApiErrorBody['issues'] = []) {
@@ -38,4 +38,26 @@ export async function api<T>(path: string, o: { method?: string; body?: unknown;
     throw new ApiError(res.status, b.error ?? 'http_error', b.message ?? `Request failed (${res.status})`, b.issues ?? []);
   }
   return data as T;
+}
+
+/** upload an audio file or picture (POST /api/files); XHR rather than fetch so the progress can be shown */
+export function uploadFile(file: File, contentType: string, onProgress: (fraction: number) => void): { done: Promise<UploadResponse>; abort: () => void } {
+  const xhr = new XMLHttpRequest();
+  const done = new Promise<UploadResponse>((resolve, reject) => {
+    xhr.open('POST', `/api/files?name=${encodeURIComponent(file.name)}`);
+    xhr.setRequestHeader('x-csrf-token', csrfToken());
+    xhr.setRequestHeader('content-type', contentType);
+    xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    xhr.onload = () => {
+      let data: Partial<ApiErrorBody> & Partial<UploadResponse> = {};
+      try { data = JSON.parse(xhr.responseText); } catch { /* not JSON */ }
+      if (xhr.status === 401) { location.href = '/login'; reject(new ApiError(401, 'not_logged_in', 'Please log in.')); return; }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data as UploadResponse);
+      else reject(new ApiError(xhr.status, data.error ?? 'http_error', data.message ?? `Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new TypeError('Cannot reach the server.'));
+    xhr.onabort = () => reject(new ApiError(0, 'aborted', 'Upload cancelled.'));
+    xhr.send(file);
+  });
+  return { done, abort: () => xhr.abort() };
 }

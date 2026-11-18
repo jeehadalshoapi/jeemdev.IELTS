@@ -1,26 +1,23 @@
-// npm run validate -- <test.json> — check a test JSON file (e.g. one Claude wrote) without saving it
+// npm run validate -- <test.json | test.txt> — check a test (JSON as Claude writes it, or the text format) without saving it.
+// Audio and picture file names are not checked here; the import page asks for the files.
 import { readFile } from 'node:fs/promises';
-import { formatIssues, totalMarks, validateTest } from '@ielts/shared';
+import path from 'node:path';
+import type { ImportIssue } from '@ielts/shared';
+import { prepareImport } from '../import/service';
 
 const file = process.argv[2];
 if (!file) {
-  console.error('Usage: npm run validate -- <test.json>');
+  console.error('Usage: npm run validate -- <test.json | test.txt>');
   process.exit(1);
 }
 
-let input: unknown;
-try {
-  input = JSON.parse(await readFile(file, 'utf8'));
-} catch (e) {
-  console.error(`Not valid JSON: ${(e as Error).message}`);
-  process.exit(1);
-}
-
-const r = validateTest(input);
-if (r.ok) {
-  console.log(`✓ Valid: "${r.test.title}" — ${r.test.skill}, ${r.test.parts.length} part(s), ${totalMarks(r.test.parts)} auto-scored mark(s).`);
+const list = (issues: ImportIssue[]) => issues.map(i => `- ${i.where ? `[${i.where}] ` : ''}${i.path}: ${i.message}`).join('\n');
+const r = prepareImport(await readFile(path.resolve(process.env.INIT_CWD ?? process.cwd(), file), 'utf8'), {}, { assumeFiles: true });
+if (r.ok && r.summary) {
+  const s = r.summary;
+  console.log(`✓ Valid (${r.format}): "${s.title}" — ${s.skill}, ${s.parts.length} part(s), ${s.marks} auto-scored mark(s).`);
 } else {
-  console.log(`✗ ${r.errors.length} problem(s):\n${formatIssues(r.errors)}`);
+  console.log(`✗ ${r.errors.length} problem(s) (${r.format}):\n${list(r.errors)}`);
 }
-if (r.warnings.length) console.log(`\nWarnings:\n${formatIssues(r.warnings)}`);
+if (r.warnings.length) console.log(`\nWarnings:\n${list(r.warnings)}`);
 process.exit(r.ok ? 0 : 1);

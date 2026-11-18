@@ -247,7 +247,10 @@ class Runner {
 
     const ctx = this.ctx();
     const partsBox = el('div', { class: 'cd-parts' });
-    this.parts.forEach((p, pi) => partsBox.appendChild(renderPart(ctx, p, pi, this.sections[pi]!)));
+    this.parts.forEach((p, pi) => {
+      const earlierRecording = this.parts.slice(0, pi).some((q, qi) => this.sections[qi] === 'listening' && !!q.audioUrl);
+      partsBox.appendChild(renderPart(ctx, p, pi, this.sections[pi]!, earlierRecording));
+    });
     cd.appendChild(partsBox);
     const nav = el('footer', { class: 'cd-nav no-hl' });
     cd.appendChild(nav);

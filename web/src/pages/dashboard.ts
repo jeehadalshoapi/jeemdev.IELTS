@@ -21,7 +21,8 @@ export async function mountDashboard(root: HTMLElement): Promise<void> {
   page.appendChild(section('Assigned tests',
     d.assigned.length
       ? el('div', { class: 'card-grid' }, d.assigned.map(testCard))
-      : el('div', { class: 'empty' }, el('h3', null, 'No tests yet'), el('p', null, 'Tests that Claude uploads will appear here.'))));
+      : el('div', { class: 'empty' }, el('h3', null, 'No tests yet'), el('p', null, 'Tests that Claude uploads will appear here. You can also paste one yourself.'),
+        el('a', { class: 'btn btn-primary', href: '#/import' }, '＋ Import a test'))));
   if (d.completed.length) page.appendChild(section('Completed', completedTable(d.completed)));
 }
 

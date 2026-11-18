@@ -1,5 +1,6 @@
 // npm run db:import-legacy -- <path to the old site's "Export all" .json file>
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { formatIssues } from '@ielts/shared';
 import { openDatabase } from '../db/client';
 import { env } from '../env';
@@ -14,7 +15,7 @@ if (!file) {
 
 const database = await openDatabase();
 await database.migrate();
-const results = await importLegacyExport(database.db, new FileStore(database.db, env.uploadDir), JSON.parse(await readFile(file, 'utf8')));
+const results = await importLegacyExport(database.db, new FileStore(database.db, env.uploadDir), JSON.parse(await readFile(path.resolve(process.env.INIT_CWD ?? process.cwd(), file), 'utf8')));
 
 for (const r of results) {
   const icon = r.status === 'imported' ? '✓' : r.status === 'skipped' ? '–' : '✗';

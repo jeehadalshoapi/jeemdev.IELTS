@@ -65,6 +65,12 @@ export async function getTest(db: Db, id: string): Promise<StoredTest | null> {
   return row ? toStored(row) : null;
 }
 
+/** archive a test (hidden from the dashboard; attempts and results stay) or bring it back. Never hard-deletes. */
+export async function setTestStatus(db: Db, id: string, status: TestStatus): Promise<{ id: string; status: TestStatus } | null> {
+  const [row] = await db.update(tests).set({ status, updatedAt: new Date() }).where(eq(tests.id, id)).returning({ id: tests.id, status: tests.status });
+  return row ?? null;
+}
+
 export async function listTests(db: Db, filters: { skill?: Skill; kind?: Kind; status?: TestStatus; limit?: number } = {}): Promise<TestSummary[]> {
   const where = and(
     filters.skill ? eq(tests.skill, filters.skill) : undefined,

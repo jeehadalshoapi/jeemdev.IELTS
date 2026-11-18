@@ -1,9 +1,9 @@
 // ============================================================
-//  LISTENING TEST TEMPLATE  —  IELTS Practice Studio
-//  Put this .txt file and the audio files in the same folder.
-//  Dashboard → Import → select the .txt AND the audio files together
-//  (hold Ctrl and click each file).
-//  The AUDIO: names below must match the audio file names exactly.
+//  LISTENING TEST TEMPLATE  —  IELTS Practice
+//  1. Copy this file and replace the example with your test.
+//  2. Website → Tests → Import a test: paste the text (or drop the .txt on the page).
+//  3. Attach the audio files with "Attach audio / pictures" (or drop them on the page).
+//  The AUDIO: names below must match the audio file names (capital letters don't matter).
 //  If you have ONE audio file for the whole test, put AUDIO: only in Part 1.
 //  Full guide: HOW-TO-ADD-TESTS.md in the main folder.
 // ============================================================

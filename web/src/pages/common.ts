@@ -42,7 +42,8 @@ export function appHeader(subtitle: string, back = false): HTMLElement {
       el('div', null, el('b', null, 'IELTS Practice'), el('small', null, subtitle))),
     el('nav', { class: 'tabs' },
       el('a', { href: '#/', class: here === 'dashboard' ? 'active' : '' }, 'Dashboard'),
-      el('a', { href: '#/history', class: here === 'history' ? 'active' : '' }, 'History')),
+      el('a', { href: '#/history', class: here === 'history' ? 'active' : '' }, 'History'),
+      el('a', { href: '#/tests', class: here === 'tests' || here === 'import' ? 'active' : '' }, 'Tests')),
     el('div', { class: 'header-actions' },
       el('button', {
         class: 'btn btn-ghost btn-sm', onclick: async () => {

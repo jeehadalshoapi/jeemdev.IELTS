@@ -1,8 +1,9 @@
 /* Types for the website <-> server REST API (shared so both sides agree). */
 import { z } from 'zod';
 import type { QuestionType } from './schema/groups';
-import type { Kind, Skill, TestContent, TestStatus } from './schema/test';
+import { STATUSES, type Kind, type SectionSkill, type Skill, type Source, type TestContent, type TestStatus, type Variant } from './schema/test';
 import type { AutoScore, MarkReason } from './scoring';
+import type { Issue } from './validate';
 
 export const ATTEMPT_MODES = ['exam', 'practice'] as const;
 export type AttemptMode = (typeof ATTEMPT_MODES)[number];
@@ -183,5 +184,98 @@ export interface HistoryResponse {
 export interface ApiErrorBody {
   error: string;
   message: string;
-  issues?: Array<{ path: string; message: string }>;
+  issues?: ImportIssue[];
 }
+
+/* ---------- import box and test management (Phase 4) ---------- */
+
+/** what the import box sends: the pasted test, and the files attached to it */
+export const ImportBody = z.strictObject({
+  /** test JSON (as Claude writes it) or the text format described in HOW-TO-ADD-TESTS.md */
+  source: z.string({ error: 'must be the pasted test as a string' }).trim().min(1, { error: 'is empty — paste a test first' }).max(900_000, { error: 'is too long (over 900,000 characters)' }),
+  /** attached files: file name (as written in the test) -> "/files/<id>" from POST /api/files */
+  files: z.record(z.string().min(1).max(255), z.string().regex(/^\/files\/[0-9a-f-]{36}$/, { error: 'must be a "/files/<id>" path' })).default({})
+});
+export type ImportBody = z.input<typeof ImportBody>;
+
+/** a problem in the pasted test; "where" says it in words (part, group, question, line of the text) */
+export interface ImportIssue extends Issue { where?: string }
+
+export interface ImportGroupSummary { type: QuestionType; title: string | null; numbers: number[]; marks: number }
+export interface ImportPartSummary {
+  title: string;
+  section: SectionSkill | null;
+  marks: number;
+  timeLimitMin: number | null;
+  audio: string | null;
+  hasTranscript: boolean;
+  groups: ImportGroupSummary[];
+}
+export interface ImportSummary {
+  title: string;
+  skill: Skill;
+  kind: Kind;
+  variant: Variant;
+  timeLimitMin: number | null;
+  dueDate: string | null;
+  marks: number;
+  /** objective questions that have an answer in the key */
+  answers: number;
+  parts: ImportPartSummary[];
+}
+
+export interface ImportCheckResponse {
+  format: 'json' | 'text';
+  ok: boolean;
+  errors: ImportIssue[];
+  warnings: ImportIssue[];
+  /** what would be saved (present when the test is valid) */
+  summary: ImportSummary | null;
+  /** text format only: the test converted to the JSON format */
+  json: unknown;
+}
+
+export interface ImportSaveResponse { id: string; title: string; warnings: ImportIssue[] }
+
+export const TestStatusBody = z.strictObject({ status: z.enum(STATUSES, { error: `must be one of: ${STATUSES.join(', ')}` }) });
+
+export interface ManagedTest {
+  id: string;
+  title: string;
+  skill: Skill;
+  kind: Kind;
+  status: TestStatus;
+  source: Source;
+  dueDate: string | null;
+  marks: number;
+  attemptCount: number;
+  createdAt: string;
+}
+export interface TestsResponse { tests: ManagedTest[] }
+
+/* ---------- file uploads (audio and pictures for tests) ---------- */
+export const UPLOAD_TYPES = {
+  audio: ['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/ogg', 'audio/webm', 'audio/flac'],
+  image: ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+} as const;
+export const UPLOAD_MAX_BYTES = { audio: 100 * 1024 * 1024, image: 10 * 1024 * 1024 } as const;
+export type UploadKind = keyof typeof UPLOAD_TYPES;
+
+/** content type from a file name, for browsers that leave File.type empty */
+export function mimeFromName(name: string): string {
+  const ext = name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
+  const map: Record<string, string> = {
+    mp3: 'audio/mpeg', m4a: 'audio/mp4', mp4: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav', ogg: 'audio/ogg', oga: 'audio/ogg', opus: 'audio/ogg',
+    webm: 'audio/webm', flac: 'audio/flac', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp'
+  };
+  return map[ext] ?? '';
+}
+
+export function uploadKindOf(mime: string): UploadKind | null {
+  const m = mime.toLowerCase().split(';')[0]!.trim();
+  if ((UPLOAD_TYPES.audio as readonly string[]).includes(m)) return 'audio';
+  if ((UPLOAD_TYPES.image as readonly string[]).includes(m)) return 'image';
+  return null;
+}
+
+export interface UploadResponse { id: string; url: string; name: string; kind: UploadKind; sizeBytes: number }
