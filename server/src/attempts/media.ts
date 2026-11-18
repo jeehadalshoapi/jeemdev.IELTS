@@ -1,6 +1,6 @@
 /* Phase 6: speaking recordings (MediaRecorder uploads) and listening read-aloud lines. */
 import { rm } from 'node:fs/promises';
-import { listItems, RECORDING_MAX_BYTES, sectionSkillOf, speechLines, speechPartIds, uploadKindOf, type RecordingInfo, type SpeechResponse } from '@ielts/shared';
+import { listItems, partSpeech, RECORDING_MAX_BYTES, sectionSkillOf, speechPartIds, uploadKindOf, type RecordingInfo, type SpeechResponse } from '@ielts/shared';
 import { and, eq } from 'drizzle-orm';
 import type { Readable } from 'node:stream';
 import type { Db } from '../db/client';
@@ -69,7 +69,8 @@ export async function speechFor(db: Db, attemptId: string, partId: string): Prom
   if (!part || !speechPartIds(parts, p => sectionSkillOf(p, t.skill)).includes(partId) || !part.transcript) {
     throw new HttpError(404, 'not_found', 'This part has a recording (or no transcript), so there is nothing to read aloud.');
   }
-  const lines = speechLines(part.transcript);
+  const numbers = listItems([part]).flatMap(i => i.numbers);
+  const lines = partSpeech(part, numbers);
   const saved = (a.state[`tts:${partId}`] as { line?: unknown } | undefined)?.line;
   const from = a.mode === 'exam' && a.status === 'in_progress' && typeof saved === 'number' ? Math.max(0, Math.min(lines.length, Math.floor(saved))) : 0;
   return { partId, lines: lines.slice(from), from, total: lines.length };

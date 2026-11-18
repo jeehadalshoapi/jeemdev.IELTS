@@ -11,6 +11,7 @@ export * from './diff';
 export * from './feedback';
 export * from './speech';
 export * from './study';
+export * from './plan';
 export { URBAN_BEEKEEPING } from './examples/urban-beekeeping';
 export { QUESTION_TYPE_EXAMPLES, exampleTestForType } from './examples/question-types';
 export type { QuestionTypeExample } from './examples/question-types';

@@ -1,5 +1,6 @@
 /* Website API for lessons, the vocabulary bank and the mistakes log (Phase 8). Mounted behind the login. */
-import { MISTAKE_CATEGORIES, MistakePatch, MistakeReviewBody, WordPatch, type MistakeCategory } from '@ielts/shared';
+import { BlockPatch, MISTAKE_CATEGORIES, MistakePatch, MistakeReviewBody, TodayQuery, WordPatch, type MistakeCategory } from '@ielts/shared';
+import { getPlan, today, updateBlock } from './plan';
 import type { Router } from 'express';
 import { z } from 'zod';
 import type { Db } from '../db/client';
@@ -13,6 +14,11 @@ const MistakeQuery = z.strictObject({
 });
 
 export function mountStudyRoutes(api: Router, db: Db): void {
+  /* ---------- study plan (Phase 10) ---------- */
+  api.get('/plan/today', async (req, res) => { res.json(await today(db, TodayQuery.parse(req.query).date)); });
+  api.get('/plan', async (_req, res) => { res.json(await getPlan(db)); });
+  api.patch('/plan/blocks/:id', async (req, res) => { res.json(await updateBlock(db, req.params.id, BlockPatch.parse(req.body ?? {}).status)); });
+
   api.get('/lessons', async (_req, res) => { res.json(await listLessons(db)); });
   api.get('/lessons/:id', async (req, res) => {
     const v = await getLesson(db, req.params.id);

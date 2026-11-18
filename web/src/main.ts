@@ -8,6 +8,7 @@ import { mountHistory } from './pages/history';
 import { mountImport } from './pages/import';
 import { mountLesson, mountLessons } from './pages/lessons';
 import { mountMistakes } from './pages/mistakes';
+import { mountPlan } from './pages/plan';
 import { mountResult } from './pages/result';
 import { mountStart } from './pages/start';
 import { mountTests } from './pages/tests';
@@ -45,6 +46,7 @@ async function render(): Promise<void> {
       else if (name === 'vocab' && id) await mountVocabSet(app, decodeURIComponent(id));
       else if (name === 'vocab') await mountVocab(app);
       else if (name === 'mistakes') await mountMistakes(app);
+      else if (name === 'plan') await mountPlan(app);
       else if (name === 'import') view = mountImport(app);
       else await mountDashboard(app);
     }

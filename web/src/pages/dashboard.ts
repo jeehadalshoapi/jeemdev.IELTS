@@ -3,11 +3,14 @@ import { api } from '../lib/api';
 import { el } from '../lib/dom';
 import { daysUntil, fmtDate, fmtDay, fmtDuration } from '../lib/format';
 import { appHeader, fmtBandValue, kindBadge, skillBadge, timeText } from './common';
+import { todayCard } from './plan';
 
 export async function mountDashboard(root: HTMLElement): Promise<void> {
   const d = await api<DashboardResponse>('/dashboard');
   const page = el('div', { class: 'page' });
   root.append(appHeader('Your tests, homework and results'), page);
+  const today = await todayCard();
+  if (today) page.appendChild(today);
 
   page.appendChild(el('section', { class: 'stats' },
     stat('Assigned', String(d.assigned.length), `${d.assigned.filter(t => t.kind === 'homework').length} homework`),

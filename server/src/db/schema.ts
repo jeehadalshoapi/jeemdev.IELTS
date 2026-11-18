@@ -1,4 +1,4 @@
-import type { AnswerKey, Feedback, Lesson, MistakeCategory, TestContent, VocabWordRow } from '@ielts/shared';
+import type { AnswerKey, Feedback, Lesson, MistakeCategory, PlanBlock, TestContent, VocabWordRow } from '@ielts/shared';
 import { sql } from 'drizzle-orm';
 import { boolean, date, index, integer, jsonb, pgEnum, pgTable, real, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
@@ -193,3 +193,14 @@ export const mistakes = pgTable('mistakes', {
 }, t => [
   index('mistakes_category_idx').on(t.category, t.status)
 ]);
+
+/* ---------- study plan (Phase 10) ---------- */
+export const planDays = pgTable('plan_days', {
+  day: integer('day').primaryKey(),
+  date: date('date').notNull().unique(),
+  title: text('title').notNull(),
+  skill: text('skill'),
+  notes: text('notes'),
+  blocks: jsonb('blocks').$type<PlanBlock[]>().notNull().default(sql`'[]'::jsonb`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});

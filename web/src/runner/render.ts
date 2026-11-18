@@ -1,7 +1,7 @@
 /* Renders parts and question groups of the new test format (converted from the old js/exam-render.js). */
 import {
   describeWordLimit, letter, TFNG_CHOICES, YNNG_CHOICES,
-  type AnswerValue, type AttemptMode, type CompletionGroup, type MatchingLikeGroup, type RecordingInfo, type Option, type Part, type QuestionGroup, type SectionSkill
+  type AnswerValue, type AttemptMode, type Chart, type CompletionGroup, type MatchingLikeGroup, type RecordingInfo, type Option, type Part, type QuestionGroup, type SectionSkill
 } from '@ielts/shared';
 import { $, $$, el } from '../lib/dom';
 import { renderChart } from './charts';
@@ -112,6 +112,7 @@ export function renderGroup(ctx: RenderCtx, g: QuestionGroup): HTMLElement {
     if (!g.instructions || !/WORD/i.test(g.instructions)) box.appendChild(el('p', { class: 'q-limit' }, `Write ${describeWordLimit(g.wordLimit)} for each answer.`));
   }
   if ('imageUrl' in g && g.imageUrl) box.appendChild(el('img', { class: 'q-img', src: g.imageUrl, alt: '' }));
+  if (g.type === 'map_labelling' && g.map) box.appendChild(renderChart({ chartType: 'map', maps: [{ title: g.map.title ?? '', features: g.map.features }] } as Chart));
   if ('title' in g && g.title) box.appendChild(el('h4', { class: 'q-title' }, g.title));
 
   switch (g.type) {

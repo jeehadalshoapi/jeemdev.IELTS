@@ -43,6 +43,13 @@
       "when": 1794994933851,
       "tag": "0005_vocabulary_skill",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794996072416,
+      "tag": "0006_plan",
+      "breakpoints": true
     }
   ]
 }
