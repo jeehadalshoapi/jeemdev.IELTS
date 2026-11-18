@@ -392,3 +392,46 @@ select.input { padding-right: 28px; }
 .done-card .start-actions { justify-content: center; }
 .done-icon { width: 64px; height: 64px; margin: 4px auto 6px; border-radius: 50%; display: grid; place-items: center; font-size: 34px; font-weight: 800; color: #fff; background: var(--ok); }
 .done-card .pill-warn { display: inline-block; padding: 6px 12px; }
+
+/* ===== Phase 3: results and history ===== */
+.results .hero .badges { margin-bottom: 6px; }
+.results .hero h2 { margin: 0 0 12px; }
+.results .row-actions { margin-top: 16px; }
+.inline-note { display: inline-block; margin: 12px 0 0; padding: 6px 12px; }
+.reason-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: -4px 0 18px; font-size: 14px; }
+.reason { display: inline-block; font-size: 12.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.reason-correct { background: var(--ok-soft); color: var(--ok); }
+.reason-wrong { background: var(--bad-soft); color: var(--danger); }
+.reason-blank { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.reason-over_word_limit { background: #fff1d6; color: #8a5300; }
+.reason-likely_spelling { background: #f3e8ff; color: #6b21a8; }
+.table.answers td.mark-cell { min-width: 190px; }
+.table.answers .note { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.table.answers .explanation { font-size: 13px; margin-top: 6px; padding: 6px 8px; background: var(--surface-2); border-radius: 6px; }
+.table.answers .typed { font-family: var(--mono); font-size: 13.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 4px; }
+.table.answers tr.bad td:nth-child(2) { color: inherit; }
+.transcript-card summary { font-size: 15px; }
+.feedback-card .muted { margin: 0; }
+.skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.skill-card { margin: 0; border-top: 4px solid var(--line-strong); }
+.skill-card.mod-reading { border-top-color: var(--reading); }
+.skill-card.mod-listening { border-top-color: var(--listening); }
+.skill-card.mod-writing { border-top-color: var(--writing); }
+.skill-card .card-head { margin-bottom: 8px; justify-content: space-between; }
+.skill-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.skill-stats small { display: block; font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+.skill-stats b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.mini-chart { display: flex; align-items: flex-end; gap: 6px; height: 110px; padding-top: 18px; border-bottom: 1px solid var(--line); }
+.mini-bar { flex: 1; max-width: 34px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; text-decoration: none; }
+.mini-fill { width: 100%; background: var(--primary); border-radius: 4px 4px 0 0; opacity: .85; }
+.mini-bar:hover .mini-fill { opacity: 1; }
+.mini-label { position: absolute; top: -16px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.skill-card.mod-listening .mini-fill { background: var(--listening); }
+.skill-card.mod-reading .mini-fill { background: var(--reading); }
+.acc { display: flex; align-items: center; gap: 8px; min-width: 140px; }
+.acc .bd-track { flex: 1; }
+.trend { font-weight: 700; white-space: nowrap; }
+.trend.up { color: var(--ok); }
+.trend.down { color: var(--danger); }
+.skill-card.mod-writing .mini-fill { background: var(--writing); }
+.chart-empty { margin: 8px 0 0; padding: 18px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }

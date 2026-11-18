@@ -1,6 +1,8 @@
 /* Types for the website <-> server REST API (shared so both sides agree). */
 import { z } from 'zod';
+import type { QuestionType } from './schema/groups';
 import type { Kind, Skill, TestContent, TestStatus } from './schema/test';
+import type { AutoScore, MarkReason } from './scoring';
 
 export const ATTEMPT_MODES = ['exam', 'practice'] as const;
 export type AttemptMode = (typeof ATTEMPT_MODES)[number];
@@ -125,6 +127,57 @@ export interface DashboardResponse {
 export interface TestDetailResponse {
   test: Omit<PublicTest, 'content'> & { timeLimitMin: number | null; parts: Array<{ id: string; title: string; skill: string | null; marks: number }> };
   attempts: AttemptSummary[];
+}
+
+/** everything for the results page — only available after the attempt is submitted */
+export interface ResultView {
+  attempt: {
+    id: string;
+    testId: string;
+    status: AttemptStatus;
+    mode: AttemptMode;
+    answers: Record<string, AnswerValue>;
+    state: Record<string, unknown>;
+    startedAt: string;
+    submittedAt: string | null;
+    autoSubmitted: boolean;
+    /** exam mode: wall-clock time to submission; practice mode: active time */
+    timeUsedSec: number;
+    timeSpentSec: Record<string, number>;
+  };
+  /** the full content, now including listening transcripts */
+  test: PublicTest;
+  autoScore: AutoScore;
+  /** model answers for writing / speaking items (shown after submission) */
+  modelAnswers: Record<string, string>;
+  /** Claude's marking (Phase 5+), or null */
+  feedback: Record<string, unknown> | null;
+}
+
+export interface SkillHistory {
+  attempts: number;
+  latestBand: number | null;
+  bestBand: number | null;
+  /** average of the last 5 estimated bands, rounded to the nearest half band */
+  averageBand: number | null;
+  points: Array<{ attemptId: string; date: string; band: number | null; raw: number; total: number; title: string }>;
+}
+
+export interface TypeHistory {
+  type: QuestionType;
+  raw: number;
+  total: number;
+  /** the last 3 attempts that had this type */
+  recent: { raw: number; total: number };
+  /** accuracy change in percentage points: last 3 attempts vs the 3 before (null when there are not enough) */
+  trend: number | null;
+}
+
+export interface HistoryResponse {
+  attempts: AttemptSummary[];
+  bySkill: Partial<Record<'reading' | 'listening' | 'writing' | 'speaking', SkillHistory>>;
+  byType: TypeHistory[];
+  reasons: Record<MarkReason, number>;
 }
 
 export interface ApiErrorBody {

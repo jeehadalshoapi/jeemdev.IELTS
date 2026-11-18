@@ -5,7 +5,8 @@ import { desc, eq } from 'drizzle-orm';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { z } from 'zod';
-import { createAttempt, getAttemptView, isUuid, listAttemptSummaries, saveAttempt } from '../attempts/service';
+import { buildHistory } from '../attempts/history';
+import { createAttempt, getAttemptView, getResultView, isUuid, listAttemptSummaries, saveAttempt } from '../attempts/service';
 import { verifyPassword } from '../auth/password';
 import { createSession, deleteSession, findSession, SESSION_COOKIE } from '../auth/sessions';
 import type { AppConfig } from '../config';
@@ -151,6 +152,8 @@ export function createApp({ database, config, fileStore }: AppDeps) {
   });
 
   api.get('/attempts/:id', async (req, res) => { res.json(await getAttemptView(db, req.params.id)); });
+  api.get('/attempts/:id/result', async (req, res) => { res.json(await getResultView(db, req.params.id)); });
+  api.get('/history', async (_req, res) => { res.json(await buildHistory(db)); });
   api.patch('/attempts/:id', async (req, res) => { res.json(await saveAttempt(db, req.params.id, req.body, req.get('user-agent'))); });
   api.post('/attempts/:id/submit', async (req, res) => {
     const r = await saveAttempt(db, req.params.id, req.body, req.get('user-agent'), { submit: true });

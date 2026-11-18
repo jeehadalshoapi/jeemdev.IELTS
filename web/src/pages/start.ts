@@ -45,6 +45,6 @@ export async function mountStart(root: HTMLElement, testId: string): Promise<voi
         el('div', { class: 'start-actions' }, el('a', { class: 'btn btn-ghost', href: '#/' }, '← Dashboard'), el('button', { class: 'btn btn-primary btn-lg', onclick: start }, '▶ Start'))),
     attempts.filter(a => a.status !== 'in_progress').length
       ? el('div', null, el('h3', null, 'Earlier attempts'), el('ul', { class: 'plain-list' }, attempts.filter(a => a.status !== 'in_progress').map(a =>
-        el('li', null, el('a', { href: `#/done/${a.id}` }, fmtDate(a.submittedAt)), ` — ${a.answered}/${a.items} answered, ${a.mode} mode`, a.feedbackReady ? ' · feedback ready' : ''))))
+        el('li', null, el('a', { href: `#/result/${a.id}` }, fmtDate(a.submittedAt)), ` — ${a.answered}/${a.items} answered, ${a.mode} mode`, a.feedbackReady ? ' · feedback ready' : ''))))
       : null)));
 }

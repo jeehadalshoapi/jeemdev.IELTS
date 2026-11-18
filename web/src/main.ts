@@ -4,9 +4,10 @@ import './styles/exam.css';
 import { ApiError } from './lib/api';
 import { el } from './lib/dom';
 import { mountDashboard } from './pages/dashboard';
-import { mountDone } from './pages/done';
+import { mountHistory } from './pages/history';
+import { mountResult } from './pages/result';
 import { mountStart } from './pages/start';
-import { mountRunner, type RunnerHandle } from './runner/runner';
+import { mountReview, mountRunner, type RunnerHandle } from './runner/runner';
 
 const app = document.getElementById('app')!;
 let view: Partial<RunnerHandle> | null = null;
@@ -19,17 +20,20 @@ async function render(): Promise<void> {
   view = null;
   app.replaceChildren();
   document.body.className = '';
-  const [path, query = ''] = lastHash.replace(/^#\/?/, '').split('?');
+  const [path] = lastHash.replace(/^#\/?/, '').split('?');
   const [name, id] = (path ?? '').split('/');
   try {
-    if (name === 'attempt' && id) {
+    if ((name === 'attempt' || name === 'review') && id) {
       document.body.classList.add('theme-exam');
-      view = await mountRunner(app, id);
+      view = name === 'attempt' ? await mountRunner(app, id) : await mountReview(app, id);
+    } else if (name === 'done' && id) {
+      location.replace(`#/result/${id}`); // old links
     } else {
       document.body.classList.add('theme-app');
       window.scrollTo(0, 0);
       if (name === 'test' && id) await mountStart(app, id);
-      else if (name === 'done' && id) await mountDone(app, id, /timeup=1/.test(query));
+      else if (name === 'result' && id) await mountResult(app, id);
+      else if (name === 'history') await mountHistory(app);
       else await mountDashboard(app);
     }
   } catch (e) {

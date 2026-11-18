@@ -2,7 +2,7 @@
  * The test runner (converted from the old js/exam.js), now backed by the server:
  * answers, flags, highlights and position autosave, and the clock comes from the server.
  */
-import { listItems, sectionSkillOf, type AnswerValue, type AttemptView, type Part, type SaveResult, type SectionSkill, type Timing } from '@ielts/shared';
+import { listItems, sectionSkillOf, type AnswerValue, type AttemptView, type Part, type QuestionResult, type ResultView, type SaveResult, type SectionSkill, type Timing } from '@ielts/shared';
 import { api, ApiError } from '../lib/api';
 import { $, $$, el } from '../lib/dom';
 import { formatClock, wordCount } from '../lib/format';
@@ -23,10 +23,21 @@ export interface RunnerHandle { destroy(): void; canLeave(): Promise<boolean> }
 export async function mountRunner(root: HTMLElement, attemptId: string): Promise<RunnerHandle> {
   const view = await api<AttemptView>(`/attempts/${attemptId}`);
   if (view.attempt.status !== 'in_progress') {
-    location.replace(`#/done/${attemptId}`);
+    location.replace(`#/result/${attemptId}`);
     return { destroy() {}, canLeave: async () => true };
   }
   return new Runner(root, view).handle();
+}
+
+/** the submitted test, read-only, with every answer marked right or wrong and transcripts shown */
+export async function mountReview(root: HTMLElement, attemptId: string): Promise<RunnerHandle> {
+  const r = await api<ResultView>(`/attempts/${attemptId}/result`);
+  const view: AttemptView = {
+    attempt: { id: r.attempt.id, testId: r.attempt.testId, status: r.attempt.status, mode: r.attempt.mode, answers: r.attempt.answers, state: r.attempt.state, startedAt: r.attempt.startedAt, submittedAt: r.attempt.submittedAt, autoSubmitted: r.attempt.autoSubmitted },
+    test: r.test,
+    timing: { limitSec: null, remainingSec: null, deadline: null, serverNow: new Date().toISOString(), spentSec: r.attempt.timeSpentSec }
+  };
+  return new Runner(root, view, r).handle();
 }
 
 class Runner {
@@ -56,7 +67,10 @@ class Runner {
   private els!: { timer: HTMLButtonElement; sync: HTMLElement; partBar: HTMLElement; banner: HTMLElement; nav: HTMLElement; audioBar: HTMLElement | null };
   private readonly listeners: Array<[EventTarget, string, EventListener]> = [];
 
-  constructor(private readonly root: HTMLElement, private readonly view: AttemptView) {
+  private readonly results = new Map<number, QuestionResult>();
+
+  constructor(private readonly root: HTMLElement, private readonly view: AttemptView, private readonly review: ResultView | null = null) {
+    if (review) for (const q of review.autoScore.questions) this.results.set(q.number, q);
     this.test = view.test;
     this.parts = view.test.content.parts;
     this.sections = this.parts.map(p => sectionSkillOf(p, view.test.skill) ?? 'reading');
@@ -78,7 +92,7 @@ class Runner {
       onClosed: code => this.closedByServer(code)
     });
     // changes made on this device while offline that never reached the server
-    const buffered = this.sync.takeBuffer();
+    const buffered = review ? null : this.sync.takeBuffer();
     if (buffered) Object.assign(this.answers, buffered.answers);
 
     this.cd = this.build();
@@ -97,10 +111,22 @@ class Runner {
     const tracks = this.parts.map((p, i) => ({ partIndex: i, url: p.audioUrl ?? '', title: p.title })).filter(t => t.url);
     if (this.els.audioBar && tracks.length) {
       this.audio = startAudio(this.els.audioBar, tracks, {
-        practice: this.mode === 'practice',
-        resume: st.audio as { track: number; time: number } | undefined,
+        // in review the recording can be replayed and scrubbed freely
+        practice: this.mode === 'practice' || !!review,
+        resume: review ? undefined : (st.audio as { track: number; time: number } | undefined),
         onTrackChange: pi => this.showPart(pi)
       });
+      if (review) this.audio?.audio.pause();
+    }
+    this.on(document, 'keydown', e => {
+      const k = e as KeyboardEvent;
+      if (k.altKey && k.key === 'ArrowRight') { k.preventDefault(); this.step(1); }
+      if (k.altKey && k.key === 'ArrowLeft') { k.preventDefault(); this.step(-1); }
+    });
+    if (review) {
+      this.finished = true;
+      this.applyReview();
+      return;
     }
     this.intervals.push(setInterval(() => this.tick(), 1000));
     this.intervals.push(setInterval(() => {
@@ -109,12 +135,44 @@ class Runner {
     }, 10_000));
     this.on(document, 'visibilitychange', () => { if (document.visibilityState === 'hidden') void this.sync.flush({ keepalive: true }); });
     this.on(window, 'pagehide', () => { void this.sync.flush({ keepalive: true }); });
-    this.on(document, 'keydown', e => {
-      const k = e as KeyboardEvent;
-      if (k.altKey && k.key === 'ArrowRight') { k.preventDefault(); this.step(1); }
-      if (k.altKey && k.key === 'ArrowLeft') { k.preventDefault(); this.step(-1); }
-    });
     this.drawTimer();
+  }
+
+  /** review mode: colour every question and show the correct answer */
+  private applyReview(): void {
+    const done = new Set<string>();
+    for (const q of this.results.values()) {
+      const holder = this.numEls.get(q.number);
+      if (!holder) continue;
+      if (q.type === 'mcq_multi') {
+        if (done.has(q.questionId)) continue;
+        done.add(q.questionId);
+        const all = [...this.results.values()].filter(x => x.questionId === q.questionId);
+        const key = new Set(q.correctAnswers.map(a => a.toUpperCase()));
+        const chosen = new Set(all.map(x => x.answer).filter((x): x is string => !!x));
+        holder.classList.add(all.every(x => x.correct) ? 'rv-ok' : 'rv-bad');
+        $$('.choice', holder).forEach(c => {
+          const v = c.dataset.value ?? '';
+          if (key.has(v)) c.classList.add('rv-correct-opt'); else if (chosen.has(v)) c.classList.add('rv-wrong-opt');
+        });
+        holder.appendChild(el('span', { class: 'rv-key no-hl' }, `${all.filter(x => x.correct).length} of ${all.length} correct · answer: ${q.correctAnswers.join(', ')}`));
+        continue;
+      }
+      holder.classList.add(q.correct ? 'rv-ok' : 'rv-bad');
+      const choices = $$('.choice', holder);
+      if (choices.length) {
+        choices.forEach(c => {
+          const v = (c.dataset.value ?? '').toLowerCase();
+          if (q.correctAnswers.some(a => a.toLowerCase() === v)) c.classList.add('rv-correct-opt');
+          else if (q.answer && q.answer.toLowerCase() === v) c.classList.add('rv-wrong-opt');
+        });
+        if (!q.answer) holder.appendChild(el('span', { class: 'rv-key no-hl' }, 'Not answered'));
+      } else {
+        const why = q.correct ? '✓' : q.reason === 'over_word_limit' ? '✗ over the word limit ·' : q.reason === 'likely_spelling' ? '✗ spelling ·' : q.reason === 'blank' ? '✗ not answered ·' : '✗';
+        holder.appendChild(el('span', { class: 'rv-key no-hl', title: q.note ?? '' }, `${why} ${q.correctAnswers.join(' / ')}`));
+      }
+    }
+    this.updateNav();
   }
 
   private on(target: EventTarget, type: string, fn: EventListener): void {
@@ -153,7 +211,7 @@ class Runner {
     const self = this;
     return {
       answers: this.answers,
-      readonly: false,
+      readonly: !!this.review,
       picked: null,
       afterRender: [],
       setAnswer: (qid, v) => self.setAnswer(qid, v),
@@ -173,13 +231,14 @@ class Runner {
     cd.appendChild(el('header', { class: 'cd-top no-hl' },
       el('div', { class: 'cd-left' },
         el('a', { class: 'cd-logo', href: '#/', title: 'Dashboard' }, 'IELTS'),
-        el('div', { class: 'cd-cand' }, el('b', null, this.mode === 'exam' ? 'Exam mode' : 'Practice mode'), el('small', null, t.title))),
-      el('div', { class: 'cd-center' }, timer, sync, pause),
+        el('div', { class: 'cd-cand' }, el('b', null, this.review ? 'Answer review' : this.mode === 'exam' ? 'Exam mode' : 'Practice mode'), el('small', null, t.title))),
+      el('div', { class: 'cd-center' }, ...(this.review ? [el('span', { class: 'cd-review-tag' }, `✓ ${this.review.autoScore.total ? `${this.review.autoScore.raw} / ${this.review.autoScore.total} correct` : 'Answer review'}`)] : [timer, sync, pause])),
       el('div', { class: 'cd-right' },
         el('button', { class: 'cd-icon', title: 'Notes', onclick: () => openNotes(this.tools.notes(), m => this.goToMark(m)) }, '📝', el('span', { class: 'cd-icon-label' }, 'Notes')),
         el('button', { class: 'cd-icon', title: 'Settings: text size and colours', onclick: () => openSettings(cd) }, '⚙', el('span', { class: 'cd-icon-label' }, 'Settings')),
         el('button', { class: 'cd-icon', title: 'Help', onclick: () => openHelp(this.mode) }, '?', el('span', { class: 'cd-icon-label' }, 'Help')),
-        el('button', { class: 'cd-icon', title: 'Full screen', onclick: toggleFullscreen }, '⛶'))));
+        el('button', { class: 'cd-icon', title: 'Full screen', onclick: toggleFullscreen }, '⛶'),
+        this.review ? el('a', { class: 'btn btn-sm', href: `#/result/${this.view.attempt.id}` }, '← Results') : null)));
     const audioBar = this.sections.includes('listening') && this.parts.some(p => p.audioUrl) ? el('div', { class: 'cd-audio no-hl' }) : null;
     if (audioBar) cd.appendChild(audioBar);
     const partBar = el('div', { class: 'cd-partbar no-hl' });
@@ -196,7 +255,7 @@ class Runner {
 
     // after the DOM exists
     queueMicrotask(() => ctx.afterRender.forEach(fn => fn()));
-    this.tools = new Tools(cd, zone => this.sync.setState(`hl:${zone.dataset.zone}`, this.tools.serialize(zone)));
+    this.tools = new Tools(cd, zone => { if (!this.review) this.sync.setState(`hl:${zone.dataset.zone}`, this.tools.serialize(zone)); });
     this.bindLayout(cd);
     return cd;
   }
@@ -237,6 +296,7 @@ class Runner {
   }
 
   private savePos(): void {
+    if (this.review) return;
     this.sync.setState('pos', { partId: this.parts[this.part]?.id, ...(this.current ? { number: this.current } : {}) });
   }
 
@@ -319,7 +379,7 @@ class Runner {
         box.appendChild(el('span', { class: 'nav-count' }, `${words} words`));
       } else if (active) {
         box.appendChild(el('div', { class: 'nav-qs' }, slots.map(s => el('button', {
-          class: `nav-q${this.slotAnswered(s) ? ' answered' : ''}${this.flags.has(s.num) ? ' flagged' : ''}${this.current === s.num ? ' current' : ''}`,
+          class: `nav-q${this.slotAnswered(s) ? ' answered' : ''}${this.flags.has(s.num) ? ' flagged' : ''}${this.current === s.num ? ' current' : ''}${this.results.has(s.num) ? (this.results.get(s.num)!.correct ? ' rv-ok' : ' rv-bad') : ''}`,
           title: `Question ${s.num}`, onclick: () => this.goTo(s.num)
         }, String(s.num)))));
       } else {
@@ -328,7 +388,7 @@ class Runner {
       partsBox.appendChild(box);
     });
     const actions = el('div', { class: 'nav-actions' });
-    if (this.current !== null && this.partRange(this.part).length) {
+    if (!this.review && this.current !== null && this.partRange(this.part).length) {
       const n = this.current;
       actions.appendChild(el('label', { class: 'flag-toggle', title: 'Mark this question to come back to it' },
         el('input', {
@@ -342,7 +402,9 @@ class Runner {
     actions.append(
       el('button', { class: 'nav-arrow', title: 'Previous (Alt+←)', onclick: () => this.step(-1) }, '◀'),
       el('button', { class: 'nav-arrow', title: 'Next (Alt+→)', onclick: () => this.step(1) }, '▶'),
-      el('button', { class: 'nav-submit', onclick: () => this.confirmSubmit() }, '✓ Submit'));
+      this.review
+        ? el('a', { class: 'nav-submit', href: `#/result/${this.view.attempt.id}` }, '← Results')
+        : el('button', { class: 'nav-submit', onclick: () => this.confirmSubmit() }, '✓ Submit'));
     nav.replaceChildren(partsBox, actions);
   }
 
@@ -460,13 +522,13 @@ class Runner {
       }
     }
     $$('.modal-overlay').forEach(m => m.remove());
-    location.hash = `#/done/${this.view.attempt.id}${timeUp ? '?timeup=1' : ''}`;
+    location.hash = `#/result/${this.view.attempt.id}`;
   }
 
   private closedByServer(code: string): void {
     if (this.finished) return;
     this.finished = true;
     this.audio?.stop();
-    location.hash = `#/done/${this.view.attempt.id}${code === 'time_up' ? '?timeup=1' : ''}`;
+    location.hash = `#/result/${this.view.attempt.id}`;
   }
 }
