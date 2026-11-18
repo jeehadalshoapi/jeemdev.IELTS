@@ -10,17 +10,17 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 | 2 | Login, dashboard, runner with server autosave + resume on any device, phone layout, deployment | ✅ merged into `main`, **deployed** |
 | 3 | Auto-scoring, estimated band, results page, review-in-the-test, history | ✅ merged into `main`, **deployed** 2026-11-18 |
 | 4 | Import box (`#/import`: JSON or text format, audio/picture uploads), Tests page (`#/tests`: archive/restore) | ✅ merged into `main`, **deployed** 2026-11-18 |
-| 5 | MCP server at `/mcp` (11 tools of spec §6), own OAuth 2.1 server, MCP Inspector checked | ✅ merged into `main`, **deployed** 2026-11-18 (the owner said "make the code then deploy at once"). The owner still has to add the connector in claude.ai |
-| 6 | Task 1 chart drawing, plan+intro drill timers, speaking recording (MediaRecorder upload), listening speech synthesis from transcript | next |
-| 7 | Render Claude's feedback (spec §6 JSON) on the results page, progress charts | |
+| 5 | MCP server at `/mcp` (11 tools of spec §6), own OAuth 2.1 server, MCP Inspector checked | ✅ merged into `main`, **deployed** 2026-11-18 (the owner said "make the code then deploy at once") |
+| 6 | Task 1 charts (SVG), plan+intro drill timers, speaking recording + optional live transcript + Part 2 timers, listening read aloud | ✅ merged into `main`, **deployed** 2026-11-18 (the owner said "go with phase 6 and deploy after you finish") |
+| 7 | Render Claude's feedback (spec §6 JSON) on the results page, progress charts | next |
 
-- `main` = Phase 5 and is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
-- Next: create `phase-6-extras` from `main` and start Phase 6 (spec §4 writing/speaking/listening, §9 phase 6). Normal rule again: wait for the owner's "go" before merging/deploying, unless they say otherwise.
+- `main` = Phase 6 and is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
+- Next: create `phase-7-feedback` from `main` and start Phase 7 (spec §5.4–5.5, §6 feedback JSON, §9 phase 7). Normal rule: wait for the owner's "go" before merging/deploying, unless they say otherwise.
 - Deploy routine (every phase): record the other sites' status codes (see Deployment), `ssh gehad@169.58.112.108 'cd /opt/ielts/stack && ./deploy.sh'`, then check `/health`, the other sites again, and logged-in calls **on the box** (cookie jar; read the password file there, never print it). For the connector: copy `scripts/e2e/mcp-connect.mjs` to the box and run `E2E_PASSWORD_FILE=/opt/ielts/stack/initial-password.txt node mcp-connect.mjs https://ielts.jeemdev.net` there (a 1-hour token; the password is never printed). If the owner has changed the password, that file is gone: ask the owner to test from claude.ai instead.
 
-### Ideas already noted for Phases 6–7
-- Claude cannot upload audio through the connector. A listening test from Claude has a `transcript` (Phase 6 reads it aloud). An "attach a recording to an existing test" feature does not exist yet (only the import box takes files).
-- Speaking recordings: `FileStore.saveStream` + `files.attempt_id` exist; `get_attempt` already lists the files linked to an attempt under `recordings`.
+### Ideas already noted for Phase 7 and later
+- An "attach a recording to an existing test" feature does not exist yet (only the import box takes files; Claude's listening tests use read-aloud).
+- Claude cannot listen to speaking recordings (they need the owner's login); it marks from the typed / transcribed text. Pronunciation is therefore not marked.
 - Phase 7: `shared/src/feedback.ts` (`Feedback` zod schema) is what `save_feedback` stores (plus `savedAt`); `web/src/pages/result.ts` only shows band, summary and next steps so far.
 
 ## How we work (agreed with the owner)
@@ -52,6 +52,8 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
    - A listening transcript is required **unless the part has `audioUrl`, or an earlier listening part has one** ("one recording for the whole test", as in the old text format). The spec says always; relaxed so real recordings without transcripts work. The owner was told about this.
    - Text format additions (Phase 4): `KIND:`, `DUE:`, `TIME: none`. Leaving out `INSTRUCTIONS:` gives standard IELTS instructions per type.
    - Uploads (`POST /api/files?name=…`, raw body, streamed to disk): audio ≤ 100 MB, pictures ≤ 10 MB (PNG/JPG/GIF/WEBP; **no SVG**). Limits in `UPLOAD_MAX_BYTES` (`shared/src/api.ts`).
+   - `files.item_id` + `files.duration_sec` (migration `0003_recordings`): a speaking recording belongs to one item of one attempt; a new recording replaces the old (row and file deleted). Client-only state keys: `drill:<groupId>` {stage, planSec, introSec}, `prep:<groupId>` (Part 2 notes), `tts:<partId>` {line} (exam read-aloud position).
+   - **Listening transcripts and read-aloud (spec §4 vs §7 conflict, decided in Phase 6):** §4 wants the browser to read the transcript aloud, §7 says transcripts never reach the browser before submission. The transcript is sent ONLY by `GET /api/attempts/:id/speech/:partId`, only for parts with no recording, never rendered, and in exam mode only the lines not yet played. Reported to the owner.
    - Tables `oauth_clients`, `oauth_tokens` (migration `0002_oauth`). `attempts.feedback` holds the `Feedback` JSON + `savedAt`; saving it sets status `marked`.
 8. **Connector auth (Phase 5):** the app is its own OAuth 2.1 authorization server, single user (SDK v2 no longer ships one; an external identity provider was overkill for one user). Details in `server/src/mcp/oauth.ts` and README → *The Claude connector*. CIMD is deliberately **not** advertised, so Claude uses dynamic registration.
 7. Deployment follows the box's own runbook (see Deployment). It does **not** ship its own reverse proxy, even though spec §8 suggested one.
@@ -60,7 +62,7 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 ```bash
 npm install
 npm run dev                 # API :3000 (tsx watch) + website :5173 (Vite); dev password "ielts-dev"
-npm test                    # vitest — 112 tests (shared/test, server/test)
+npm test                    # vitest — 122 tests (shared/test, server/test)
 npm run typecheck           # tsc for shared, server, web (TypeScript 7 — type-checking only)
 npm run build               # vite build web -> web/dist ; esbuild server -> server/dist
 npm start                   # production build on :3000
@@ -80,6 +82,7 @@ node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/cross-device.laptop.
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/results.cjs            # Phase 3 scoring / review / history
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/import.cjs             # Phase 4 import box, uploads (dropped files), tests page
 node scripts/e2e/cdp.cjs http://localhost:3000/login scripts/e2e/connector.cjs     # Phase 5 approval page (run a listener on :33418 to see the code)
+node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/extras.cjs             # Phase 6 charts, drill timers, recording (fake mic), read aloud
 TOKEN=$(node scripts/e2e/mcp-connect.mjs http://localhost:3000)                    # OAuth like claude.ai does; prints a 1-hour token
 npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http --header "Authorization: Bearer $TOKEN" --method tools/list
 ```
@@ -118,10 +121,14 @@ server/  Express 5 + Drizzle (Postgres / PGlite)
                            tokenVerifier for /mcp; listConnections / revokeAllConnections (Tests page card, /api/connector)
   src/mcp/index.ts         mountMcp: /mcp = cors + rate limit + requireBearerAuth (SDK) + createMcpHandler (a fresh McpServer per request)
   src/mcp/tools.ts         the 11 tools (spec §6), each logged as "[mcp] <tool> ok|refused (ms)"; applyChanges for update_test
-  src/mcp/attempts.ts      attemptDetail (question text, exact answer, accepted answers, reason, writing/speaking text, times)
+  src/mcp/attempts.ts      attemptDetail (question text, exact answer, accepted answers, reason, writing/speaking text, times,
+                           Task 1 chart data, drill times, Part 2 notes, recording links)
+  src/attempts/media.ts    saveRecording / deleteRecording (speaking), speechFor (listening read-aloud lines)
 web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/attempt/:id  #/result/:id  #/review/:id  #/history  #/tests  #/import
   src/runner/          runner.ts (exam UI, clock, nav, review mode), render.ts (all question types), tools.ts (highlights/notes),
                        sync.ts (autosave + offline buffer in localStorage), panels.ts (settings/notes/help/audio)
+  src/runner/charts.ts  Task 1 charts as SVG/HTML (palette vars --series-N in exam.css, light + dark steps)
+  src/runner/extras.ts  drillBox (plan/intro timers), recorder + transcribe switch, speakingGroup (Part 2 timers), speechPlayer
   src/pages/           dashboard, start, result, history, tests, import;  src/lib/ dom/ui/api(+uploadFile, XHR progress)/markup/format helpers
 ```
 - **Security rules from the spec that the code enforces:**
@@ -174,3 +181,6 @@ web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/att
 - **`Referrer-Policy: no-referrer` (helmet) makes browsers send `Origin: null` on form posts.** The approval page sets `same-origin`, and its POST treats `null` like a missing Origin; the CSRF token (SameSite=Strict cookie) is the real protection.
 - **CSP `form-action` also covers where a form's redirect goes.** The approval page adds the app's callback origin (e.g. `https://claude.ai`) to `form-action`, or the browser would block the redirect after **Allow**.
 - OAuth authorization codes live in memory for 5 minutes: a deploy in the middle of a sign-in loses the code (Claude shows an error; connecting again works).
+- **Headless Edge for the e2e checks** runs with a fake, always-allowed microphone (`--use-fake-device-for-media-stream`, in `cdp.cjs`). Its speech synthesis has voices but the e2e only checks that playback starts, not that it ends.
+- **MediaRecorder webm files have no duration in their header**, so a player shows 0:00 until played; the browser-measured length is stored in `files.duration_sec` and shown next to it.
+- `cross-device.laptop.cjs` always prints two `ERR_INTERNET_DISCONNECTED` lines: they come from its deliberate offline step.

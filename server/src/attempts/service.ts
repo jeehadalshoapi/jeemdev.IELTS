@@ -1,11 +1,11 @@
 import {
   listItems, progressOf, scoreAnswers, toPublicContent, totalMarks, AttemptPatch,
   type AnswerValue, type AttemptMode, type AttemptSummary, type AttemptView, type AutoScore, type PublicTest, type ResultView,
-  type SaveResult, type TestContent, type Timing
+  type RecordingInfo, type SaveResult, type TestContent, type Timing
 } from '@ielts/shared';
-import { and, desc, eq, ne } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, ne } from 'drizzle-orm';
 import type { Db } from '../db/client';
-import { attempts, tests, type AttemptRow, type TestRow } from '../db/schema';
+import { attempts, files, tests, type AttemptRow, type TestRow } from '../db/schema';
 import { HttpError, notFound } from '../http/errors';
 
 /** answers that arrive this long after the exam deadline are still accepted (network delay) */
@@ -123,8 +123,20 @@ export async function getAttemptView(db: Db, attemptId: string): Promise<Attempt
       autoSubmitted: a.state.autoSubmitted === true
     },
     test: publicTest(t),
-    timing: computeTiming(a, t.content, now)
+    timing: computeTiming(a, t.content, now),
+    recordings: await recordingsOf(db, a.id)
   };
+}
+
+/** the latest recording of each speaking item of an attempt */
+export async function recordingsOf(db: Db, attemptId: string): Promise<Record<string, RecordingInfo>> {
+  const rows = await db.select().from(files).where(and(eq(files.attemptId, attemptId), isNotNull(files.itemId))).orderBy(desc(files.createdAt));
+  const out: Record<string, RecordingInfo> = {};
+  for (const f of rows) {
+    if (!f.itemId || out[f.itemId]) continue;
+    out[f.itemId] = { id: f.id, url: `/files/${f.id}`, mimeType: f.mimeType, sizeBytes: f.sizeBytes, durationSec: f.durationSec === null ? null : Math.round(f.durationSec), createdAt: f.createdAt.toISOString() };
+  }
+  return out;
 }
 
 /* ---------- saving ---------- */
@@ -241,6 +253,7 @@ export async function getResultView(db: Db, attemptId: string): Promise<ResultVi
     test: publicTest(t, { withTranscripts: true }),
     autoScore,
     modelAnswers,
-    feedback: a.feedback
+    feedback: a.feedback,
+    recordings: await recordingsOf(db, a.id)
   };
 }

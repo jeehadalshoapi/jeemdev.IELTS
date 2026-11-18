@@ -9,6 +9,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import helmet from 'helmet';
 import { z } from 'zod';
 import { buildHistory } from '../attempts/history';
+import { deleteRecording, saveRecording, speechFor } from '../attempts/media';
 import { createAttempt, getAttemptView, getResultView, isUuid, listAttemptSummaries, saveAttempt } from '../attempts/service';
 import { verifyPassword } from '../auth/password';
 import { createSession, deleteSession, findSession, SESSION_COOKIE } from '../auth/sessions';
@@ -164,6 +165,24 @@ export function createApp({ database, config, fileStore }: AppDeps) {
 
   api.get('/attempts/:id', async (req, res) => { res.json(await getAttemptView(db, req.params.id)); });
   api.get('/attempts/:id/result', async (req, res) => { res.json(await getResultView(db, req.params.id)); });
+
+  /* ---------- Phase 6: speaking recordings and listening read-aloud ---------- */
+  api.post('/attempts/:id/recordings', async (req, res) => {
+    const itemId = String(req.query.item ?? '');
+    const duration = Number(req.query.duration);
+    const rec = await saveRecording(db, fileStore, {
+      attemptId: req.params.id, itemId, mimeType: (req.get('content-type') ?? '').toLowerCase(),
+      ...(Number.isFinite(duration) ? { durationSec: duration } : {}),
+      contentLength: Number(req.get('content-length') ?? 0), stream: req
+    });
+    console.log(`[recording] ${req.params.id} ${itemId} (${rec.sizeBytes} bytes)`);
+    res.status(201).json(rec);
+  });
+  api.delete('/attempts/:id/recordings/:itemId', async (req, res) => {
+    await deleteRecording(db, fileStore, req.params.id, req.params.itemId);
+    res.json({ ok: true });
+  });
+  api.get('/attempts/:id/speech/:partId', async (req, res) => { res.json(await speechFor(db, req.params.id, req.params.partId)); });
   api.get('/history', async (_req, res) => { res.json(await buildHistory(db)); });
 
   /* ---------- the Claude connector, seen from the website ---------- */

@@ -1,6 +1,6 @@
 import type { AnswerKey, TestContent } from '@ielts/shared';
 import { sql } from 'drizzle-orm';
-import { date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { date, index, integer, jsonb, pgEnum, pgTable, real, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const testSkill = pgEnum('test_skill', ['reading', 'listening', 'writing', 'speaking', 'mixed']);
 export const testKind = pgEnum('test_kind', ['homework', 'practice', 'full_mock']);
@@ -75,6 +75,10 @@ export const files = pgTable('files', {
   storagePath: text('storage_path').notNull(),
   testId: uuid('test_id').references(() => tests.id, { onDelete: 'set null' }),
   attemptId: uuid('attempt_id').references(() => attempts.id, { onDelete: 'set null' }),
+  /** speaking recordings: which question (item id) of the attempt this answers */
+  itemId: text('item_id'),
+  /** speaking recordings: length in seconds, as measured by the browser */
+  durationSec: real('duration_sec'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, t => [
   index('files_test_idx').on(t.testId),

@@ -40,24 +40,29 @@ export async function api<T>(path: string, o: { method?: string; body?: unknown;
   return data as T;
 }
 
-/** upload an audio file or picture (POST /api/files); XHR rather than fetch so the progress can be shown */
-export function uploadFile(file: File, contentType: string, onProgress: (fraction: number) => void): { done: Promise<UploadResponse>; abort: () => void } {
+/** send a file or recording as the raw request body; XHR rather than fetch so the progress can be shown */
+export function uploadTo<T>(url: string, body: Blob, contentType: string, onProgress: (fraction: number) => void): { done: Promise<T>; abort: () => void } {
   const xhr = new XMLHttpRequest();
-  const done = new Promise<UploadResponse>((resolve, reject) => {
-    xhr.open('POST', `/api/files?name=${encodeURIComponent(file.name)}`);
+  const done = new Promise<T>((resolve, reject) => {
+    xhr.open('POST', url);
     xhr.setRequestHeader('x-csrf-token', csrfToken());
     xhr.setRequestHeader('content-type', contentType);
     xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
     xhr.onload = () => {
-      let data: Partial<ApiErrorBody> & Partial<UploadResponse> = {};
+      let data: Partial<ApiErrorBody> = {};
       try { data = JSON.parse(xhr.responseText); } catch { /* not JSON */ }
       if (xhr.status === 401) { location.href = '/login'; reject(new ApiError(401, 'not_logged_in', 'Please log in.')); return; }
-      if (xhr.status >= 200 && xhr.status < 300) resolve(data as UploadResponse);
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data as T);
       else reject(new ApiError(xhr.status, data.error ?? 'http_error', data.message ?? `Upload failed (${xhr.status})`));
     };
     xhr.onerror = () => reject(new TypeError('Cannot reach the server.'));
     xhr.onabort = () => reject(new ApiError(0, 'aborted', 'Upload cancelled.'));
-    xhr.send(file);
+    xhr.send(body);
   });
   return { done, abort: () => xhr.abort() };
+}
+
+/** upload an audio file or picture for a test (POST /api/files) */
+export function uploadFile(file: File, contentType: string, onProgress: (fraction: number) => void): { done: Promise<UploadResponse>; abort: () => void } {
+  return uploadTo<UploadResponse>(`/api/files?name=${encodeURIComponent(file.name)}`, file, contentType, onProgress);
 }

@@ -87,9 +87,11 @@ export async function mountResult(root: HTMLElement, attemptId: string): Promise
         el('h3', { class: 'card-title' }, `${part?.title ?? ''} · ${TYPE_LABEL[item.type]}`),
         item.minWords !== undefined ? el('span', { class: short ? 'pill-bad' : 'pill-ok' }, `${wordCount(text)} words${short ? ` (minimum ${item.minWords})` : ' ✓'}`) : null),
       g && 'prompt' in g ? el('details', { class: 'details' }, el('summary', null, 'Task'), el('div', { html: mdBlock(g.prompt) })) : null,
-      el('div', { class: 'essay' }, text || el('span', { class: 'muted' }, 'No answer written.')),
+      g ? speakingQuestion(g, item.id) : null,
+      el('div', { class: 'essay' }, text || el('span', { class: 'muted' }, item.type.startsWith('speaking') ? 'Nothing typed or transcribed.' : 'No answer written.')),
+      extrasFor(r, item.id),
       r.modelAnswers[item.id] ? el('details', { class: 'details' }, el('summary', null, 'Model answer'), el('div', { class: 'essay', html: mdBlock(r.modelAnswers[item.id]) })) : null,
-      el('p', { class: 'muted' }, 'Claude marks writing and speaking. Once the connector is ready (Phase 5), ask: “Mark my last attempt”.')));
+      el('p', { class: 'muted' }, 'Claude marks writing and speaking: in claude.ai, ask “Mark my last attempt”.')));
   }
 
   /* ---------- Claude's feedback ---------- */
@@ -115,6 +117,32 @@ function answerRow(q: QuestionResult, g: QuestionGroup | undefined): HTMLElement
       el('span', { class: `reason reason-${q.reason}` }, q.correct ? '✓ Correct' : `✗ ${REASON_LABEL[q.reason]}`),
       q.note ? el('div', { class: 'note' }, q.note) : null,
       q.explanation ? el('div', { class: 'explanation', html: inlineMd(q.explanation) }) : null));
+}
+
+/** the question a speaking answer belongs to */
+function speakingQuestion(g: QuestionGroup, itemId: string): HTMLElement | null {
+  if (g.type === 'speaking_part2') {
+    if (g.id === itemId) return el('p', { class: 'sp-question' }, el('b', null, 'Cue card: '), g.cueCard.topic);
+    const f = g.followUps.find(q => q.id === itemId);
+    return f ? el('p', { class: 'sp-question' }, el('b', null, 'Question: '), f.text) : null;
+  }
+  if (g.type === 'speaking_part1' || g.type === 'speaking_part3') {
+    const q = g.questions.find(x => x.id === itemId);
+    return q ? el('p', { class: 'sp-question' }, el('b', null, 'Question: '), q.text) : null;
+  }
+  return null;
+}
+
+/** a speaking recording, Part 2 notes, or the drill's stage times */
+function extrasFor(r: ResultView, itemId: string): HTMLElement | null {
+  const rec = r.recordings?.[itemId];
+  const prep = r.attempt.state[`prep:${itemId}`];
+  const drill = r.attempt.state[`drill:${itemId}`] as { planSec?: number; introSec?: number } | undefined;
+  const bits: HTMLElement[] = [];
+  if (rec) bits.push(el('div', { class: 'rec-result' }, el('span', null, '🎙 Your recording'), el('audio', { controls: true, preload: 'none', src: rec.url }), rec.durationSec ? el('span', { class: 'muted' }, fmtDuration(rec.durationSec)) : null));
+  if (typeof prep === 'string' && prep.trim()) bits.push(el('details', { class: 'details' }, el('summary', null, 'Your preparation notes'), el('div', { class: 'essay' }, prep)));
+  if (drill && (drill.planSec || drill.introSec)) bits.push(el('p', { class: 'muted' }, `Time: plan ${fmtDuration(drill.planSec ?? 0)} · introduction ${fmtDuration(drill.introSec ?? 0)}`));
+  return bits.length ? el('div', { class: 'item-extras' }, bits) : null;
 }
 
 function feedbackBand(r: ResultView): number | null {

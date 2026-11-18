@@ -9,8 +9,8 @@ A private IELTS practice site at **https://ielts.jeemdev.net**. Claude writes te
 | 3 | Auto-scoring, band estimate, results page, review in the test, history | ✅ |
 | 4 | Import box (paste JSON or the text format, attach audio / pictures), Tests page (archive / restore) | ✅ |
 | 5 | MCP server: the claude.ai connector (OAuth, 11 tools) | ✅ |
-| 6 | Writing charts, plan+intro timers, speaking recording, listening speech playback | next |
-| 7 | Claude's feedback on the results page, progress charts | |
+| 6 | Task 1 charts drawn from data, plan+intro drill timers, speaking recording (+ optional live transcript) with Part 2 timers, listening read aloud | ✅ |
+| 7 | Claude's feedback on the results page, progress charts | next |
 
 ## Folders
 - `shared/`: the test format (zod schemas, validation, answer helpers) and the API types. Used by everything else.
@@ -44,6 +44,9 @@ npm run hash-password -- "a password"      # a hash for ADMIN_PASSWORD_HASH
 - **Autosave:** each answer change is sent within a second, and a heartbeat goes every 10 seconds. Only changes are sent, so two devices never overwrite each other. Offline, unsent changes stay in the browser (the only use of localStorage besides display settings) and sync when the connection is back.
 - **Clock:** exam mode runs on the wall clock: the deadline is fixed on the server and keeps running when the page is closed. When it passes, the server submits the saved answers. Practice mode counts only the time you actually spend in the test, can be paused, and closing the page pauses it.
 - **Secrets stay on the server:** the answer key and listening transcripts are never sent to the browser before you submit.
+- **Writing:** Task 1 charts (line, bar, pie, table, process, map) are drawn from the test's data as SVG (`web/src/runner/charts.ts`), in the exam's colour settings too. A Task 2 drill (`"mode": "plan_intro"`) has its own plan and introduction timers.
+- **Speaking:** each answer can be recorded in the browser (MediaRecorder) and is saved on the server with the attempt (`POST /api/attempts/:id/recordings?item=`, up to 30 MB). An optional switch writes down what you say with the browser's speech recognition, so Claude can read it. Part 2 has the 1-minute preparation and 2-minute talk timers; the talk records itself.
+- **Listening without a recording:** the browser reads the transcript aloud (speech synthesis, a different voice per speaker). The transcript is fetched only by the player, never shown before you submit; in exam mode each part plays once and only the lines not yet heard are sent.
 - **Adding tests:** the import box (**Tests → Import a test**) takes JSON from Claude or the text format, plus audio and pictures (stored in `UPLOAD_DIR`, served only after login). It lists every problem at once and saves only a checked test. See [HOW-TO-ADD-TESTS.md](HOW-TO-ADD-TESTS.md).
 - **Scoring** happens on the server when you submit, and when the exam clock runs out (`shared/src/scoring.ts`):
   - Matching ignores capital letters, extra spaces and a final full stop. Any answer in `accept[]` counts, and `(optional)` words are allowed.
