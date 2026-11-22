@@ -4,10 +4,10 @@
  * Tests link to a step with "masteryStepId"; their attempts are added when scored (submit) or marked (save_feedback).
  */
 import {
-  MASTERY_STATUSES, MasteryStepInput, trailingPasses,
+  MASTERY_STATUSES, MasteryStepInput, PassRule, trailingPasses,
   type MasteryAttempt, type MasteryLadder, type MasteryResponse, type MasteryStatus, type MasteryStep
 } from '@ielts/shared';
-import { asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Db } from '../db/client';
 import { attempts, masterySteps, tests } from '../db/schema';
@@ -36,7 +36,7 @@ async function openNextStep(db: Db, ladder: string): Promise<void> {
 export const UpsertStepsInput = z.array(MasteryStepInput).min(1, { error: 'needs at least one step' }).max(60, { error: 'at most 60 steps per call' });
 
 /** create or update steps; attempts are kept, and the status too unless one is given */
-export async function upsertSteps(db: Db, input: unknown): Promise<{ created: string[]; updated: string[]; steps: MasteryStep[] }> {
+export async function upsertSteps(db: Db, input: unknown): Promise<{ created: string[]; updated: string[]; backfilled: number; steps: MasteryStep[] }> {
   const steps = UpsertStepsInput.parse(input);
   const ids = new Set<string>();
   for (const s of steps) {
@@ -66,8 +66,20 @@ export async function upsertSteps(db: Db, input: unknown): Promise<{ created: st
   // one ladder title for the whole ladder: the last one given wins
   for (const s of steps) if (s.ladderTitle) await db.update(masterySteps).set({ ladderTitle: s.ladderTitle }).where(eq(masterySteps.ladder, s.ladder));
   for (const l of ladders) await openNextStep(db, l);
+  const backfilled = created.length ? await backfillSteps(db, created) : 0;
   const rows = await db.select().from(masterySteps).where(inArray(masterySteps.id, [...ids]));
-  return { created, updated, steps: rows.sort((a, b) => a.ladder.localeCompare(b.ladder) || a.order - b.order).map(stepOf) };
+  return { created, updated, backfilled, steps: rows.sort((a, b) => a.ladder.localeCompare(b.ladder) || a.order - b.order).map(stepOf) };
+}
+
+/** new steps: count the attempts already submitted on tests that carry their masteryStepId (oldest first) */
+async function backfillSteps(db: Db, stepIds: string[]): Promise<number> {
+  const linked = sql<string>`${tests.content}->>'masteryStepId'`;
+  const rows = await db.select({ id: attempts.id }).from(attempts).innerJoin(tests, eq(attempts.testId, tests.id))
+    .where(and(inArray(linked, stepIds), ne(attempts.status, 'in_progress')))
+    .orderBy(asc(attempts.submittedAt));
+  let n = 0;
+  for (const r of rows) if (await recordMasteryAttempt(db, r.id)) n++;
+  return n;
 }
 
 export async function getStep(db: Db, id: string): Promise<MasteryStep | null> {
@@ -106,12 +118,28 @@ export async function listMastery(db: Db, ladder?: string): Promise<MasteryRespo
 }
 
 /** Claude's manual change: a status (e.g. "recheck" when a passed skill slips in a full test), or a fresh start */
-export async function updateStep(db: Db, id: string, change: { status?: MasteryStatus; resetAttempts?: boolean }): Promise<MasteryStep> {
+export const StepChanges = z.strictObject({
+  status: z.enum(MASTERY_STATUSES, { error: 'must be locked, active, passed or recheck' }).optional(),
+  title: z.string().trim().min(1).max(200).optional(),
+  task: z.string().trim().max(2000).nullable().optional(),
+  lessonId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/, { error: 'must be a lesson id such as "ref-writing-task2"' }).nullable().optional(),
+  order: z.number().int().min(0).max(999).optional(),
+  passRule: PassRule.optional(),
+  resetAttempts: z.boolean().optional()
+});
+export type StepChanges = z.input<typeof StepChanges>;
+
+export async function updateStep(db: Db, id: string, input: StepChanges): Promise<MasteryStep> {
   const [r] = await db.select().from(masterySteps).where(eq(masterySteps.id, id)).limit(1);
   if (!r) throw new HttpError(404, 'not_found', `There is no mastery step "${id}". Use list_mastery to see the step ids.`);
-  if (change.status && !(MASTERY_STATUSES as readonly string[]).includes(change.status)) throw new HttpError(400, 'invalid', 'status must be locked, active, passed or recheck');
+  const change = StepChanges.parse(input);
   await db.update(masterySteps).set({
     ...(change.status ? { status: change.status } : {}),
+    ...(change.title !== undefined ? { title: change.title } : {}),
+    ...(change.task !== undefined ? { task: change.task } : {}),
+    ...(change.lessonId !== undefined ? { lessonId: change.lessonId } : {}),
+    ...(change.order !== undefined ? { order: change.order } : {}),
+    ...(change.passRule ? { passRule: change.passRule } : {}),
     ...(change.resetAttempts ? { attempts: [] } : {}),
     updatedAt: new Date()
   }).where(eq(masterySteps.id, id));
