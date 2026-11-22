@@ -69,17 +69,17 @@ The dashboard shows only the newest test of each open step, so always create the
 - Put spelling, grammar and collocation slips in `mistakes` with `"addToLog": true`, so they reach My Mistakes. Never-again words are what S1 dictations are made from.
 - Use `update_word` / `record_vocab_result` only for flashcard self-tests done outside the site. Quizzes on the site log themselves.
 
-## 5. One-time clean-up (do this once, now)
+## 5. One-time set-up (do this once, now)
 
-1. Create ladders W, S, V (sets 3–10), R with `upsert_mastery_step`. Set the steps I've already passed to `passed`; the first open one becomes active by itself.
-2. Link the existing tests with `update_test`:
-   - "Mastery S1 · Spelling dictation: never-again words #1" → `masteryStepId: "s1-never-again"`, title `Mastery S1 #1 · Never-again words`;
-   - "Day 24 · Plan + introduction drill (15 min)" → `masteryStepId: "w1-introduction"`, title `Mastery W1 #1 · Plan + introduction`, kind `practice`, no dueDate.
-3. Rewrite Days 24–45 of the plan with `set_plan`:
-   - `section` on every block, and no "1 ·" title prefixes;
-   - blocks in the order review → main → mastery;
-   - the "Maintenance" blocks of Days 30–43 become `mastery` blocks for my current W step;
-   - re-tests moved to Days 25, 30, 35, 40, 45.
-   Keep the block ids and their status.
-4. Update `ref-mastery` as described in section 3.
-5. Tell me what changed, in a short list.
+Already done on the site: Days 24–45 have sections, re-tests are on Days 25/30/35/40/45, the two mastery tests are linked (`Mastery S1 #1`, `Mastery W1 #1`), and `ref-mastery` points to the Mastery page. What's left:
+
+1. Create ladders W, S, V (one step per set, Sets 3–10) and R with `upsert_mastery_step`, using the ids, titles and pass rules in section 3. Give each step its `task` from the `ref-mastery` page, and these `lessonId`s:
+   - W1 `day24-task-response`;
+   - W2–W4 `ref-writing-task2`;
+   - W5–W6 `ref-writing-task1`;
+   - S1–S2 `ref-writing-accuracy`;
+   - S3 `ref-phrase-bank`;
+   - R `ref-reading`.
+   The first step of each ladder becomes active by itself.
+2. Check with `list_mastery` that the tests "Mastery S1 #1" and "Mastery W1 #1" show under S1 and W1.
+3. Tell me what you created, in a short list.
