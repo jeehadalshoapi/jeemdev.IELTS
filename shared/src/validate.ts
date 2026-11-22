@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import { describeWordLimit, expandOptional, fitsWordLimit, letter, countWords } from './answers';
-import { templatePlaceholders } from './document';
+import { normalizeTestInput, templatePlaceholders } from './document';
 import type { WordLimit } from './schema/common';
 import type { ObjectiveGroup, QuestionGroup } from './schema/groups';
 import { isCompletionType, isMatchingType, isObjectiveType, isSpeakingType, isWritingType, TFNG_CHOICES, VOCABULARY_TYPES, YNNG_CHOICES } from './schema/groups';
@@ -59,7 +59,8 @@ function zodIssues(error: z.ZodError, input: unknown): Issue[] {
 }
 
 /** validate a test sent by Claude, the import box or a script */
-export function validateTest(input: unknown): ValidationResult {
+export function validateTest(raw: unknown): ValidationResult {
+  const input = normalizeTestInput(raw);
   const parsed = TestDocumentSchema.safeParse(input);
   if (!parsed.success) {
     const errors = zodIssues(parsed.error, input);

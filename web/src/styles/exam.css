@@ -483,3 +483,8 @@ a.cd-logo { text-decoration: none; }
 .rw-item .w-small .w-text, .rw-item .w-text { min-height: 72px; height: 84px; resize: vertical; }
 .plan-box .w-plan { flex: none; min-height: 96px; height: 120px; width: 100%; resize: vertical; }
 .pane-right:has(.plan-box) > div { display: flex; flex-direction: column; height: 100%; }
+
+/* Phase 12: dictation */
+.q-dict .q-text { align-items: center; flex-wrap: wrap; }
+.dict-left { font-size: 13px; }
+.dict-play:disabled { opacity: .55; cursor: default; }

@@ -4,6 +4,8 @@ import './styles/exam.css';
 import { ApiError } from './lib/api';
 import { el } from './lib/dom';
 import { mountDashboard } from './pages/dashboard';
+import { mountDone } from './pages/done';
+import { mountMastery } from './pages/mastery';
 import { mountHistory } from './pages/history';
 import { mountImport } from './pages/import';
 import { mountLesson, mountLessons } from './pages/lessons';
@@ -47,6 +49,8 @@ async function render(): Promise<void> {
       else if (name === 'vocab') await mountVocab(app);
       else if (name === 'mistakes') await mountMistakes(app);
       else if (name === 'plan') await mountPlan(app);
+      else if (name === 'done') await mountDone(app);
+      else if (name === 'mastery') await mountMastery(app);
       else if (name === 'import') view = mountImport(app);
       else await mountDashboard(app);
     }

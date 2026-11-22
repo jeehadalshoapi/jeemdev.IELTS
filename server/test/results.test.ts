@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { exampleTestForType, type DashboardResponse, type HistoryResponse, type ResultView } from '@ielts/shared';
+import { exampleTestForType, type DashboardResponse, type DoneResponse, type HistoryResponse, type ResultView } from '@ielts/shared';
 import { eq, sql } from 'drizzle-orm';
 import { rescoreTestAttempts } from '../src/attempts/service';
 import { attempts, tests } from '../src/db/schema';
@@ -46,7 +46,7 @@ describe('scoring and results', () => {
     expect(r.autoScore.reasons).toMatchObject({ correct: 4, wrong: 2, likely_spelling: 1, over_word_limit: 1, blank: 9 });
     expect(r.attempt.timeUsedSec).toBeGreaterThanOrEqual(0);
 
-    const d = await json<DashboardResponse>(await me.get('/api/dashboard'));
+    const d = await json<DoneResponse>(await me.get('/api/done'));
     expect(d.completed.find(a => a.id === id)?.autoScore).toEqual({ raw: 4, total: 17, band: r.autoScore.band });
   });
 
@@ -174,7 +174,7 @@ describe('progress (Phase 7)', () => {
     ]);
     expect(h.bySkill.writing?.points.at(-1)).toMatchObject({ attemptId: id, band: 6.5 });
     expect(h.attempts.find(a => a.id === id)).toMatchObject({ feedbackReady: true, feedbackBand: 6.5, status: 'marked' });
-    const d = await json<DashboardResponse>(await me.get('/api/dashboard'));
+    const d = await json<DoneResponse>(await me.get('/api/done'));
     expect(d.completed.find(a => a.id === id)?.feedbackBand).toBe(6.5);
     const r = await json<ResultView>(await me.get(`/api/attempts/${id}/result`));
     expect(r.feedback).toMatchObject({ overallBand: 6.5, criteria: { LR: 7 } });

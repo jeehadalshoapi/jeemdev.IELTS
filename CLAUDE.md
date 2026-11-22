@@ -17,6 +17,7 @@ A private, single-user IELTS practice site at **https://ielts.jeemdev.net**. The
 | 9 | Skill `vocabulary` (enum migration `0005`; no band, accuracy; types in `VOCABULARY_TYPES`), `definition_match` / `opposite_match` (matching types), `sentence_rewrite` (a writing type, one open item per sentence; feedback `items` [{itemId, correct, comment, corrected}]), test `vocabularySetId` (on submit → self-test log via `server/src/study/vocab-quiz.ts`, idempotent), "Test me" `POST /api/vocab/sets/:id/quiz`, plan box (state `plan:<groupId>`), study blocks (state `blocks`, runner `trackBlock`) | ✅ merged, **deployed** 2026-11-18 |
 | 10 | `upload_asset` (SVG → `server/src/files/svg.ts` allowlist rebuild; `/files/:id` sends `Content-Security-Policy: … sandbox` for SVG), `map_labelling.map` (features drawn by `renderChart`), plan table `plan_days` (migration `0006`) + `set_plan` / `get_plan` / `update_block` (`server/src/mcp/plan-tools.ts`, `server/src/study/plan.ts`), `GET /api/plan/today?date=` (browser date) → dashboard Today card, `#/plan`, blocks with a testId ticked on submit, review rule every 5th day; read-aloud `partSpeech` (reading time, default 30 s, `readingTimeSec`; `[pause N]` silences; Skip in practice) | ✅ merged, **deployed** 2026-11-18 |
 | 11 | Recorder `silenceMeter` (Web Audio RMS every 100 ms, adaptive noise floor): `pauses`, `longestPause`, `speaking` sent as upload query params → `files.pauses_over_3s / longest_pause_sec / speaking_sec` (migration `0007`); `get_attempt` recording: + `wordsPerMinute`, `transcript`. `server/src/files/transcribe.ts` (`Transcriber`, one at a time, resumes pending on start) posts to whisper.cpp `POST /inference` (`file`, `response_format=json`) — **only when `WHISPER_URL` is set**. `whisper/Dockerfile` (v1.9.5, base.en, non-root, ffmpeg, `--convert`). | ✅ merged, **deployed** 2026-11-18; **Whisper container NOT started** (see below) |
+| 12 | Owner's requests + `ielts-site-spec-mastery.md`: **discard** an in-progress attempt (`DELETE /api/attempts/:id`, 409 once submitted; dashboard card + start page); **Done page** `#/done` (`GET /api/done`, `server/src/attempts/lists.ts`): the dashboard keeps only tests never submitted, plus tests of a mastery step not yet passed; **mastery ladders** (table `mastery_steps`, migration `0008`; `server/src/study/mastery.ts`; test `masteryStepId`; recorded on submit, on results of an auto-submitted exam, on rescore and on `save_feedback`; idempotent per attempt; passRule `minBand` uses Claude's overallBand or the reading/listening band, `minPercent` the auto score; passing opens the next step; `recheck` passes on one good attempt), MCP `upsert_mastery_step` (`steps: [...]`) / `list_mastery` / `get_mastery_step` / `update_mastery_step` (`server/src/mcp/mastery-tools.ts`), `GET /api/mastery`, dashboard Mastery card + `#/mastery`; plan block `section` (review / main / mastery → three headings on Today and `#/plan`); question type **`dictation`** (objective, `questions` or `items` [{id, number, say, sentence?}], `maxPlays` default 2; `say`/`sentence` stripped from public content; `POST /api/attempts/:id/dictation/:qid/play` counts plays in state `dict:<qid>`, autosave cannot change those keys). | branch `phase-12-mastery`, **waiting for the owner's go** |
 
 - `main` is what runs on the server. The server checkout `/opt/ielts/jeemdev.IELTS` tracks `main`.
 - **The owner's list `ielts-site-spec.md`** (2026-11-18): decisions taken — deploy each phase when done; pictures = `upload_asset` (SVG cleaned on the server and served with a sandbox CSP) **and** maps drawn from data; vocabulary quizzes = a new skill `vocabulary` (no band, accuracy only). Already true before Phase 8: writing boxes have `spellcheck="false"`; exam-mode read-aloud plays once; the speaking live transcript + recording length reach `get_attempt`.
@@ -107,7 +108,7 @@ and `WHISPER_URL: http://ielts-whisper:8080` under `app.environment`; then `./de
 ```bash
 npm install
 npm run dev                 # API :3000 (tsx watch) + website :5173 (Vite); dev password "ielts-dev"
-npm test                    # vitest — 154 tests (shared/test, server/test); hookTimeout 90 s because every server file starts its own PGlite
+npm test                    # vitest — 163 tests (shared/test, server/test); hookTimeout 90 s because every server file starts its own PGlite
 npm run typecheck           # tsc for shared, server, web (TypeScript 7 — type-checking only)
 npm run build               # vite build web -> web/dist ; esbuild server -> server/dist
 npm start                   # production build on :3000
@@ -132,6 +133,7 @@ node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/feedback.cjs        
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/study.cjs              # Phase 8 lessons, vocabulary (table, flashcards), mistakes + review
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/format9.cjs            # Phase 9 Test me quiz, plan box, sentence rewrite, study blocks (fresh DB: it submits)
 node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/plan10.cjs             # Phase 10 Today card, plan page, map from data, SVG diagram, silence + Skip (fresh DB)
+node scripts/e2e/cdp.cjs http://localhost:3000/ scripts/e2e/mastery12.cjs          # Phase 12 to-do dashboard, discard, Done page, mastery card/page, plan sections, dictation (fresh DB)
 TOKEN=$(node scripts/e2e/mcp-connect.mjs http://localhost:3000)                    # OAuth like claude.ai does; prints a 1-hour token
 npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http --header "Authorization: Bearer $TOKEN" --method tools/list
 ```
@@ -177,7 +179,7 @@ server/  Express 5 + Drizzle (Postgres / PGlite)
   src/mcp/attempts.ts      attemptDetail (question text, exact answer, accepted answers, reason, writing/speaking text, times,
                            Task 1 chart data, drill times, Part 2 notes, recording links)
   src/attempts/media.ts    saveRecording / deleteRecording (speaking), speechFor (listening read-aloud lines)
-web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/test/:id  #/attempt/:id  #/result/:id  #/review/:id  #/history  #/tests  #/import
+web/     Vite + TypeScript, hash router (web/src/main.ts): #/  #/done  #/mastery  #/test/:id  #/attempt/:id  #/result/:id  #/review/:id  #/history  #/tests  #/import
   src/runner/          runner.ts (exam UI, clock, nav, review mode), render.ts (all question types), tools.ts (highlights/notes),
                        sync.ts (autosave + offline buffer in localStorage), panels.ts (settings/notes/help/audio)
   src/runner/charts.ts  Task 1 charts as SVG/HTML (palette vars --series-N in exam.css, light + dark steps)

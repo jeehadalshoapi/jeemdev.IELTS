@@ -74,6 +74,12 @@ export const QUESTION_TYPE_EXAMPLES: Record<QuestionType, QuestionTypeExample> =
     group: { id: 'g1', type: 'opposite_match', instructions: 'Choose the OPPOSITE of each word, A-C.', optionsTitle: 'Opposites', options: [{ label: 'A', text: 'aggravate' }, { label: 'B', text: 'beneficial' }, { label: 'C', text: 'proliferate' }], questions: [{ id: 'q1', number: 1, text: 'mitigate' }, { id: 'q2', number: 2, text: 'detrimental' }] },
     answerKey: { q1: { accept: ['A'] }, q2: { accept: ['B'] } }
   },
+  dictation: {
+    description: 'Spelling dictation (listening or vocabulary): each word has a play button that reads "sentence" and then "say" (at most maxPlays times, default 2); the student types the word. Strict spelling against "accept". The words stay off the page until the attempt is submitted.',
+    section: 'vocabulary',
+    group: { id: 'g1', type: 'dictation', instructions: 'Type the word you hear.', questions: [{ id: 'q1', number: 1, say: 'experience', sentence: 'Many graduates lack practical experience.' }, { id: 'q2', number: 2, say: 'environment' }] },
+    answerKey: { q1: { accept: ['experience'] }, q2: { accept: ['environment'] } }
+  },
   map_labelling: {
     description: 'Listening: label a map or plan with letters. imageUrl is required.',
     section: 'listening',

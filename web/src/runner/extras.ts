@@ -397,6 +397,33 @@ const voicesReady = () => new Promise<void>(resolve => {
   setTimeout(done, 1500);
 });
 
+/**
+ * Read a few short lines aloud one after the other (dictation: the sentence, then the word). Resolves when done,
+ * or after a safety timeout (some browsers never fire "end").
+ */
+export function speakLines(lines: string[], rate = 0.9): Promise<boolean> {
+  if (!synth) return Promise.resolve(false);
+  return voicesReady().then(() => new Promise<boolean>(resolve => {
+    synth.cancel();
+    const vs = englishVoices();
+    const voice = vs.find(v => v.name === local.get(VOICE_KEY)) ?? vs[0] ?? null;
+    const words = lines.join(' ').split(/\s+/).length;
+    let finished = false;
+    const finish = () => { if (!finished) { finished = true; clearTimeout(safety); resolve(true); } };
+    const safety = setTimeout(finish, 3000 + words * 700 + lines.length * 800);
+    lines.forEach((text, i) => {
+      const u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice?.lang ?? 'en-GB';
+      u.rate = rate;
+      if (i === lines.length - 1) { u.onend = finish; u.onerror = finish; }
+      synth.speak(u);
+    });
+  }));
+}
+
+export const canSpeak = () => !!synth;
+
 export function speechPlayer(ctx: RenderCtx, part: Part): HTMLElement {
   const exam = ctx.mode === 'exam' && !ctx.readonly;
   const stateKey = `tts:${part.id}`;

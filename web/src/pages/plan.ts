@@ -2,7 +2,7 @@
  * Study plan (Phase 10, ielts-site-spec.md item 8): the dashboard's Today card (today's blocks, blocks still open
  * from earlier days, the "re-test the sets" reminder every 5th day) and the whole plan on #/plan.
  */
-import type { BlockStatus, PlanBlock, PlanDay, TodayResponse } from '@ielts/shared';
+import { PLAN_SECTIONS, PLAN_SECTION_TITLES, type BlockStatus, type PlanBlock, type PlanDay, type TodayResponse } from '@ielts/shared';
 import { api } from '../lib/api';
 import { el, setChildren } from '../lib/dom';
 import { fmtDay } from '../lib/format';
@@ -37,6 +37,25 @@ function blockRow(b: PlanBlock, links: TodayResponse['links'], onChange: (b: Pla
     el('span', { class: 'plan-actions' }, link, skip));
 }
 
+/**
+ * A day's blocks: under the three headings (1 · Daily review, 2 · Main lesson + homework, 3 · Mastery practice) when
+ * blocks have a "section", else one list. Blocks without a section come first, without a heading.
+ */
+function blockList(blocks: PlanBlock[], row: (b: PlanBlock) => HTMLElement): HTMLElement {
+  if (!blocks.some(b => b.section)) return el('ul', { class: 'plan-blocks' }, blocks.map(row));
+  const loose = blocks.filter(b => !b.section);
+  return el('div', { class: 'plan-sections' },
+    loose.length ? el('ul', { class: 'plan-blocks' }, loose.map(row)) : null,
+    PLAN_SECTIONS.map(sec => {
+      const list = blocks.filter(b => b.section === sec);
+      if (!list.length) return null;
+      const done = list.filter(b => b.status !== 'todo').length;
+      return el('div', { class: `plan-section sec-${sec}`, dataset: { section: sec } },
+        el('h4', null, PLAN_SECTION_TITLES[sec], el('span', { class: 'muted' }, ` · ${done}/${list.length}`)),
+        el('ul', { class: 'plan-blocks' }, list.map(row)));
+    }));
+}
+
 /** the Today card at the top of the dashboard; null when there is no plan at all */
 export async function todayCard(): Promise<HTMLElement | null> {
   let t: TodayResponse;
@@ -55,7 +74,7 @@ export async function todayCard(): Promise<HTMLElement | null> {
       t.review ? el('div', { class: 'review-banner' }, el('b', null, `🔁 Day ${t.review.day}: re-test Sets ${t.review.sets.map(s => s.number ?? s.theme).join(', ')}`),
         el('span', { class: 'row-actions' }, t.review.sets.slice(0, 12).map(s => el('a', { class: 'btn btn-sm', href: `#/vocab/${encodeURIComponent(s.id)}` }, s.number !== null ? `Set ${s.number}` : s.theme)))) : null,
       d?.notes ? el('p', { class: 'muted' }, d.notes) : null,
-      d && d.blocks.length ? el('ul', { class: 'plan-blocks' }, d.blocks.map(b => blockRow(b, t.links, nb => { Object.assign(b, nb); draw(); }))) : null,
+      d && d.blocks.length ? blockList(d.blocks, b => blockRow(b, t.links, nb => { Object.assign(b, nb); draw(); })) : null,
       t.pending.length ? el('div', { class: 'pending' },
         el('h4', null, `Still open from earlier days (${t.pending.length})`),
         el('ul', { class: 'plan-blocks' }, t.pending.slice(0, 8).map(p => blockRow(p.block, t.links, nb => {
@@ -85,7 +104,7 @@ export async function mountPlan(root: HTMLElement): Promise<void> {
         el('span', { class: 'day-pill' }, `Day ${d.day}`), el('h3', { class: 'card-title' }, d.title),
         el('span', { class: 'muted' }, fmtDay(d.date)), d.blocks.length ? el('span', { class: done === d.blocks.length ? 'pill-ok' : 'badge' }, `${d.blocks.filter(b => b.status !== 'todo').length}/${d.blocks.length}`) : null),
       d.notes ? el('p', { class: 'muted' }, d.notes) : null,
-      d.blocks.length ? el('ul', { class: 'plan-blocks' }, d.blocks.map(b => blockRow(b, links, nb => { Object.assign(b, nb); draw(); }))) : null);
+      d.blocks.length ? blockList(d.blocks, b => blockRow(b, links, nb => { Object.assign(b, nb); draw(); })) : null);
     draw();
     return card;
   };

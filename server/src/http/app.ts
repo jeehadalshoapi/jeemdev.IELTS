@@ -1,8 +1,9 @@
 import { existsSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import {
   CreateAttemptBody, HistoryQuery, ImportBody, TestStatusBody, totalMarks, UPLOAD_MAX_BYTES, uploadKindOf,
-  type ConnectorResponse, type DashboardResponse, type ImportCheckResponse, type ImportSaveResponse, type TestDetailResponse, type TestsResponse, type UploadResponse
+  type ConnectorResponse, type ImportCheckResponse, type ImportSaveResponse, type TestDetailResponse, type TestsResponse, type UploadResponse
 } from '@ielts/shared';
 import { desc, eq } from 'drizzle-orm';
 import express, { type NextFunction, type Request, type Response } from 'express';
@@ -12,7 +13,8 @@ import { mountStudyRoutes } from '../study/routes';
 import { Transcriber } from '../files/transcribe';
 import { buildHistory } from '../attempts/history';
 import { deleteRecording, saveRecording, speechFor } from '../attempts/media';
-import { createAttempt, getAttemptView, getResultView, isUuid, listAttemptSummaries, saveAttempt } from '../attempts/service';
+import { dashboardLists, doneLists } from '../attempts/lists';
+import { createAttempt, discardAttempt, getAttemptView, getResultView, isUuid, listAttemptSummaries, playDictation, saveAttempt } from '../attempts/service';
 import { verifyPassword } from '../auth/password';
 import { createSession, deleteSession, findSession, SESSION_COOKIE } from '../auth/sessions';
 import type { AppConfig } from '../config';
@@ -128,22 +130,8 @@ export function createApp({ database, config, fileStore }: AppDeps) {
   api.use((_req, res, next) => (res.locals.session ? next() : next(new HttpError(401, 'not_logged_in', 'Please log in.'))));
   api.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
 
-  api.get('/dashboard', async (_req, res) => {
-    const testRows = await db.select().from(tests).where(eq(tests.status, 'assigned')).orderBy(desc(tests.createdAt));
-    const summaries = await listAttemptSummaries(db);
-    const body: DashboardResponse = {
-      assigned: testRows.map(t => ({
-        id: t.id, title: t.title, skill: t.skill, kind: t.kind, dueDate: t.dueDate,
-        timeLimitMin: t.content.timeLimitMin ?? null, marks: totalMarks(t.content.parts), parts: t.content.parts.length,
-        createdAt: t.createdAt.toISOString(),
-        attemptCount: summaries.filter(s => s.testId === t.id).length,
-        inProgressAttemptId: summaries.find(s => s.testId === t.id && s.status === 'in_progress')?.id ?? null
-      })),
-      inProgress: summaries.filter(s => s.status === 'in_progress'),
-      completed: summaries.filter(s => s.status !== 'in_progress').sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''))
-    };
-    res.json(body);
-  });
+  api.get('/dashboard', async (_req, res) => { res.json(await dashboardLists(db)); });
+  api.get('/done', async (_req, res) => { res.json(await doneLists(db)); });
 
   api.get('/tests/:id', async (req, res) => {
     const id = req.params.id;
@@ -170,6 +158,11 @@ export function createApp({ database, config, fileStore }: AppDeps) {
 
   api.get('/attempts/:id', async (req, res) => { res.json(await getAttemptView(db, req.params.id)); });
   api.get('/attempts/:id/result', async (req, res) => { res.json(await getResultView(db, req.params.id)); });
+  /** discard an attempt started by mistake (only while it is in progress) */
+  api.delete('/attempts/:id', async (req, res) => {
+    res.json({ ok: true, ...(await discardAttempt(db, req.params.id, p => rm(fileStore.absolutePath(p), { force: true }))) });
+  });
+  api.post('/attempts/:id/dictation/:questionId/play', async (req, res) => { res.json(await playDictation(db, req.params.id, req.params.questionId)); });
 
   /* ---------- Phase 6: speaking recordings and listening read-aloud ---------- */
   api.post('/attempts/:id/recordings', async (req, res) => {
