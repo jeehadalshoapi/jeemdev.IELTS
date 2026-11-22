@@ -5,8 +5,12 @@ import { env, REPO_ROOT } from './env';
 export interface AppConfig {
   isProd: boolean;
   port: number;
-  /** scrypt hash of the single user's password */
+  /** scrypt hash of the single user's password (the one set on the Settings page once there is one) */
   adminPasswordHash: string;
+  /** ADMIN_PASSWORD_HASH as the server started with it */
+  envPasswordHash: string;
+  /** set on the Settings page; when empty the login needs only the password */
+  adminUsername?: string | undefined;
   /** e.g. https://ielts.jeemdev.net — used for the same-origin check; derived from the request when empty */
   publicOrigin?: string;
   /** built website (vite build output) */
@@ -31,6 +35,7 @@ export async function loadConfig(overrides: Partial<AppConfig> = {}): Promise<Ap
     isProd,
     port: Number(process.env.PORT) || 3000,
     adminPasswordHash,
+    envPasswordHash: adminPasswordHash,
     ...(publicOrigin ? { publicOrigin: publicOrigin.replace(/\/$/, '') } : {}),
     webDir: process.env.WEB_DIR?.trim() || path.join(REPO_ROOT, 'web', 'dist'),
     uploadDir: env.uploadDir,

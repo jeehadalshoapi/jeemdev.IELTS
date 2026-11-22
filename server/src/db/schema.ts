@@ -104,6 +104,20 @@ export const sessions = pgTable('sessions', {
   index('sessions_expires_idx').on(t.expiresAt)
 ]);
 
+/*
+ * The single user's login, as changed on the Settings page (Phase 13). One row, id 1.
+ * password_hash is used only while env_tag still matches ADMIN_PASSWORD_HASH: running
+ * change-password.sh on the server (a new env hash) wins over a password set on the site.
+ */
+export const account = pgTable('account', {
+  id: integer('id').primaryKey(),
+  username: text('username'),
+  passwordHash: text('password_hash'),
+  envTag: text('env_tag'),
+  passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
 /* ---------- Claude connector (MCP) — OAuth 2.1, single user ---------- */
 
 /** OAuth clients registered through dynamic client registration (RFC 7591), e.g. claude.ai */

@@ -44,7 +44,7 @@ npm run hash-password -- "a password"      # a hash for ADMIN_PASSWORD_HASH
 ```
 
 ## How it works
-- **Login:** one password. The server stores only its scrypt hash (`ADMIN_PASSWORD_HASH`). Sessions use an httpOnly cookie. Changes are protected by a CSRF token and a same-origin check. 10 wrong passwords lock that IP out for 15 minutes. Every page, API route and uploaded file needs a login, except the login page and `/health`.
+- **Login:** one password, plus a username once one is set on **⚙ Settings** (`#/settings`), where the password can be changed too (the current password is needed; a new one logs out the other devices and disconnects Claude). The first password is the scrypt hash in `ADMIN_PASSWORD_HASH`; one changed on the site is stored as a hash in the `account` table. Running `change-password.sh` on the server later wins over it (the forgotten-password route). Sessions use an httpOnly cookie. Changes are protected by a CSRF token and a same-origin check. 10 wrong passwords lock that IP out for 15 minutes. Every page, API route and uploaded file needs a login, except the login page and `/health`.
 - **Autosave:** each answer change is sent within a second, and a heartbeat goes every 10 seconds. Only changes are sent, so two devices never overwrite each other. Offline, unsent changes stay in the browser (the only use of localStorage besides display settings) and sync when the connection is back.
 - **Clock:** exam mode runs on the wall clock: the deadline is fixed on the server and keeps running when the page is closed. When it passes, the server submits the saved answers. Practice mode counts only the time you actually spend in the test, can be paused, and closing the page pauses it.
 - **Secrets stay on the server:** the answer key and listening transcripts are never sent to the browser before you submit.
@@ -94,7 +94,7 @@ The VPS runs several projects behind one shared Caddy proxy (`/opt/edge`), follo
 ssh gehad@169.58.112.108
 cd /opt/ielts/stack
 ./deploy.sh              # git pull + rebuild + restart; migrations run on start
-./change-password.sh     # set a new login password (logs out every device)
+./change-password.sh     # set a new login password (logs out every device); also the way back in after a forgotten password
 ./backup.sh              # also runs daily from cron: database + uploads, kept 14 days in /opt/ielts/backups
 docker compose logs -f app
 ```
