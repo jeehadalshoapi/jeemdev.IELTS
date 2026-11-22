@@ -15,11 +15,15 @@ export async function mountStart(root: HTMLElement, testId: string): Promise<voi
     el('input', { type: 'radio', name: 'mode', value, checked: mode === value, onchange: () => { mode = value; } }),
     el('div', null, el('b', null, title), el('small', null, desc)));
 
+  let starting = false;
   const start = async () => {
+    if (starting) return; // a double tap must not start two attempts
+    starting = true;
     try {
       const { id } = await api<{ id: string }>(`/tests/${testId}/attempts`, { method: 'POST', body: { mode, device: deviceId() } });
       location.hash = `#/attempt/${id}`;
     } catch (e) {
+      starting = false;
       toast((e as Error).message, 'err');
     }
   };

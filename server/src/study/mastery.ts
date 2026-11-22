@@ -140,7 +140,10 @@ export async function recordMasteryAttempt(db: Db, attemptId: string): Promise<{
 
   const a = row.attempts;
   const auto = a.autoScore as { raw?: number; total?: number; band?: number | null } | null;
-  const percent = auto?.total ? Math.round(((auto.raw ?? 0) / auto.total) * 1000) / 10 : null;
+  // auto-marked questions first; else Claude's per-item marks (e.g. a sentence_rewrite: 9 of 10 sentences correct)
+  const marked = (a.feedback?.items ?? []).filter(i => typeof i.correct === 'boolean');
+  const percent = auto?.total ? Math.round(((auto.raw ?? 0) / auto.total) * 1000) / 10
+    : marked.length ? Math.round((marked.filter(i => i.correct).length / marked.length) * 1000) / 10 : null;
   const feedbackBand = typeof a.feedback?.overallBand === 'number' ? a.feedback.overallBand : null;
   const band = feedbackBand ?? (typeof auto?.band === 'number' ? auto.band : null);
   const rule = step.passRule;

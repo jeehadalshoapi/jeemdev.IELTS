@@ -1,6 +1,6 @@
 /*
  * Dashboard and Done page lists (Phase 12). The dashboard keeps only what is still to do; a test moves to the Done page
- * once an attempt of it is submitted — except a test of a mastery step that is not passed yet (it repeats until passed).
+ * once an attempt of it is submitted — except the newest test of a mastery step that is not passed yet (it repeats until passed).
  */
 import { totalMarks, trailingPasses, type AttemptSummary, type DashboardResponse, type DoneResponse, type TestListItem } from '@ielts/shared';
 import { desc, eq } from 'drizzle-orm';
@@ -17,6 +17,9 @@ async function buildLists(db: Db) {
     db.select().from(masterySteps)
   ]);
   const stepById = new Map(steps.map(s => [s.id, s]));
+  // the newest test of each step: the one to practise with (older tests of the step go to the Done page once submitted)
+  const newestOfStep = new Map<string, string>();
+  for (const t of testRows) if (t.content.masteryStepId && !newestOfStep.has(t.content.masteryStepId)) newestOfStep.set(t.content.masteryStepId, t.id);
   const completed = summaries.filter(s => s.status !== 'in_progress').sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''));
 
   const item = (t: TestRow): TestListItem & { finished: boolean } => {
@@ -31,8 +34,8 @@ async function buildLists(db: Db) {
       inProgressAttemptId: mine.find(s => s.status === 'in_progress')?.id ?? null,
       lastAttempt: last,
       mastery: step ? { stepId: step.id, title: step.title, status: step.status, passesInARow: trailingPasses(step.attempts), inARow: step.passRule.inARow } : null,
-      // finished = submitted at least once, and not a mastery step still to pass
-      finished: !!last && (!step || step.status === 'passed')
+      // finished = submitted at least once — except the newest test of a mastery step still to pass (it repeats)
+      finished: !!last && (!step || step.status === 'passed' || newestOfStep.get(step.id) !== t.id)
     };
   };
   const items = testRows.map(item);

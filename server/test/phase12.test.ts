@@ -106,6 +106,32 @@ describe('dashboard = to do, Done page = finished', () => {
   });
 });
 
+describe('one test per mastery attempt', () => {
+  it('older submitted tests of a step go to Done; only the newest stays to practise', async () => {
+    await upsertSteps(srv.database.db, [{ id: 'w1-intro', ladder: 'W', order: 1, title: 'W1 Introduction', passRule: { minBand: 7, inARow: 2 } }]);
+    const first = await newTest('writing_task2', { title: 'Mastery W1 #1', masteryStepId: 'w1-intro' });
+    const a1 = await start(first);
+    await me.post(`/api/attempts/${a1}/submit`, {});
+    let todo = (await json<DashboardResponse>(await me.get('/api/dashboard'))).assigned.map(t => t.id);
+    expect(todo).toContain(first); // still the step's only test: "Try again"
+    const second = await newTest('writing_task2', { title: 'Mastery W1 #2', masteryStepId: 'w1-intro' });
+    todo = (await json<DashboardResponse>(await me.get('/api/dashboard'))).assigned.map(t => t.id);
+    expect(todo).toContain(second);
+    expect(todo).not.toContain(first);
+    expect((await json<DoneResponse>(await me.get('/api/done'))).tests.map(t => t.id)).toContain(first);
+  });
+
+  it('a percent step counts the per-item marks when nothing is auto-marked (sentence rewrite)', async () => {
+    await upsertSteps(srv.database.db, [{ id: 's2-cast', ladder: 'S2x', order: 1, title: 'S2 CAST correction', passRule: { minPercent: 90, inARow: 2 } }]);
+    const testId = await newTest('sentence_rewrite', { masteryStepId: 's2-cast' });
+    const id = await start(testId);
+    await me.post(`/api/attempts/${id}/submit`, { answers: { r1: 'x', r2: 'y' } });
+    expect(await recordMasteryAttempt(srv.database.db, id)).toBeNull(); // not marked yet
+    await srv.database.db.update(attempts).set({ status: 'marked', feedback: { summary: 'ok', mistakes: [], nextSteps: [], items: [{ itemId: 'r1', correct: true }, { itemId: 'r2', correct: false }] } }).where(eq(attempts.id, id));
+    expect((await recordMasteryAttempt(srv.database.db, id))?.entry).toMatchObject({ percent: 50, passed: false });
+  });
+});
+
 describe('dictation', () => {
   it('accepts "items" as in the spec, and checks the answer key', () => {
     const r = validateTest({ title: 'S1', skill: 'vocabulary', parts: [{ id: 'p1', title: 'Spelling', questionGroups: [{ id: 'g1', type: 'dictation', items: [{ id: 's1', number: 1, say: 'experience', sentence: 'Many graduates lack practical experience.' }] }] }], answerKey: { s1: { accept: ['experience'] } } });
