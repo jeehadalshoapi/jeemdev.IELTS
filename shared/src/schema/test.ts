@@ -80,6 +80,8 @@ export const TestDocument = z.strictObject({
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: 'must be a date like "2026-11-30"' }).optional(),
   /** a vocabulary quiz on a set of the vocabulary bank: the result goes into the set's self-test log, missed words become "weak" */
   vocabularySetId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/, { error: 'must be a vocabulary set id such as "set-3"' }).optional(),
+  /** a step of a mastery ladder: each scored (or marked) attempt counts towards passing that step */
+  masteryStepId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/, { error: 'must be a mastery step id such as "w1-introduction"' }).optional(),
   parts: z.array(Part).min(1, { error: 'needs at least one part' }),
   answerKey: AnswerKey.default({})
 });
@@ -99,6 +101,7 @@ export interface TestContent {
   variant: Variant;
   timeLimitMin?: number;
   vocabularySetId?: string;
+  masteryStepId?: string;
   parts: Part[];
 }
 

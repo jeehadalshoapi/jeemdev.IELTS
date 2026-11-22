@@ -23,7 +23,7 @@ export const TYPE_LABEL: Record<QuestionType, string> = {
   matching_headings: 'Matching headings', matching_information: 'Matching information', matching_features: 'Matching features',
   matching_sentence_endings: 'Sentence endings', definition_match: 'Word → meaning', opposite_match: 'Word → opposite', sentence_rewrite: 'Sentence rewrite', sentence_completion: 'Sentence completion', summary_completion: 'Summary completion',
   note_completion: 'Note completion', table_completion: 'Table completion', flowchart_completion: 'Flow-chart completion',
-  diagram_labelling: 'Diagram labelling', form_completion: 'Form completion', short_answer: 'Short answer', map_labelling: 'Map labelling',
+  diagram_labelling: 'Diagram labelling', form_completion: 'Form completion', short_answer: 'Short answer', map_labelling: 'Map labelling', dictation: 'Dictation',
   writing_task1: 'Writing Task 1', writing_task2: 'Writing Task 2', paragraph: 'Paragraph', speaking_part1: 'Speaking Part 1',
   speaking_part2: 'Speaking Part 2', speaking_part3: 'Speaking Part 3'
 };
@@ -35,13 +35,15 @@ export const REASON_LABEL: Record<MarkReason, string> = {
 export const fmtBandValue = (b: number | null | undefined) => (b === null || b === undefined ? '–' : b.toFixed(1));
 
 export function appHeader(subtitle: string, back = false): HTMLElement {
-  const here = location.hash.replace(/^#\/?/, '').split('/')[0] || 'dashboard';
+  const here = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0] || 'dashboard';
   return el('header', { class: 'app-header' },
     el('div', { class: 'brand' },
       back ? el('a', { class: 'icon-btn back', href: '#/', title: 'Dashboard' }, '←') : el('span', { class: 'brand-mark' }, 'IE'),
       el('div', null, el('b', null, 'IELTS Practice'), el('small', null, subtitle))),
     el('nav', { class: 'tabs' },
       el('a', { href: '#/', class: here === 'dashboard' ? 'active' : '' }, 'Dashboard'),
+      el('a', { href: '#/done', class: here === 'done' ? 'active' : '' }, 'Done'),
+      el('a', { href: '#/mastery', class: here === 'mastery' ? 'active' : '' }, 'Mastery'),
       el('a', { href: '#/lessons', class: here === 'lessons' || here === 'lesson' ? 'active' : '' }, 'Lessons'),
       el('a', { href: '#/vocab', class: here === 'vocab' ? 'active' : '' }, 'Vocabulary'),
       el('a', { href: '#/mistakes', class: here === 'mistakes' ? 'active' : '' }, 'Mistakes'),

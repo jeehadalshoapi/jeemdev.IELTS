@@ -81,13 +81,14 @@ export function totalMarks(parts: readonly Part[]): number {
 
 /** split a validated document into the database columns */
 export function splitDocument(doc: TestDocument): { meta: TestMeta; content: TestContent; answerKey: AnswerKey } {
-  const { title, skill, kind, instructions, dueDate, variant, timeLimitMin, vocabularySetId, parts, answerKey } = doc;
+  const { title, skill, kind, instructions, dueDate, variant, timeLimitMin, vocabularySetId, masteryStepId, parts, answerKey } = doc;
   const meta: TestMeta = { title, skill, kind };
   if (instructions !== undefined) meta.instructions = instructions;
   if (dueDate !== undefined) meta.dueDate = dueDate;
   const content: TestContent = { variant, parts };
   if (timeLimitMin !== undefined) content.timeLimitMin = timeLimitMin;
   if (vocabularySetId !== undefined) content.vocabularySetId = vocabularySetId;
+  if (masteryStepId !== undefined) content.masteryStepId = masteryStepId;
   return { meta, content, answerKey };
 }
 
@@ -96,6 +97,7 @@ export function joinDocument(meta: TestMeta, content: TestContent, answerKey: An
   const doc: TestDocument = { title: meta.title, skill: meta.skill, kind: meta.kind, variant: content.variant, parts: content.parts, answerKey };
   if (content.timeLimitMin !== undefined) doc.timeLimitMin = content.timeLimitMin;
   if (content.vocabularySetId !== undefined) doc.vocabularySetId = content.vocabularySetId;
+  if (content.masteryStepId !== undefined) doc.masteryStepId = content.masteryStepId;
   if (meta.instructions) doc.instructions = meta.instructions;
   if (meta.dueDate) doc.dueDate = meta.dueDate;
   return doc;
@@ -103,10 +105,37 @@ export function joinDocument(meta: TestMeta, content: TestContent, answerKey: An
 
 /**
  * What the browser may see before the attempt is submitted:
- * the content without listening transcripts. (The answer key is stored separately and never included.)
+ * the content without listening transcripts or dictation words. (The answer key is stored separately and never included.)
  */
 export function toPublicContent(content: TestContent): TestContent {
   const copy = structuredClone(content);
-  for (const part of copy.parts) delete part.transcript;
+  for (const part of copy.parts) {
+    delete part.transcript;
+    for (const g of part.questionGroups) {
+      if (g.type !== 'dictation') continue;
+      for (const q of g.questions) { (q as { say?: string }).say = ''; delete q.sentence; }
+    }
+  }
   return copy;
+}
+
+/** the test format says "items" for dictation words in one place; the schema calls them "questions" like every objective type */
+export function normalizeTestInput(input: unknown): unknown {
+  const parts = (input as { parts?: unknown } | null)?.parts;
+  if (!Array.isArray(parts)) return input;
+  let changed = false;
+  const fixed = parts.map(p => {
+    const groups = (p as { questionGroups?: unknown } | null)?.questionGroups;
+    if (!Array.isArray(groups)) return p;
+    return {
+      ...(p as object), questionGroups: groups.map(g => {
+        const gg = g as { type?: unknown; items?: unknown; questions?: unknown } | null;
+        if (!gg || gg.type !== 'dictation' || gg.items === undefined || gg.questions !== undefined) return g;
+        changed = true;
+        const { items, ...rest } = gg;
+        return { ...rest, questions: items };
+      })
+    };
+  });
+  return changed ? { ...(input as object), parts: fixed } : input;
 }

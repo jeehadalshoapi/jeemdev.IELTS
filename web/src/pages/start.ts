@@ -5,6 +5,7 @@ import { fmtDate, fmtDuration } from '../lib/format';
 import { mdBlock } from '../lib/markup';
 import { toast } from '../lib/ui';
 import { appHeader, kindBadge, skillBadge, timeText } from './common';
+import { discardAttempt } from './dashboard';
 
 export async function mountStart(root: HTMLElement, testId: string): Promise<void> {
   const { test: t, attempts } = await api<TestDetailResponse>(`/tests/${testId}`);
@@ -14,11 +15,15 @@ export async function mountStart(root: HTMLElement, testId: string): Promise<voi
     el('input', { type: 'radio', name: 'mode', value, checked: mode === value, onchange: () => { mode = value; } }),
     el('div', null, el('b', null, title), el('small', null, desc)));
 
+  let starting = false;
   const start = async () => {
+    if (starting) return; // a double tap must not start two attempts
+    starting = true;
     try {
       const { id } = await api<{ id: string }>(`/tests/${testId}/attempts`, { method: 'POST', body: { mode, device: deviceId() } });
       location.hash = `#/attempt/${id}`;
     } catch (e) {
+      starting = false;
       toast((e as Error).message, 'err');
     }
   };
@@ -37,6 +42,7 @@ export async function mountStart(root: HTMLElement, testId: string): Promise<voi
         el('p', null, el('b', null, `You have an attempt in progress (${open.mode} mode). `), `${open.answered} of ${open.items} answered · ${timeText(open)}.`),
         el('table', { class: 'table compact' }, el('tbody', null, t.parts.map(p => el('tr', null, el('td', null, p.title), el('td', null, fmtDuration(open.timing.spentSec[p.id] ?? 0)))))),
         el('div', { class: 'start-actions' },
+          el('button', { class: 'btn btn-ghost btn-discard', type: 'button', onclick: async () => { if (await discardAttempt(open)) location.hash = '#/'; } }, '🗑 Discard it'),
           el('button', { class: 'btn btn-ghost', onclick: start }, 'Start a new attempt instead'),
           el('a', { class: 'btn btn-primary btn-lg', href: `#/attempt/${open.id}` }, '▶ Resume')))
       : el('div', null,

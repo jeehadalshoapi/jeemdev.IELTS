@@ -5,6 +5,10 @@ import { Slug } from './study';
 const IsoDate = z.string({ error: 'must be a date like 2026-11-18' }).regex(/^\d{4}-\d{2}-\d{2}$/, { error: 'must be a date like 2026-11-18' });
 export const BLOCK_STATUSES = ['todo', 'done', 'skipped'] as const;
 export type BlockStatus = (typeof BLOCK_STATUSES)[number];
+/** the three parts of a study day (ielts-site-spec-mastery.md item 2) */
+export const PLAN_SECTIONS = ['review', 'main', 'mastery'] as const;
+export type PlanSection = (typeof PLAN_SECTIONS)[number];
+export const PLAN_SECTION_TITLES: Record<PlanSection, string> = { review: '1 · Daily review', main: '2 · Main lesson + homework', mastery: '3 · Mastery practice' };
 
 export const PlanBlock = z.strictObject({
   /** unique in the whole plan, e.g. "d24b1" */
@@ -17,6 +21,8 @@ export const PlanBlock = z.strictObject({
   vocabularySetId: Slug.optional(),
   /** anything else: what to do */
   note: z.string().optional(),
+  /** which part of the day: review | main | mastery (the dashboard groups today's blocks under these headings) */
+  section: z.enum(PLAN_SECTIONS, { error: 'must be review, main or mastery' }).optional(),
   status: z.enum(BLOCK_STATUSES, { error: 'must be todo, done or skipped' }).default('todo')
 });
 

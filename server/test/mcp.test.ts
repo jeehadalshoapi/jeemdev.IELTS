@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { URBAN_BEEKEEPING, type ConnectorResponse, type ResultView } from '@ielts/shared';
+import { exampleTestForType, URBAN_BEEKEEPING, type ConnectorResponse, type DashboardResponse, type ResultView } from '@ielts/shared';
 import { loadConfig } from '../src/config';
 import { tokenVerifier } from '../src/mcp/oauth';
 import { applyChanges } from '../src/mcp/tools';
@@ -483,5 +483,54 @@ describe('plan and picture tools (Phase 10)', () => {
     expect((await callTool(token, 'update_block', { id: 'd30b1', status: 'done' })).data.block.status).toBe('done');
     expect((await callTool(token, 'get_plan', { fromDay: 30 })).data.days[0].blocks[0].status).toBe('done');
     expect((await callTool(token, 'update_block', { id: 'nope', status: 'done' })).text).toContain('no plan block');
+  });
+  it('mastery: steps, a linked writing test, two passes in a row unlock the next step, recheck', async () => {
+    const up = await callTool(token, 'upsert_mastery_step', { steps: [
+      { id: 'w1-introduction', ladder: 'W', ladderTitle: 'Writing, one part at a time', order: 1, title: 'W1 Introduction', task: '5-min plan + 2-sentence introduction', passRule: { minBand: 7, inARow: 2 } },
+      { id: 'w2-body', ladder: 'W', order: 2, title: 'W2 Body paragraph', passRule: { minBand: 7, inARow: 2 } }
+    ] });
+    expect(up.isError).toBe(false);
+    expect(up.data.created).toEqual(['w1-introduction', 'w2-body']);
+    expect(up.data.steps.map((x: { status: string }) => x.status)).toEqual(['active', 'locked']);
+    const bad = await callTool(token, 'upsert_mastery_step', { steps: [{ id: 'x y', ladder: 'W', order: 'one', title: '', passRule: { minBand: 7.3 } }] });
+    expect(bad.isError).toBe(true);
+    expect(bad.text).toContain('- [0].id');
+    expect(bad.text).toContain('- [0].order');
+
+    const t = await callTool(token, 'create_test', { test: { ...exampleTestForType('writing_task2'), title: 'W1 drill', masteryStepId: 'w1-introduction' } });
+    expect(t.isError).toBe(false);
+    expect(t.data.warnings).toEqual([]);
+    const noStep = await callTool(token, 'create_test', { test: { ...exampleTestForType('writing_task2'), title: 'Orphan', masteryStepId: 'w9-nothing' } });
+    expect(noStep.data.warnings.join(' ')).toContain('no mastery step "w9-nothing"');
+
+    const attemptWith = async (band: number) => {
+      const { id } = await json<{ id: string }>(await me.post(`/api/tests/${t.data.id}/attempts`, { mode: 'practice' }));
+      expect((await me.post(`/api/attempts/${id}/submit`, {})).status).toBe(200);
+      const f = await callTool(token, 'save_feedback', { attemptId: id, feedback: { overallBand: band, summary: 'ok' } });
+      expect(f.isError).toBe(false);
+      return f.data;
+    };
+    expect((await attemptWith(6.5)).mastery).toMatchObject({ stepId: 'w1-introduction', counted: { band: 6.5, passed: false }, stepStatus: 'active' });
+    expect((await attemptWith(7)).mastery.stepStatus).toBe('active');
+    expect((await attemptWith(7.5)).mastery.stepStatus).toBe('passed');
+    const list = await callTool(token, 'list_mastery', { ladder: 'W' });
+    expect(list.data.ladders[0]).toMatchObject({ ladder: 'W', ladderTitle: 'Writing, one part at a time', current: 'w2-body' });
+    expect(list.data.ladders[0].steps[0]).toMatchObject({ status: 'passed', passesInARow: 2, attempts: 3 });
+    expect(list.data.ladders[0].steps[0].tests[0]).toMatchObject({ id: t.data.id });
+    // the test stays on the dashboard until the step is passed; then it is on the Done page
+    expect((await json<DashboardResponse>(await me.get('/api/dashboard'))).assigned.map(x => x.id)).not.toContain(t.data.id);
+
+    expect((await callTool(token, 'update_mastery_step', { id: 'w1-introduction', status: 'recheck' })).data.step.status).toBe('recheck');
+    const dash = await json<DashboardResponse>(await me.get('/api/dashboard'));
+    expect(dash.assigned.find(x => x.id === t.data.id)?.mastery).toMatchObject({ stepId: 'w1-introduction', status: 'recheck' });
+    expect((await attemptWith(6)).mastery.stepStatus).toBe('recheck');
+    expect((await attemptWith(7)).mastery.stepStatus).toBe('passed');
+    const g = await callTool(token, 'get_mastery_step', { id: 'w1-introduction' });
+    expect(g.data.attempts).toHaveLength(5);
+    expect(g.data.passRuleText).toBe('band 7+ twice in a row');
+    // the re-check does not take the next step back
+    expect((await callTool(token, 'get_mastery_step', { id: 'w2-body' })).data.status).toBe('active');
+    expect((await callTool(token, 'get_mastery_step', { id: 'nope' })).text).toContain('no mastery step');
+    expect((await callTool(token, 'update_mastery_step', { id: 'w2-body' })).isError).toBe(true);
   });
 });

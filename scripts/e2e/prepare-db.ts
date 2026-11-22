@@ -10,6 +10,7 @@ import { openDatabase } from '../../server/src/db/client';
 import { attempts } from '../../server/src/db/schema';
 import { FileStore } from '../../server/src/files/store';
 import { sanitizeSvg } from '../../server/src/files/svg';
+import { recordMasteryAttempt, upsertSteps } from '../../server/src/study/mastery';
 import { setPlan } from '../../server/src/study/plan';
 import { addMistakes, recordVocabResult, saveLesson, upsertVocabSet } from '../../server/src/study/store';
 import { seedSample } from '../../server/src/seed';
@@ -182,9 +183,32 @@ await setPlan(d.db, { days: [
     { id: 'd25b1', title: 'Lesson: what separates band 6, 7 and 8', minutes: 15, lessonId: 'day23-band-6-7-8' },
     { id: 'd25b2', title: 'Writing homework', minutes: 40, testId: writing9.id },
     { id: 'd25b3', title: 'Campus map listening', minutes: 10, testId: mapTest.id }] },
-  { day: 26, date: iso(1), title: 'Coherence', blocks: [{ id: 'd26b1', title: 'Linking words' }] }
+  { day: 26, date: iso(1), title: 'Coherence', blocks: [
+    { id: 'd26b1', title: 'Mistakes log review', minutes: 10, section: 'review' }, { id: 'd26b2', title: 'Lesson: linking words', minutes: 20, section: 'main' },
+    { id: 'd26b3', title: 'W1 introduction drill', minutes: 15, section: 'mastery' }] }
 ] });
 
-writeFileSync('.data/e2e/ids.json', JSON.stringify({ sample: SAMPLE, listening: listening.id, writing: writing.id, gallery: gallery.id, drill: drill.id, speaking: speaking.id, essay: essayTest.id, readingMarked, writingMarked, writing9: writing9.id, map: mapTest.id }));
+// Phase 12: mastery ladders (W with one pass so far, S spelling with a dictation test), an attempt to discard
+await upsertSteps(d.db, [
+  { id: 'w1-introduction', ladder: 'W', ladderTitle: 'Writing, one part at a time', order: 1, title: 'W1 Introduction', task: '5-min plan + 2-sentence introduction', lessonId: 'day23-band-6-7-8', passRule: { minBand: 7, inARow: 2 } },
+  { id: 'w2-body', ladder: 'W', order: 2, title: 'W2 Body paragraph', task: 'One PEEL paragraph', passRule: { minBand: 7, inARow: 2 } },
+  { id: 'w3-conclusion', ladder: 'W', order: 3, title: 'W3 Conclusion', passRule: { minBand: 7, inARow: 2 } },
+  { id: 's1-spelling', ladder: 'S', ladderTitle: 'Spelling and sentences', order: 1, title: 'S1 Spelling dictation', passRule: { minPercent: 90, inARow: 2 } },
+  { id: 's2-cast', ladder: 'S', order: 2, title: 'S2 CAST correction', passRule: { minBand: 7, inARow: 2 } }
+]);
+const w1Drill = await createTest(d.db, { ...exampleTestForType('writing_task2'), title: 'W1 introduction drill (e2e)', kind: 'practice', masteryStepId: 'w1-introduction' }, { source: 'claude' });
+const w1Done = await finished(w1Drill.id, { w1: { plan: 'parks > roads: health, beauty', introduction: 'Some argue that city budgets should favour parks over roads. I strongly agree, as green spaces improve health and well-being.' } }, 1, { overallBand: 7, summary: 'Clear position.' });
+await recordMasteryAttempt(d.db, w1Done);
+const dictation = await createTest(d.db, {
+  title: 'Spelling dictation (e2e Phase 12)', skill: 'vocabulary', kind: 'practice', masteryStepId: 's1-spelling',
+  parts: [{ id: 'sp', title: 'Spelling', questionGroups: [{ id: 'dg', type: 'dictation', instructions: 'Type the word you hear.', items: [
+    { id: 'd1', number: 1, say: 'experience', sentence: 'Many graduates lack practical experience.' }, { id: 'd2', number: 2, say: 'government' }, { id: 'd3', number: 3, say: 'environment', sentence: 'Trees protect the environment.' }] }] }],
+  answerKey: { d1: { accept: ['experience'] }, d2: { accept: ['government'] }, d3: { accept: ['environment'] } }
+} as never, { source: 'claude' });
+const abandoned = await createTest(d.db, { ...exampleTestForType('tfng'), title: 'Started by mistake (e2e)' }, { source: 'claude' });
+const abandonedAttempt = await createAttempt(d.db, abandoned.id, 'exam');
+await saveAttempt(d.db, abandonedAttempt, { answers: { q1: 'TRUE' } }, 'e2e');
+
+writeFileSync('.data/e2e/ids.json', JSON.stringify({ sample: SAMPLE, listening: listening.id, writing: writing.id, gallery: gallery.id, drill: drill.id, speaking: speaking.id, essay: essayTest.id, readingMarked, writingMarked, writing9: writing9.id, map: mapTest.id, w1Drill: w1Drill.id, dictation: dictation.id, abandoned: abandoned.id, abandonedAttempt }));
 await d.close();
 console.log('Ready. Start the server with:  PGLITE_DIR=.data/e2e/pglite UPLOAD_DIR=.data/e2e/uploads node server/dist/main.js');

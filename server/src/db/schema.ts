@@ -1,4 +1,4 @@
-import type { AnswerKey, Feedback, Lesson, MistakeCategory, PlanBlock, TestContent, VocabWordRow } from '@ielts/shared';
+import type { AnswerKey, Feedback, Lesson, MasteryAttempt, MasteryStatus, MistakeCategory, PassRule, PlanBlock, TestContent, VocabWordRow } from '@ielts/shared';
 import { sql } from 'drizzle-orm';
 import { boolean, date, index, integer, jsonb, pgEnum, pgTable, real, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
@@ -211,3 +211,21 @@ export const planDays = pgTable('plan_days', {
   blocks: jsonb('blocks').$type<PlanBlock[]>().notNull().default(sql`'[]'::jsonb`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
+
+/* ---------- mastery ladders (Phase 12) ---------- */
+export const masterySteps = pgTable('mastery_steps', {
+  id: text('id').primaryKey(),
+  ladder: text('ladder').notNull(),
+  ladderTitle: text('ladder_title'),
+  order: integer('step_order').notNull(),
+  title: text('title').notNull(),
+  task: text('task'),
+  lessonId: text('lesson_id'),
+  passRule: jsonb('pass_rule').$type<PassRule>().notNull(),
+  status: text('status').$type<MasteryStatus>().notNull().default('locked'),
+  /** scored / marked attempts of the step's tests, oldest first (one entry per attempt) */
+  attempts: jsonb('attempts').$type<MasteryAttempt[]>().notNull().default(sql`'[]'::jsonb`),
+  ...timestamps
+}, t => [
+  index('mastery_steps_ladder_idx').on(t.ladder, t.order)
+]);

@@ -9,7 +9,7 @@ import { getPlan, setPlan, updateBlock } from '../study/plan';
 import { fail, logged, ok } from './common';
 
 const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
-const DAY_FORMAT = '{ day: 24, date: "2026-11-18", title: "Task Response: thesis precision", skill?: "writing", notes?, blocks: [{ id: "d24b1" (unique in the whole plan), title: "Set 3 quiz", minutes?: 12, testId?: uuid, lessonId?: "day24-…", vocabularySetId?: "set-3", note?, status?: todo | done | skipped }] }';
+const DAY_FORMAT = '{ day: 24, date: "2026-11-18", title: "Task Response: thesis precision", skill?: "writing", notes?, blocks: [{ id: "d24b1" (unique in the whole plan), title: "Set 3 quiz", minutes?: 12, testId?: uuid, lessonId?: "day24-…", vocabularySetId?: "set-3", note?, section?: review | main | mastery, status?: todo | done | skipped }] }. "section" groups the blocks of today on the dashboard under 1 · Daily review, 2 · Main lesson + homework, 3 · Mastery practice';
 
 export function registerPlanTools(server: McpServer, db: Db, origin: string, fileStore?: FileStore): void {
   const SetArgs = z.object({

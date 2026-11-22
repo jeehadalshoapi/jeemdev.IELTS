@@ -1,11 +1,12 @@
 import {
   listItems, progressOf, scoreAnswers, toPublicContent, totalMarks, AttemptPatch,
   type AnswerValue, type AttemptMode, type AttemptSummary, type AttemptView, type AutoScore, type PublicTest, type ResultView,
-  type RecordingInfo, type SaveResult, type TestContent, type Timing
+  type DictationPlay, type RecordingInfo, type SaveResult, type TestContent, type Timing
 } from '@ielts/shared';
+import { recordMasteryAttempt } from '../study/mastery';
 import { tickTestBlocks } from '../study/plan';
 import { logVocabQuiz } from '../study/vocab-quiz';
-import { and, desc, eq, isNotNull, ne } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, ne, sql } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { attempts, files, tests, type AttemptRow, type TestRow } from '../db/schema';
 import { HttpError, notFound } from '../http/errors';
@@ -67,6 +68,7 @@ export async function rescoreTestAttempts(db: Db, testId: string): Promise<numbe
   const rows = await db.select().from(attempts).where(and(eq(attempts.testId, testId), ne(attempts.status, 'in_progress')));
   for (const a of rows) {
     await db.update(attempts).set({ autoScore: scoreFor(a.answers, t) as unknown as Record<string, unknown> }).where(eq(attempts.id, a.id));
+    if (t.content.masteryStepId) await recordMasteryAttempt(db, a.id).catch(e => console.error('[mastery] could not re-record', e));
   }
   return rows.length;
 }
@@ -184,6 +186,7 @@ export async function saveAttempt(db: Db, attemptId: string, body: unknown, ua?:
 /** follow-ups of a submission that must never fail it (vocabulary quiz -> self-test log) */
 async function afterSubmit(db: Db, attemptId: string): Promise<void> {
   try { await logVocabQuiz(db, attemptId); } catch (e) { console.error('[vocab] could not log the quiz', e); }
+  try { await recordMasteryAttempt(db, attemptId); } catch (e) { console.error('[mastery] could not record the attempt', e); }
   try {
     const [a] = await db.select({ testId: attempts.testId }).from(attempts).where(eq(attempts.id, attemptId)).limit(1);
     if (a) await tickTestBlocks(db, a.testId);
@@ -203,7 +206,9 @@ async function saveInTransaction(db: Db, attemptId: string, body: unknown, ua?: 
     if (patch.answers) checkAnswers(patch.answers, t.content);
 
     const answers = { ...a.answers, ...(patch.answers ?? {}) };
-    const state = { ...a.state, ...(patch.state ?? {}) };
+    // dictation play counts are kept by the server only (playDictation)
+    const changedState = Object.fromEntries(Object.entries(patch.state ?? {}).filter(([k]) => !k.startsWith('dict:')));
+    const state = { ...a.state, ...changedState };
     if (JSON.stringify(state).length > MAX_STATE_BYTES) throw new HttpError(413, 'too_large', 'Too many highlights or notes to save.');
 
     const spent: Record<string, number> = { total: 0, ...a.timeSpentSec };
@@ -232,6 +237,43 @@ async function saveInTransaction(db: Db, attemptId: string, body: unknown, ua?: 
   });
 }
 
+/* ---------- discarding an attempt that was started by mistake ---------- */
+/** deletes an attempt that is still in progress (answers, notes, recordings); submitted attempts are kept */
+export async function discardAttempt(db: Db, attemptId: string, removeFile: (storagePath: string) => Promise<void>): Promise<{ testId: string }> {
+  const { a } = await loadPair(db, attemptId);
+  if (a.status !== 'in_progress') throw new HttpError(409, 'already_submitted', 'Only an attempt that is still in progress can be discarded. Submitted attempts stay in your history.');
+  const recs = await db.select().from(files).where(eq(files.attemptId, a.id));
+  for (const f of recs) {
+    await db.delete(files).where(eq(files.id, f.id));
+    await removeFile(f.storagePath).catch(e => console.error('[discard] could not remove a file', e));
+  }
+  await db.delete(attempts).where(and(eq(attempts.id, a.id), eq(attempts.status, 'in_progress')));
+  console.log(`[attempt] ${a.id} discarded`);
+  return { testId: a.testId };
+}
+
+/* ---------- dictation: the server reads out each word at most maxPlays times ---------- */
+export async function playDictation(db: Db, attemptId: string, questionId: string): Promise<DictationPlay> {
+  return db.transaction(async tx => {
+    const { a: current, t } = await loadPair(tx as unknown as Db, attemptId);
+    const a = await autoSubmitIfExpired(tx as unknown as Db, current, t, new Date());
+    for (const part of t.content.parts) for (const g of part.questionGroups) {
+      if (g.type !== 'dictation') continue;
+      const q = g.questions.find(x => x.id === questionId);
+      if (!q) continue;
+      const lines = [...(q.sentence ? [q.sentence] : []), q.say];
+      const key = `dict:${q.id}`;
+      const used = typeof a.state[key] === 'number' ? (a.state[key] as number) : 0;
+      // after submission (review) the word can be heard again freely
+      if (a.status !== 'in_progress') return { lines, playsLeft: g.maxPlays, maxPlays: g.maxPlays };
+      if (used >= g.maxPlays) throw new HttpError(409, 'no_plays_left', `You have heard this word ${g.maxPlays === 1 ? 'once' : `${g.maxPlays} times`} already.`);
+      await tx.update(attempts).set({ state: sql`${attempts.state} || ${JSON.stringify({ [key]: used + 1 })}::jsonb` }).where(eq(attempts.id, a.id));
+      return { lines, playsLeft: g.maxPlays - used - 1, maxPlays: g.maxPlays };
+    }
+    throw notFound('This test has no dictation question with that id.');
+  });
+}
+
 /* ---------- lists ---------- */
 export async function listAttemptSummaries(db: Db, opts: { testId?: string; limit?: number } = {}): Promise<AttemptSummary[]> {
   const now = new Date();
@@ -253,6 +295,7 @@ export async function getResultView(db: Db, attemptId: string): Promise<ResultVi
   let a = await autoSubmitIfExpired(db, raw, t, now);
   if (a.status === 'in_progress') throw new HttpError(409, 'not_submitted', 'Results are available after you submit the attempt.');
   if (t.content.vocabularySetId) await afterSubmit(db, a.id); // an exam quiz the server submitted when time ran out
+  else if (t.content.masteryStepId) await recordMasteryAttempt(db, a.id).catch(e => console.error('[mastery] could not record the attempt', e));
   let autoScore = a.autoScore as unknown as AutoScore | null;
   if (!autoScore || autoScore.version !== 1) {
     // attempts submitted before scoring existed: score them now and keep the result

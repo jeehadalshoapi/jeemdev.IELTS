@@ -339,7 +339,7 @@ class Runner {
     const instruction = p.instructions
       ?? (section === 'writing' ? 'Write your answer in the box.'
         : section === 'speaking' ? 'Answer each question aloud and record it. The text box keeps what you said (typed, or written down while you speak).'
-        : nums.length ? `${section === 'listening' ? 'Listen and answer' : 'Read the text and answer'} ${rangeText(nums).replace(/^Q/, 'q')}.` : '');
+        : nums.length ? `${section === 'listening' || p.questionGroups.every(g => g.type === 'dictation') ? 'Listen and answer' : section === 'vocabulary' ? 'Answer' : 'Read the text and answer'} ${rangeText(nums).replace(/^Q/, 'q')}.` : '');
     this.els.partBar.replaceChildren(el('b', null, p.title), el('span', { html: mdBlock(instruction).replace(/^<p>|<\/p>$/g, '') }));
     if (this.current === null || !nums.includes(this.current)) this.current = nums[0] ?? null;
     this.updateNav();

@@ -7,10 +7,10 @@ import { Id, Minutes, NonEmptyText, Option, OptionalText, QuestionNumber, Second
 
 export const MATCHING_TYPES = ['matching_headings', 'matching_information', 'matching_features', 'matching_sentence_endings', 'definition_match', 'opposite_match'] as const;
 export const COMPLETION_TYPES = ['sentence_completion', 'summary_completion', 'note_completion', 'table_completion', 'flowchart_completion', 'diagram_labelling', 'form_completion'] as const;
-export const OBJECTIVE_TYPES = ['tfng', 'ynng', 'mcq_single', 'mcq_multi', ...MATCHING_TYPES, ...COMPLETION_TYPES, 'short_answer', 'map_labelling'] as const;
+export const OBJECTIVE_TYPES = ['tfng', 'ynng', 'mcq_single', 'mcq_multi', ...MATCHING_TYPES, ...COMPLETION_TYPES, 'short_answer', 'map_labelling', 'dictation'] as const;
 export const WRITING_TYPES = ['writing_task1', 'writing_task2', 'paragraph', 'sentence_rewrite'] as const;
 /** the types a vocabulary quiz may use */
-export const VOCABULARY_TYPES = ['sentence_completion', 'short_answer', 'matching_features', 'mcq_single', 'definition_match', 'opposite_match'] as const;
+export const VOCABULARY_TYPES = ['sentence_completion', 'short_answer', 'matching_features', 'mcq_single', 'definition_match', 'opposite_match', 'dictation'] as const;
 export const SPEAKING_TYPES = ['speaking_part1', 'speaking_part2', 'speaking_part3'] as const;
 export const QUESTION_TYPES = [...OBJECTIVE_TYPES, ...WRITING_TYPES, ...SPEAKING_TYPES] as const;
 
@@ -139,6 +139,23 @@ export const ShortAnswerGroup = z.strictObject({
   type: z.literal('short_answer'),
   wordLimit: WordLimit.optional(),
   questions: z.array(NumberedQuestion).min(1, { error: 'needs at least one question' })
+});
+
+/* ---------- dictation (spelling) ----------
+   Each question gets a play button: the browser reads "sentence" and then "say", at most "maxPlays" times, and the
+   student types the word. "say" and "sentence" never reach the page before submission (the server sends them per play). */
+export const DictationGroup = z.strictObject({
+  ...groupBase,
+  type: z.literal('dictation'),
+  maxPlays: z.number({ error: 'must be a number of plays' }).int().min(1).max(5).default(2),
+  questions: z.array(z.strictObject({
+    id: Id,
+    number: QuestionNumber,
+    /** the word (or short phrase) to write */
+    say: NonEmptyText,
+    /** a sentence that uses the word, read before it */
+    sentence: OptionalText
+  })).min(1, { error: 'needs at least one word' })
 });
 
 /* ======================================================================
@@ -281,7 +298,7 @@ export const QuestionGroup = z.discriminatedUnion('type', [
   TfngGroup, YnngGroup, McqSingleGroup, McqMultiGroup,
   MatchingHeadingsGroup, MatchingInformationGroup, MatchingFeaturesGroup, MatchingSentenceEndingsGroup, DefinitionMatchGroup, OppositeMatchGroup, MapLabellingGroup,
   SentenceCompletionGroup, SummaryCompletionGroup, NoteCompletionGroup, TableCompletionGroup, FlowchartCompletionGroup, DiagramLabellingGroup, FormCompletionGroup,
-  ShortAnswerGroup,
+  ShortAnswerGroup, DictationGroup,
   WritingTask1Group, WritingTask2Group, ParagraphGroup, SentenceRewriteGroup,
   SpeakingPart1Group, SpeakingPart2Group, SpeakingPart3Group
 ], {

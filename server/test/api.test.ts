@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { exampleTestForType, URBAN_BEEKEEPING, type AttemptView, type DashboardResponse, type SaveResult } from '@ielts/shared';
+import { exampleTestForType, URBAN_BEEKEEPING, type AttemptView, type DashboardResponse, type DoneResponse, type SaveResult } from '@ielts/shared';
 import { eq, sql } from 'drizzle-orm';
 import { attempts } from '../src/db/schema';
 import { SAMPLE_TEST_ID, seedSample } from '../src/seed';
@@ -162,7 +162,7 @@ describe('tests and attempts', () => {
     const r = await json<SaveResult>(await me.post(`/api/attempts/${id}/submit`, { answers: { q17: 'colony collapse disorder' } }));
     expect(r.status).toBe('submitted');
     expect((await me.patch(`/api/attempts/${id}`, { answers: { q1: 'i' } })).status).toBe(409);
-    const d = await json<DashboardResponse>(await me.get('/api/dashboard'));
+    const d = await json<DoneResponse>(await me.get('/api/done'));
     expect(d.completed.map(a => a.id)).toContain(id);
   });
 

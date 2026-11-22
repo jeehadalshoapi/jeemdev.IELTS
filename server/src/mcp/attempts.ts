@@ -21,8 +21,8 @@ function itemInfo(content: TestContent): Map<string, ItemInfo> {
         const og = g as Extract<QuestionGroup, { questions: unknown[] }> & { options?: Array<{ label: string; text: string }>; template?: string };
         const bank = og.options ? Object.fromEntries(og.options.map(o => [o.label, o.text])) : undefined;
         const lines = og.template ? og.template.split('\n') : [];
-        for (const q of og.questions as Array<{ id: string; text?: string; options?: string[] }>) {
-          let text = q.text ?? '';
+        for (const q of og.questions as Array<{ id: string; text?: string; options?: string[]; say?: string; sentence?: string }>) {
+          let text = q.text ?? (q.say !== undefined ? `Dictation: "${q.say}"${q.sentence ? ` (sentence read first: ${q.sentence})` : ''}` : '');
           if (!text && lines.length) {
             const line = lines.find(l => l.includes(`{{${q.id}}}`)) ?? '';
             text = line.replace(PLACEHOLDER_RE, (_m, id: string) => (id === q.id ? '[GAP]' : '___')).trim();

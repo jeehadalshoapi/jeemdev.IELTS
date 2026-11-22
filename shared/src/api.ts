@@ -143,12 +143,35 @@ export interface TestListItem {
   createdAt: string;
   attemptCount: number;
   inProgressAttemptId: string | null;
+  /** the latest submitted attempt, when there is one */
+  lastAttempt: AttemptSummary | null;
+  /** a step of a mastery ladder: the test stays on the dashboard until the step is passed */
+  mastery: { stepId: string; title: string; status: string; passesInARow: number; inARow: number } | null;
 }
 
 export interface DashboardResponse {
+  /** tests still to do: never submitted, or linked to a mastery step that is not passed yet */
   assigned: TestListItem[];
   inProgress: AttemptSummary[];
+  /** how many tests are on the Done page, and how many results have Claude's feedback */
+  doneCount: number;
+  feedbackReady: number;
+  /** results marked by Claude in the last 7 days (shown on the dashboard so new feedback is not missed) */
+  newFeedback: AttemptSummary[];
+}
+
+/** GET /api/done: tests that are finished, and every submitted attempt */
+export interface DoneResponse {
+  tests: TestListItem[];
   completed: AttemptSummary[];
+}
+
+/** POST /api/attempts/:id/dictation/:questionId/play — what the browser reads aloud for one dictation word */
+export interface DictationPlay {
+  /** the sentence (when there is one), then the word */
+  lines: string[];
+  playsLeft: number;
+  maxPlays: number;
 }
 
 export interface TestDetailResponse {

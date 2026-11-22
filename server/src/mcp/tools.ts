@@ -18,6 +18,8 @@ import { registerPlanTools } from './plan-tools';
 import { registerStudyTools } from './study-tools';
 import type { FileStore } from '../files/store';
 import { logFeedbackMistakes } from '../study/feedback-log';
+import { getStep, recordMasteryAttempt } from '../study/mastery';
+import { registerMasteryTools } from './mastery-tools';
 
 export const SERVER_VERSION = '1.0.0';
 
@@ -68,6 +70,8 @@ const FORMAT_RULES = [
   'sentence_rewrite (writing): { id, type: "sentence_rewrite", instructions, items: [{ id: "r1", number: 1, text: "sentence to repair" }] } gives one answer box per sentence. Mark each with save_feedback "items": [{ "itemId": "r1", "correct": true|false, "comment": "...", "corrected"?: "..." }]. A full Task 2 essay (mode "essay") has an optional plan box above it; the plan comes back in get_attempt as "plan".',
   'Pictures: you cannot upload image files, but upload_asset takes an SVG drawing as text and returns a "/files/<id>" url to use as imageUrl (diagram_labelling, Task 1, any group). map_labelling takes either imageUrl or "map": { "features": [{ "label": "A", "shape": "point", "x": 30, "y": 40 }, { "label": "Main entrance", "shape": "building", "x": 50, "y": 95, "width": 20, "height": 6 }] } drawn by the site (x / y in % of the map; shapes building, area, road, water, trees, point).',
   'Read-aloud listening: each part starts with "You now have 30 seconds to look at questions X to Y" and a 30-second silence (set the part\'s "readingTimeSec" to change it, 0 for none). Put "[pause 30]" in a transcript for a silence of 30 seconds.',
+  'dictation (spelling; listening or vocabulary): { id, type: "dictation", instructions: "Type the word you hear.", maxPlays?: 2, questions: [{ id: "s1", number: 1, say: "experience", sentence?: "Many graduates lack practical experience." }] } ("items" is accepted instead of "questions"). Each word gets a play button: the browser reads the sentence, then the word, at most maxPlays times (default 2); the student types the word. answerKey.s1.accept: ["experience"] — strict spelling, as usual.',
+  'Mastery ladders: add "masteryStepId": "<step id from list_mastery>" to a test; each scored attempt (auto-marked tests) or your save_feedback with overallBand is added to that step, and the step passes (and the next one unlocks) when its passRule is met. Such a test stays on the dashboard until its step is passed.',
   'If the test is not valid, nothing is saved and every problem is listed with its path (e.g. parts[0].questionGroups[1].questions[2].number). Fix all of them and call create_test again.'
 ];
 
@@ -75,7 +79,7 @@ export function buildMcpServer(db: Db, origin: string, fileStore?: FileStore): M
   const server = new McpServer(
     { name: 'ielts-practice', version: SERVER_VERSION },
     {
-      instructions: 'The student\'s private IELTS Academic practice site. Use it to upload tests and homework (call get_test_format first), and to mark attempts: get_latest_attempt or get_attempt gives every answer with the correct answer and the reason; then save_feedback (mistakes with "addToLog": true also go into the mistakes log). The site also keeps the student\'s lessons (create_lesson, list_lessons), vocabulary sets with a self-test log (upsert_vocab_set, record_vocab_result, update_word) and a mistakes log of misspellings, grammar slips and reading traps (add_mistakes, list_mistakes). Links in results open the student\'s site.'
+      instructions: 'The student\'s private IELTS Academic practice site. Use it to upload tests and homework (call get_test_format first), and to mark attempts: get_latest_attempt or get_attempt gives every answer with the correct answer and the reason; then save_feedback (mistakes with "addToLog": true also go into the mistakes log). The site also keeps the student\'s lessons (create_lesson, list_lessons), vocabulary sets with a self-test log (upsert_vocab_set, record_vocab_result, update_word), a mistakes log of misspellings, grammar slips and reading traps (add_mistakes, list_mistakes), the study plan (set_plan, get_plan) and mastery ladders: steps that repeat until passed (upsert_mastery_step, list_mastery; link a test with "masteryStepId"). Links in results open the student\'s site.'
     }
   );
   const testUrl = (id: string) => `${origin}/#/test/${id}`;
@@ -113,10 +117,12 @@ export function buildMcpServer(db: Db, origin: string, fileStore?: FileStore): M
     if (!r.ok) return fail('The test is not valid. Nothing was saved. Fix every problem below and call create_test again:', r.errors);
     const saved = await createTest(db, r.doc, { source: 'claude' });
     console.log(`[mcp] test ${saved.id} created: "${saved.test.title}"`);
+    const stepId = saved.test.masteryStepId;
+    const noStep = stepId && !(await getStep(db, stepId)) ? [`masteryStepId: there is no mastery step "${stepId}" yet — create it with upsert_mastery_step, or attempts will not count`] : [];
     return ok({
       id: saved.id, title: saved.test.title, url: testUrl(saved.id),
       summary: r.summary && { skill: r.summary.skill, kind: r.summary.kind, questions: r.summary.marks, timeLimitMin: r.summary.timeLimitMin, dueDate: r.summary.dueDate, parts: r.summary.parts.map(p => ({ title: p.title, groups: p.groups.map(g => `${qRange(g.numbers)}${g.type}`) })) },
-      warnings: r.warnings.map(w => `${w.path}: ${w.message}`)
+      warnings: [...r.warnings.map(w => `${w.path}: ${w.message}`), ...noStep]
     });
   }));
 
@@ -245,9 +251,11 @@ export function buildMcpServer(db: Db, origin: string, fileStore?: FileStore): M
     await db.update(attempts).set({ feedback: { ...a.feedback, savedAt: now.toISOString() }, status: 'marked', updatedAt: now })
       .where(and(eq(attempts.id, a.attemptId), inArray(attempts.status, ['submitted', 'marked'])));
     const log = await logFeedbackMistakes(db, a.attemptId, (detail as { test?: { title?: string } }).test?.title ?? '', a.feedback.mistakes, now);
+    const mastery = await recordMasteryAttempt(db, a.attemptId).catch(e => { console.error('[mastery] could not record the attempt', e); return null; });
     return ok({
       saved: true, attemptId: a.attemptId, resultsUrl: `${origin}/#/result/${a.attemptId}`,
       ...(log ? { mistakesLog: log } : {}),
+      ...(mastery ? { mastery: { stepId: mastery.stepId, counted: mastery.entry, stepStatus: mastery.status } } : {}),
       ...(unknown.length ? { warning: `These questionIds are not in this attempt: ${[...new Set(unknown)].join(', ')}` } : {})
     });
   }));
@@ -273,5 +281,6 @@ export function buildMcpServer(db: Db, origin: string, fileStore?: FileStore): M
 
   registerStudyTools(server, db, origin);
   registerPlanTools(server, db, origin, fileStore);
+  registerMasteryTools(server, db, origin);
   return server;
 }

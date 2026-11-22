@@ -1,11 +1,12 @@
 /* Renders parts and question groups of the new test format (converted from the old js/exam-render.js). */
 import {
   describeWordLimit, letter, TFNG_CHOICES, YNNG_CHOICES,
-  type AnswerValue, type AttemptMode, type Chart, type CompletionGroup, type MatchingLikeGroup, type RecordingInfo, type Option, type Part, type QuestionGroup, type SectionSkill
+  type AnswerValue, type AttemptMode, type Chart, type CompletionGroup, type DictationPlay, type MatchingLikeGroup, type RecordingInfo, type Option, type Part, type QuestionGroup, type SectionSkill
 } from '@ielts/shared';
 import { $, $$, el } from '../lib/dom';
 import { renderChart } from './charts';
-import { drillBox, speakingGroup, speechPlayer } from './extras';
+import { canSpeak, drillBox, speakingGroup, speakLines, speechPlayer } from './extras';
+import { api, ApiError } from '../lib/api';
 import { wordCount } from '../lib/format';
 import { blankSentenceHTML, inlineMd, mdBlock, passageHTML, templateHTML } from '../lib/markup';
 
@@ -123,6 +124,7 @@ export function renderGroup(ctx: RenderCtx, g: QuestionGroup): HTMLElement {
     case 'definition_match': case 'opposite_match':
       box.appendChild(matching(ctx, g)); break;
     case 'short_answer': box.appendChild(shortAnswer(ctx, g)); break;
+    case 'dictation': box.appendChild(dictation(ctx, g)); break;
     case 'sentence_completion': case 'summary_completion': case 'note_completion': case 'table_completion':
     case 'flowchart_completion': case 'diagram_labelling': case 'form_completion':
       box.appendChild(completion(ctx, g)); break;
@@ -201,6 +203,45 @@ function shortAnswer(ctx: RenderCtx, g: Extract<QuestionGroup, { type: 'short_an
   return el('div', { class: 'q-list' }, g.questions.map(q => {
     const item = el('div', { class: 'q-item q-short', dataset: { num: String(q.number), qid: q.id } },
       el('div', { class: 'q-text' }, qNum([q.number]), el('span', { html: inlineMd(q.text) })),
+      textInput(ctx, q.id, q.number));
+    ctx.registerNum(q.number, item);
+    return item;
+  }));
+}
+
+/** dictation: ▶ reads the sentence and then the word (the server gives them out, at most maxPlays times), then type the word */
+function dictation(ctx: RenderCtx, g: Extract<QuestionGroup, { type: 'dictation' }>): HTMLElement {
+  return el('div', { class: 'q-list' }, g.questions.map(q => {
+    const used = typeof ctx.state[`dict:${q.id}`] === 'number' ? (ctx.state[`dict:${q.id}`] as number) : 0;
+    let left = ctx.readonly ? g.maxPlays : Math.max(0, g.maxPlays - used);
+    let busy = false;
+    const info = el('span', { class: 'dict-left muted' });
+    const btn = el('button', { type: 'button', class: 'btn-ex btn-ex-primary dict-play', 'aria-label': `Play word ${q.number}` });
+    const draw = () => {
+      btn.textContent = busy ? '🔊 Playing…' : left > 0 || ctx.readonly ? '▶ Play' : '✓ Heard';
+      btn.disabled = busy || (!ctx.readonly && left <= 0) || !canSpeak();
+      info.textContent = !canSpeak() ? 'This browser cannot read aloud — try Chrome, Edge or Safari.'
+        : ctx.readonly ? '' : left > 0 ? `${left} play${left === 1 ? '' : 's'} left` : 'No plays left';
+    };
+    btn.addEventListener('click', async () => {
+      if (busy) return;
+      busy = true; draw();
+      try {
+        const r = await api<DictationPlay>(`/attempts/${ctx.attemptId}/dictation/${encodeURIComponent(q.id)}/play`, { method: 'POST', body: {} });
+        left = r.playsLeft;
+        draw();
+        await speakLines(r.lines);
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 409) left = 0;
+        ctx.flash((e as Error).message);
+      } finally {
+        busy = false; draw();
+        $('input', item)?.focus();
+      }
+    });
+    draw();
+    const item = el('div', { class: 'q-item q-short q-dict', dataset: { num: String(q.number), qid: q.id } },
+      el('div', { class: 'q-text' }, qNum([q.number]), btn, info),
       textInput(ctx, q.id, q.number));
     ctx.registerNum(q.number, item);
     return item;

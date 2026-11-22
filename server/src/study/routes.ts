@@ -5,6 +5,7 @@ import type { Router } from 'express';
 import { z } from 'zod';
 import type { Db } from '../db/client';
 import { notFound } from '../http/errors';
+import { listMastery } from './mastery';
 import { makeQuiz } from './vocab-quiz';
 import { getLesson, getVocabSet, listLessons, listMistakes, listVocabSets, reviewMistake, updateMistake, updateWord } from './store';
 
@@ -18,6 +19,9 @@ export function mountStudyRoutes(api: Router, db: Db): void {
   api.get('/plan/today', async (req, res) => { res.json(await today(db, TodayQuery.parse(req.query).date)); });
   api.get('/plan', async (_req, res) => { res.json(await getPlan(db)); });
   api.patch('/plan/blocks/:id', async (req, res) => { res.json(await updateBlock(db, req.params.id, BlockPatch.parse(req.body ?? {}).status)); });
+
+  /* ---------- mastery ladders (Phase 12) ---------- */
+  api.get('/mastery', async (_req, res) => { res.json(await listMastery(db)); });
 
   api.get('/lessons', async (_req, res) => { res.json(await listLessons(db)); });
   api.get('/lessons/:id', async (req, res) => {
