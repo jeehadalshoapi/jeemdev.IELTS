@@ -515,8 +515,8 @@ describe('plan and picture tools (Phase 10)', () => {
     expect((await attemptWith(7.5)).mastery.stepStatus).toBe('passed');
     const list = await callTool(token, 'list_mastery', { ladder: 'W' });
     expect(list.data.ladders[0]).toMatchObject({ ladder: 'W', ladderTitle: 'Writing, one part at a time', current: 'w2-body' });
-    expect(list.data.ladders[0].steps[0]).toMatchObject({ status: 'passed', passesInARow: 2, attempts: 3 });
-    expect(list.data.ladders[0].steps[0].tests[0]).toMatchObject({ id: t.data.id });
+    expect(list.data.ladders[0].steps[0]).toMatchObject({ status: 'passed', passesInARow: 2 }); expect(list.data.ladders[0].steps[0].attempts).toHaveLength(3);
+    expect(list.data.ladders[0].steps[0].newestTest).toMatchObject({ id: t.data.id });
     // the test stays on the dashboard until the step is passed; then it is on the Done page
     expect((await json<DashboardResponse>(await me.get('/api/dashboard'))).assigned.map(x => x.id)).not.toContain(t.data.id);
 
@@ -532,5 +532,37 @@ describe('plan and picture tools (Phase 10)', () => {
     expect((await callTool(token, 'get_mastery_step', { id: 'w2-body' })).data.status).toBe('active');
     expect((await callTool(token, 'get_mastery_step', { id: 'nope' })).text).toContain('no mastery step');
     expect((await callTool(token, 'update_mastery_step', { id: 'w2-body' })).isError).toBe(true);
+  });
+  it('mastery: 31 tools; a new step counts attempts submitted before it existed; update with "changes"', async () => {
+    const list = await rpc(token, 'tools/list');
+    const names = ((list.body.result as { tools: Array<{ name: string }> }).tools).map(t => t.name);
+    expect(names).toEqual(expect.arrayContaining(['upsert_mastery_step', 'list_mastery', 'get_mastery_step', 'update_mastery_step']));
+    expect(names).toHaveLength(31);
+
+    const t = await callTool(token, 'create_test', { test: { ...exampleTestForType('tfng'), title: 'R1 early', masteryStepId: 'r1-word-box' } });
+    expect(t.data.warnings.join(' ')).toContain('no mastery step "r1-word-box"');
+    for (const ans of ['TRUE', 'TRUE', 'FALSE']) {
+      const { id } = await json<{ id: string }>(await me.post(`/api/tests/${t.data.id}/attempts`, { mode: 'practice' }));
+      await me.post(`/api/attempts/${id}/submit`, { answers: { q1: ans } });
+    }
+    const key = (await callTool(token, 'get_test', { id: t.data.id })).data.test.answerKey.q1.accept[0];
+    const up = await callTool(token, 'upsert_mastery_step', { steps: [
+      { id: 'r1-word-box', ladder: 'R', ladderTitle: 'Reading precision', order: 1, title: 'R1 Word box', task: '8-gap summary', lessonId: 'ref-reading', passRule: { minPercent: 85, inARow: 2 } },
+      { id: 'r2-tfng', ladder: 'R', order: 2, title: 'R2 T/F/NG', passRule: { minPercent: 85, inARow: 2 } }
+    ] });
+    expect(up.data.backfilledAttempts).toBe(3);
+    const passes = ['TRUE', 'TRUE', 'FALSE'].map(a => a === key);
+    const r = (await callTool(token, 'list_mastery', { ladder: 'R' })).data.ladders[0];
+    expect(r.steps[0].attempts.map((x: { passed: boolean }) => x.passed)).toEqual(passes);
+    expect(r.steps[0]).toMatchObject({ task: '8-gap summary', passRule: { minPercent: 85, inARow: 2 }, newestTest: { id: t.data.id, url: expect.stringContaining(`#/test/${t.data.id}`) } });
+    expect(r.steps[0].status).toBe(passes[0] && passes[1] ? 'passed' : 'active');
+    // a test made now gets no warning
+    expect((await callTool(token, 'create_test', { test: { ...exampleTestForType('tfng'), title: 'R1 #2', masteryStepId: 'r1-word-box' } })).data.warnings).toEqual([]);
+
+    const u = await callTool(token, 'update_mastery_step', { id: 'r2-tfng', changes: { task: '8 statements', lessonId: 'ref-reading', passRule: { minPercent: 80, inARow: 3 } } });
+    expect(u.isError).toBe(false);
+    expect(u.data.step).toMatchObject({ task: '8 statements', lessonId: 'ref-reading', passRule: { minPercent: 80, inARow: 3 } });
+    expect((await callTool(token, 'update_mastery_step', { id: 'r2-tfng', changes: { passRule: { minBand: 7.3 } } })).isError).toBe(true);
+    expect((await callTool(token, 'get_mastery_step', { id: 'r1-word-box' })).data.tests[0].url).toContain('#/test/');
   });
 });
