@@ -351,3 +351,14 @@ export interface ConnectorResponse {
   /** apps that are connected now */
   connections: ConnectorConnection[];
 }
+
+/* ---------- Settings: username and password (Phase 13) ---------- */
+export const MIN_PASSWORD_LENGTH = 12;
+/** GET /api/account */
+export interface AccountResponse {
+  /** null = the login needs only the password */
+  username: string | null;
+  /** false = the password is still the one from the server's .env */
+  passwordSetOnSite: boolean;
+  passwordChangedAt: string | null;
+}

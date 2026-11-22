@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 const base = (process.argv[2] || 'http://localhost:3000').replace(/\/$/, '');
 const extra = process.argv.slice(3);
 const password = process.env.E2E_PASSWORD_FILE ? readFileSync(process.env.E2E_PASSWORD_FILE, 'utf8').trim() : process.env.E2E_PASSWORD || 'ielts-dev';
+const username = process.env.E2E_USERNAME || ''; // once a username is set on the Settings page
 const jar = new Map();
 const cookie = () => [...jar].map(([k, v]) => `${k}=${v}`).join('; ');
 async function call(path, opts = {}) {
@@ -28,7 +29,7 @@ const show = async (path, summarize) => {
 let ok = true;
 console.log(`${(await call('/api/dashboard')).status} /api/dashboard without login (expect 401/403)`);
 await call('/login');
-const login = await call('/api/auth/login', { method: 'POST', body: { password } });
+const login = await call('/api/auth/login', { method: 'POST', body: { password, ...(username ? { username } : {}) } });
 console.log(`${login.status} login`);
 ok &&= login.ok;
 ok &&= await show('/api/dashboard', d => `to do ${d.assigned?.length ?? '?'}, in progress ${d.inProgress?.length ?? '?'}, done ${d.doneCount ?? '?'}`);

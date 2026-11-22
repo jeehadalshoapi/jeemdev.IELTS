@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Server } from 'node:http';
 import { hashPassword } from '../src/auth/password';
-import { loadConfig } from '../src/config';
+import { loadConfig, type AppConfig } from '../src/config';
 import { openDatabase, type Database } from '../src/db/client';
 import { FileStore } from '../src/files/store';
 import { createApp } from '../src/http/app';
@@ -15,6 +15,7 @@ export interface TestServer {
   url: string;
   database: Database;
   fileStore: FileStore;
+  config: AppConfig;
   close(): Promise<void>;
 }
 
@@ -33,7 +34,7 @@ export async function startServer(): Promise<TestServer> {
   const server: Server = await new Promise(resolve => { const s = app.listen(0, () => resolve(s)); });
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   return {
-    url, database, fileStore,
+    url, database, fileStore, config,
     close: async () => {
       await new Promise(r => server.close(r));
       await database.close();

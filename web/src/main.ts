@@ -12,6 +12,7 @@ import { mountLesson, mountLessons } from './pages/lessons';
 import { mountMistakes } from './pages/mistakes';
 import { mountPlan } from './pages/plan';
 import { mountResult } from './pages/result';
+import { mountSettings } from './pages/settings';
 import { mountStart } from './pages/start';
 import { mountTests } from './pages/tests';
 import { mountVocab, mountVocabSet } from './pages/vocab';
@@ -51,6 +52,7 @@ async function render(): Promise<void> {
       else if (name === 'plan') await mountPlan(app);
       else if (name === 'done') await mountDone(app);
       else if (name === 'mastery') await mountMastery(app);
+      else if (name === 'settings') await mountSettings(app);
       else if (name === 'import') view = mountImport(app);
       else await mountDashboard(app);
     }

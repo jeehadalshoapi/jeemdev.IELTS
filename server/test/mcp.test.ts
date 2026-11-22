@@ -6,7 +6,7 @@ import { tokenVerifier } from '../src/mcp/oauth';
 import { applyChanges } from '../src/mcp/tools';
 import { SAMPLE_TEST_ID, seedSample } from '../src/seed';
 import { getTest } from '../src/tests/repository';
-import { Client, startServer, type TestServer } from './helpers';
+import { Client, PASSWORD, startServer, type TestServer } from './helpers';
 
 const CALLBACK = 'https://claude.ai/api/mcp/auth_callback';
 let srv: TestServer;
@@ -198,6 +198,18 @@ describe('OAuth', () => {
     const t = await connect();
     const config = await loadConfig({ adminPasswordHash: 'scrypt:16384:8:1:aaaa:bbbb' });
     await expect(tokenVerifier(srv.database.db, config).verifyAccessToken(t.access)).rejects.toThrow(/invalid, expired or revoked/);
+  });
+
+  it('a password changed on the Settings page disconnects Claude, and the new password connects again', async () => {
+    const t = await connect();
+    const changed = await me.post('/api/account/password', { currentPassword: PASSWORD, newPassword: 'settings page password' });
+    expect(changed.status).toBe(200);
+    expect((await rpc(t.access, 'tools/list')).status).toBe(401);
+    expect((await json(await tokenRequest({ grant_type: 'refresh_token', refresh_token: t.refresh, client_id: t.clientId }))).error).toBe('invalid_grant');
+    const again = await connect(); // `me` stayed logged in
+    expect((await rpc(again.access, 'tools/list')).status).toBe(200);
+    // put the test password back for the rest of this file
+    expect((await me.post('/api/account/password', { currentPassword: 'settings page password', newPassword: PASSWORD })).status).toBe(200);
   });
 
   it('the website lists the connection and can disconnect it', async () => {

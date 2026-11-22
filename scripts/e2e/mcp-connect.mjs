@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 
 const site = (process.argv[2] || 'http://localhost:3000').replace(/\/$/, '');
 const password = process.env.E2E_PASSWORD_FILE ? readFileSync(process.env.E2E_PASSWORD_FILE, 'utf8').trim() : (process.env.E2E_PASSWORD || 'ielts-dev');
+const username = process.env.E2E_USERNAME || ''; // once a username is set on the Settings page
 const CALLBACK = 'http://localhost:33418/callback';
 const jar = {};
 const cookie = () => Object.entries(jar).map(([k, v]) => `${k}=${v}`).join('; ');
@@ -18,7 +19,7 @@ const reg = await (await fetch(`${site}/oauth/register`, { method: 'POST', heade
 if (!reg.client_id) fail(`registration failed: ${JSON.stringify(reg)}`);
 
 keep(await fetch(`${site}/login`, { redirect: 'manual' }));
-const login = keep(await fetch(`${site}/api/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': decodeURIComponent(jar.ielts_csrf || ''), origin: site, cookie: cookie() }, body: JSON.stringify({ password }) }));
+const login = keep(await fetch(`${site}/api/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': decodeURIComponent(jar.ielts_csrf || ''), origin: site, cookie: cookie() }, body: JSON.stringify({ password, ...(username ? { username } : {}) }) }));
 if (!login.ok) fail(`login failed (${login.status})`);
 
 const verifier = randomBytes(32).toString('base64url');

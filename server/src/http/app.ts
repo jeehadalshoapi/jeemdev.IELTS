@@ -15,7 +15,7 @@ import { buildHistory } from '../attempts/history';
 import { deleteRecording, saveRecording, speechFor } from '../attempts/media';
 import { dashboardLists, doneLists } from '../attempts/lists';
 import { createAttempt, discardAttempt, getAttemptView, getResultView, isUuid, listAttemptSummaries, playDictation, saveAttempt } from '../attempts/service';
-import { verifyPassword } from '../auth/password';
+import { accountView, checkLogin, checkPassword, loadAccount, PasswordBody, setPassword, setUsername, UsernameBody } from '../auth/account';
 import { createSession, deleteSession, findSession, SESSION_COOKIE } from '../auth/sessions';
 import type { AppConfig } from '../config';
 import type { Database } from '../db/client';
@@ -66,8 +66,12 @@ export function createApp({ database, config, fileStore }: AppDeps) {
     res.status(ok ? 200 : 503).json({ ok, db: ok ? 'up' : 'down' });
   });
 
+  // the username / password set on the Settings page (read once, before the first request is answered)
+  const accountReady = loadAccount(db, config);
+
   // who is logged in?
   app.use(async (req: Request, res: Response, next: NextFunction) => {
+    await accountReady;
     res.locals.session = await findSession(db, parseCookies(req.headers.cookie)[SESSION_COOKIE], config.sessionDays);
     next();
   });
@@ -101,17 +105,18 @@ export function createApp({ database, config, fileStore }: AppDeps) {
   api.use(csrfProtection(config.publicOrigin));
   api.use(rateLimit({ name: 'api', windowMs: 60_000, max: 600 }));
 
-  api.get('/auth/me', (_req, res) => { res.json({ loggedIn: !!res.locals.session }); });
+  // the login page shows the Username box only once a username has been set
+  api.get('/auth/me', (_req, res) => { res.json({ loggedIn: !!res.locals.session, usernameRequired: !!config.adminUsername }); });
 
   const loginLimiter = new FailedLoginLimiter(10, 15 * 60_000);
   api.post('/auth/login', rateLimit({ name: 'login-requests', windowMs: 60_000, max: 30 }), async (req, res) => {
     loginLimiter.check(req.ip);
-    const { password } = z.object({ password: z.string().max(200) }).parse(req.body ?? {});
-    if (!(await verifyPassword(password, config.adminPasswordHash))) {
+    const { username, password } = z.object({ username: z.string().max(100).optional(), password: z.string().max(200) }).parse(req.body ?? {});
+    if (!(await checkLogin(config, username, password))) {
       loginLimiter.fail(req.ip);
       console.warn(`[auth] failed login from ${req.ip}`);
       await new Promise(r => setTimeout(r, 400));
-      throw new HttpError(401, 'wrong_password', 'Wrong password.');
+      throw new HttpError(401, 'wrong_password', config.adminUsername ? 'Wrong username or password.' : 'Wrong password.');
     }
     loginLimiter.succeed(req.ip);
     const { token } = await createSession(db, { days: config.sessionDays, userAgent: req.get('user-agent'), ...(req.ip ? { ip: req.ip } : {}) });
@@ -129,6 +134,33 @@ export function createApp({ database, config, fileStore }: AppDeps) {
   // everything below needs a session
   api.use((_req, res, next) => (res.locals.session ? next() : next(new HttpError(401, 'not_logged_in', 'Please log in.'))));
   api.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+
+  /* ---------- Settings: username and password (Phase 13) ---------- */
+  // a wrong current password counts towards the same lockout as the login page, and answers 403 (not 401: that would log the page out)
+  async function requireCurrentPassword(req: Request, password: string): Promise<void> {
+    loginLimiter.check(req.ip);
+    if (await checkPassword(config, password)) { loginLimiter.succeed(req.ip); return; }
+    loginLimiter.fail(req.ip);
+    console.warn(`[auth] wrong current password on the Settings page from ${req.ip}`);
+    await new Promise(r => setTimeout(r, 400));
+    throw new HttpError(403, 'wrong_password', 'Your current password is not right.');
+  }
+  api.get('/account', async (_req, res) => { res.json(await accountView(db, config)); });
+  api.post('/account/username', async (req, res) => {
+    const body = UsernameBody.parse(req.body ?? {});
+    await requireCurrentPassword(req, body.currentPassword);
+    const username = await setUsername(db, config, body.username);
+    console.log(`[auth] username ${username ? 'changed' : 'removed'} from ${req.ip}`);
+    res.json({ ok: true, ...(await accountView(db, config)) });
+  });
+  api.post('/account/password', async (req, res) => {
+    const body = PasswordBody.parse(req.body ?? {});
+    await requireCurrentPassword(req, body.currentPassword);
+    if (body.newPassword === body.currentPassword) throw new HttpError(400, 'same_password', 'The new password is the same as the current one.');
+    const { loggedOut } = await setPassword(db, config, body.newPassword, res.locals.session.id);
+    console.log(`[auth] password changed from ${req.ip}; ${loggedOut} other session(s) logged out`);
+    res.json({ ok: true, loggedOut, ...(await accountView(db, config)) });
+  });
 
   api.get('/dashboard', async (_req, res) => { res.json(await dashboardLists(db)); });
   api.get('/done', async (_req, res) => { res.json(await doneLists(db)); });

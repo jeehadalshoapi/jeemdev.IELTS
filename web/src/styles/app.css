@@ -825,3 +825,14 @@ a.stat-link:hover { border-color: var(--primary); }
   .tabs { order: 3; width: 100%; overflow-x: auto; scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
 }
+
+/* ---------- Settings (Phase 13) ---------- */
+.field[hidden] { display: none; }
+.settings-page .grid-2 { align-items: start; }
+.settings-now { margin: -6px 0 14px; color: var(--muted); }
+.settings-warn { margin: 0 0 14px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-size: 13.5px; }
+.settings-actions { display: flex; gap: 8px; }
+.settings-msg { margin: 12px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 14px; }
+.settings-msg.ok { background: var(--ok-soft); color: var(--ok); }
+.settings-msg.bad { background: var(--bad-soft); color: var(--danger); }
+.header-actions .btn.active { background: var(--surface-2); border-color: var(--line); }

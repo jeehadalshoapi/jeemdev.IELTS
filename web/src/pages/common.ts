@@ -50,6 +50,7 @@ export function appHeader(subtitle: string, back = false): HTMLElement {
       el('a', { href: '#/history', class: here === 'history' ? 'active' : '' }, 'History'),
       el('a', { href: '#/tests', class: here === 'tests' || here === 'import' ? 'active' : '' }, 'Tests')),
     el('div', { class: 'header-actions' },
+      el('a', { class: `btn btn-ghost btn-sm${here === 'settings' ? ' active' : ''}`, href: '#/settings', title: 'Settings: username and password', 'aria-label': 'Settings' }, '⚙ Settings'),
       el('button', {
         class: 'btn btn-ghost btn-sm', onclick: async () => {
           await api('/auth/logout', { method: 'POST', body: {} }).catch(() => {});
